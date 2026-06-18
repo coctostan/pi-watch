@@ -5,27 +5,27 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 1 (Tool-activation spike) UNIFY complete — PR #1 merge gate + phase transition next
+**Current focus:** Phase 2 (Sampler data contract) — ready to plan
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 01-tool-activation-spike
-Plan: 01-01 (type: research) — Complete (SUMMARY written)
-Status: UNIFY complete — phase transition / merge gate pending
-Last activity: 2026-06-18 — UNIFY 01-01: SUMMARY reconciled (AC-1..AC-4 Pass); PR #1 merge gate next
-Next action: Merge PR #1, then transition phase 01 → 02
+Phase: 02-sampler-data-contract
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-18 — Phase 1 complete (PR #1 merged), transitioned to Phase 2
+Next action: /paul:plan for Phase 2
 
 Progress:
-- Milestone: [░░░░░░░░░░] 0% (0 of ~9 phases)
-- Phase 1: UNIFY complete (merge gate + transition pending)
+- Milestone: [█░░░░░░░░░] ~11% (1 of ~9 phases)
+- Phase 1: ✅ complete (merged to main)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 1 reconciled — merge gate + transition pending]
+  ○        ○        ○     [Phase 1 closed; Phase 2 not started]
 ```
 
 ## Accumulated Context
@@ -45,13 +45,18 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — Phase 1 APPLY + UNIFY complete
-Stopped at: 01-01-SUMMARY.md written (AC-1..AC-4 Pass); awaiting PR #1 merge + phase transition
-Next action: Merge PR #1 (CI gate), then transition phase 01 → 02
-Resume file: (none — superseded by SUMMARY)
+Last session: 2026-06-18 — Phase 1 complete & merged; transitioned to Phase 2
+Stopped at: Phase 1 closed (PR #1 squash-merged to main); Phase 2 not started
+Next action: /paul:plan for Phase 2 (Sampler data contract)
+Resume file: .paul/ROADMAP.md
 Resume context:
-- Tool-activation risk fully de-risked; recipe documented in FINDINGS.md.
-- PR: https://github.com/coctostan/pi-watch/pull/1 (feature/01-tool-activation-spike → main).
+- Tool-activation risk fully de-risked; recipe in spikes/01-tool-activation/FINDINGS.md.
+- Phase-5 carry: ship `watch` as installed package + ensure it's in active loadout.
+
+### Git State
+Last commit: 7ea09aa (main)
+Branch: main
+Feature branches merged: feature/01-tool-activation-spike (PR #1, squash, deleted)
 
 ---
 *STATE.md — Updated after every significant action*

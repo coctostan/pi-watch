@@ -6,13 +6,13 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
 Status: In progress
-Phases: 0 of ~9 complete (Phase 1 UNIFY done — PR #1 merge + transition pending)
+Phases: 1 of ~9 complete (~11%) — Phase 2 ready to plan
 
 ## Phases
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
-| 1 | Tool-activation spike | 01-01 | UNIFY done (merge pending) | - |
+| 1 | Tool-activation spike | 01-01 | ✅ Complete | 2026-06-18 |
 | 2 | Sampler data contract | TBD | Not started | - |
 | 3 | Sampler implementation | TBD | Not started | - |
 | 4 | Router | TBD | Not started | - |

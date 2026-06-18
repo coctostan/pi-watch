@@ -10,11 +10,11 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.1.0 |
-| Status | Discovery / Onboarding |
+| Status | Phase 1 complete (tool-activation de-risked) |
 | Last Updated | 2026-06-18 |
 
 **Current system summary:**
-- Feasibility proven (2026-06-17). Two load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end. No production code yet — `DESIGN.md` is the build seed.
+- Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation. No production code yet — `DESIGN.md` is the build seed.
 
 ## Scope Snapshot
 ### Active
@@ -47,6 +47,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | WE own the sampling; model end is a thin OpenAI-compatible adapter | Native video and frame-sampling are the same mechanism underneath → local-vs-hosted becomes config, not code forks | 2026-06-18 | Active |
 | Build the `watch` tool as the primitive first; command + batch wrap it | Tool is the load-bearing seam every tier plugs into | 2026-06-18 | Active |
 | Qwen3-VL is the local tier-2 pick (vs Gemma ≈ frames) | Qwen3-VL has real temporal architecture (3D patch + temporal RoPE) that justifies a real local tier-2 | 2026-06-18 | Active |
+| Custom-tool activation works in all modes; print-mode is NOT limited | Phase 1 spike: official example + template fail identically under a `setActiveTools` governor (`pi-loadout`); all pass with `--no-extensions` | 2026-06-18 | Active |
+| Ship the real `watch` tool as an installed package and ensure it's in the active loadout | A `setActiveTools`-allowlist governor strips ad-hoc/`-e`-loaded tools from the model-facing set | 2026-06-18 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -56,4 +58,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-18 after Phase 1*
