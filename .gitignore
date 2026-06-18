@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# pi local config (machine-specific absolute paths)
+.pi/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
