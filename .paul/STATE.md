@@ -5,29 +5,30 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 3 (Sampler implementation) — COMPLETE (03-01 pure core + 03-02 effect boundary/sample() both unified); merge PR #4 then transition to Phase 4 (router)
+**Current focus:** Phase 4 (Router) — ready to plan. Phase 3 complete: sampler end-to-end (pure core + effect boundary + sample() entry point), merged to main.
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 03-sampler-implementation
-Plan: 03-02 (ffmpeg/ffprobe effect boundary + sample() entry point; type: execute)
-Status: UNIFY complete — loop closed; SUMMARY written; AC-1..5 PASS; awaiting PR #4 merge gate + phase transition
-Last activity: 2026-06-18 — UNIFY 03-02: SUMMARY written; effect boundary + sample() entry point reconciled; 48/48 suite, 0 vulns, no new deps; all 5 ACs PASS; 1 planned deferral (real transcript parsing)
-Next action: github-flow merge gate (merge PR #4) → phase 3 transition
+Phase: 04-router
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-18 — Phase 3 complete (03-01 + 03-02 unified, PR #4 merged 2f9f669); transitioned to Phase 4
+Next action: /paul:plan (Phase 4 — Router: tier-selection + escalation policy as a deterministically-tested unit)
 
 Progress:
-- Milestone: [██░░░░░░░░] ~22% (2 of ~9 phases; Phase 3 implementation complete, pending merge + transition)
-- Phase 1: ✅ complete (merged to main)
-- Phase 2: ✅ complete (02-01 unified; PR #2 merged)
-- Phase 3: ✅ implemented (03-01 + 03-02 unified; PR #4 pending merge)
+- Milestone: [███░░░░░░░] ~33% (3 of ~9 phases complete)
+- Phase 1: ✅ complete (PR #1 merged)
+- Phase 2: ✅ complete (02-01; PR #2 merged)
+- Phase 3: ✅ complete (03-01 + 03-02; PR #4 merged 2f9f669)
+- Phase 4: Router — not started
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 3: 03-02 unified; loop closed → merge gate + transition]
+  ○        ○        ○     [Phase 4: not started → /paul:plan next]
 ```
 
 ## Accumulated Context
@@ -51,22 +52,22 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — UNIFY Phase 3 plan 03-02 (effect boundary + sample() entry point)
-Stopped at: UNIFY complete; SUMMARY written; PR #4 open — next is merge gate + phase 3 transition
-Next action: merge PR #4 (github-flow gate) → transition phase 3 → /paul:plan (phase 4 router)
-Resume file: none (loop closed)
-wip_result: n/a (UNIFY artifacts commit with merge-gate step)
+Last session: 2026-06-18 — Phase 3 complete + transitioned to Phase 4 (Router)
+Stopped at: Phase 3 closed (03-02 UNIFY + PR #4 merged + transition done); Phase 4 ready to plan
+Next action: /paul:plan (Phase 4 — Router)
+Resume file: .paul/ROADMAP.md
+wip_result: n/a (all artifacts committed + merged)
 Resume context:
-- Phase 3 fully implemented across two plans: 03-01 pure sampler core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript) and 03-02 effect boundary (effects.ts: ffprobe/ffmpeg/transcript) + sample() entry point.
+- Phase 3 shipped the sampler end-to-end: 03-01 pure core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript) and 03-02 effect boundary (effects.ts: ffprobe/ffmpeg/transcript) + sample() entry point. Validated by a ffmpeg-lavfi golden-clip round-trip; 48/48 suite on main.
 - sample() is the stable, validator-guaranteed surface Phase 4 (router) and Phase 5 (watch tool) wrap. Effect fns + pure parsers exported for reuse.
-- Planned deferral: real caption/Whisper transcript parsing — fetchTranscript currently returns "none" (best-effort, never throws); a later tier-1/transcript plan fills it in without changing the seam.
-- Phase 3 complete (2 PLANs / 2 SUMMARYs) → after PR #4 merge, run phase transition, then /paul:plan for Phase 4 (router).
-- github-flow: Phase 2 PR #2 merged; 03-01 PR #3 squash-merged (82aff62); 03-02 on feature/03-02-sampler-effects → PR #4 OPEN (mergeable; Socket Security check).
+- Planned deferral: real caption/Whisper transcript parsing — fetchTranscript returns "none" (best-effort, never throws); a later tier-1/transcript plan fills it in without changing the seam.
+- Phase 4 (Router): tier-selection + escalation policy as its own deterministically-tested unit, routing over the WatchedFrameSet sample() produces (DESIGN §2, ROADMAP phase 4).
+- github-flow: all phases merged to main (PR #1/#2/#3/#4); on main, synced 0/0; no open PRs.
 
 ### Git State
-Last commit: 3cac4b1 (03-02 Task 3 tests, on feature/03-02-sampler-effects)
-Branch: feature/03-02-sampler-effects (PR #4 open → main; ahead 3 task commits + pending UNIFY metadata)
-Feature branches merged: feature/01-tool-activation-spike (PR #1), feature/02-sampler-data-contract (PR #2), feature/03-sampler-implementation (PR #3)
+Last commit: 2f9f669 (Phase 03-02 PR #4 squash-merge, on main)
+Branch: main (synced 0/0; feature/03-02-sampler-effects deleted on merge)
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669)
 
 ---
 *STATE.md — Updated after every significant action*

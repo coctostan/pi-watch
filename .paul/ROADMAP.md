@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
 Status: In progress
-Phases: 2 of ~9 complete (~22%) — Phase 3 (Sampler implementation) in progress (03-01 pure sampler core done; 03-02 effect boundary + sample() planned, ready for APPLY)
+Phases: 3 of ~9 complete (~33%) — Phase 3 (Sampler implementation) ✅ done; sampler is end-to-end (pure core + effect boundary + sample() entry point). Next: Phase 4 (Router).
 
 ## Phases
 
@@ -14,7 +14,7 @@ Phases: 2 of ~9 complete (~22%) — Phase 3 (Sampler implementation) in progress
 |-------|------|-------|--------|-----------|
 | 1 | Tool-activation spike | 01-01 | ✅ Complete | 2026-06-18 |
 | 2 | Sampler data contract | 02-01 | ✅ Complete | 2026-06-18 |
-| 3 | Sampler implementation | 03-01 ✅ + 03-02 📋 planned | 🛠️ In progress | - |
+| 3 | Sampler implementation | 03-01 ✅ + 03-02 ✅ | ✅ Complete | 2026-06-18 |
 | 4 | Router | TBD | Not started | - |
 | 5 | watch tool primitive | TBD | Not started | - |
 | 6 | Tier adapters | TBD | Not started | - |
