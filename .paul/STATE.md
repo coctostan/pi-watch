@@ -58,7 +58,7 @@ Resume context:
 - github-flow: Phase 2 PR #2 merged to main; on main, synced.
 
 ### Git State
-Last commit: (Phase 2 squash-merge on main — see PR #2)
+Last commit: a2c1a5b (Phase 2 squash-merge on main, PR #2)
 Branch: main (synced)
 Feature branches merged: feature/01-tool-activation-spike (PR #1), feature/02-sampler-data-contract (PR #2)
 
