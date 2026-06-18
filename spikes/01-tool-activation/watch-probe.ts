@@ -49,22 +49,25 @@ export default function watchProbeExtension(pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		const path = reportPath();
 		try {
-			const hasProbe = (tools: { name: string }[]) =>
-				tools.some((t) => t.name === "watch_probe");
+			// API shapes (verified empirically in this spike):
+			//   pi.getAllTools()    -> Array<{ name, description, parameters, ... }>
+			//   pi.getActiveTools() -> Array<string>   (tool NAMES, not objects)
+			const allNames = pi.getAllTools().map((t) => t.name);
+			const activeNamesBefore = pi.getActiveTools(); // string[]
 
 			const before = {
-				inAll: hasProbe(pi.getAllTools()),
-				inActive: hasProbe(pi.getActiveTools()),
+				inAll: allNames.includes("watch_probe"),
+				inActive: activeNamesBefore.includes("watch_probe"),
 			};
 
-			// Union the probe into the active set — never drop existing tools.
-			const currentActiveNames = pi.getActiveTools().map((t) => t.name);
-			const unionNames = Array.from(new Set([...currentActiveNames, "watch_probe"]));
+			// Activation attempt: union the existing active NAMES with watch_probe.
+			const unionNames = Array.from(new Set([...activeNamesBefore, "watch_probe"]));
 			pi.setActiveTools(unionNames);
 
+			const activeNamesAfter = pi.getActiveTools(); // string[]
 			const after = {
-				inAll: hasProbe(pi.getAllTools()),
-				inActive: hasProbe(pi.getActiveTools()),
+				inAll: pi.getAllTools().some((t) => t.name === "watch_probe"),
+				inActive: activeNamesAfter.includes("watch_probe"),
 			};
 
 			const report = {
@@ -73,8 +76,10 @@ export default function watchProbeExtension(pi: ExtensionAPI) {
 				timestamp: new Date().toISOString(),
 				before,
 				after,
-				allToolNames: pi.getAllTools().map((t) => t.name),
-				activeToolNames: pi.getActiveTools().map((t) => t.name),
+				allToolNames: allNames,
+				activeToolNamesBefore: activeNamesBefore,
+				unionNamesApplied: unionNames,
+				activeToolNamesAfter: activeNamesAfter,
 			};
 
 			mkdirSync(dirname(path), { recursive: true });
