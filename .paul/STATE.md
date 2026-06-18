@@ -52,11 +52,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — Phase 3 complete + transitioned to Phase 4 (Router)
-Stopped at: Phase 3 closed (03-02 UNIFY + PR #4 merged + transition done); Phase 4 ready to plan
-Next action: /paul:plan (Phase 4 — Router)
-Resume file: .paul/ROADMAP.md
-wip_result: n/a (all artifacts committed + merged)
+Last session: 2026-06-18 — paused at Phase 4 boundary (Phase 3 complete + transitioned)
+Stopped at: Phase 3 closed (03-02 UNIFY + PR #4 merged + transition done); Phase 4 not started, ready to plan
+Next action: /paul:plan (Phase 4 — Router: tier-selection + escalation policy as a deterministically-tested unit)
+Resume file: .paul/HANDOFF-2026-06-18-phase4-router-ready.md
+wip_result: skipped (no project changes; only untracked .codegraph/ tooling dir)
 Resume context:
 - Phase 3 shipped the sampler end-to-end: 03-01 pure core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript) and 03-02 effect boundary (effects.ts: ffprobe/ffmpeg/transcript) + sample() entry point. Validated by a ffmpeg-lavfi golden-clip round-trip; 48/48 suite on main.
 - sample() is the stable, validator-guaranteed surface Phase 4 (router) and Phase 5 (watch tool) wrap. Effect fns + pure parsers exported for reuse.
