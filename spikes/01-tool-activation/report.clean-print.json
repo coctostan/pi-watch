@@ -1,0 +1,44 @@
+{
+  "mode": "print",
+  "hasUI": false,
+  "timestamp": "2026-06-18T17:00:54.444Z",
+  "before": {
+    "inAll": true,
+    "inActive": true
+  },
+  "after": {
+    "inAll": true,
+    "inActive": true
+  },
+  "allToolNames": [
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "grep",
+    "find",
+    "ls",
+    "watch_probe"
+  ],
+  "activeToolNamesBefore": [
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "watch_probe"
+  ],
+  "unionNamesApplied": [
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "watch_probe"
+  ],
+  "activeToolNamesAfter": [
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "watch_probe"
+  ]
+}
