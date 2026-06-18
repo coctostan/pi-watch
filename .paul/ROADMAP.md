@@ -15,7 +15,7 @@ Phases: 3 of ~9 complete (~33%) — Phase 3 (Sampler implementation) ✅ done; s
 | 1 | Tool-activation spike | 01-01 | ✅ Complete | 2026-06-18 |
 | 2 | Sampler data contract | 02-01 | ✅ Complete | 2026-06-18 |
 | 3 | Sampler implementation | 03-01 ✅ + 03-02 ✅ | ✅ Complete | 2026-06-18 |
-| 4 | Router | TBD | Not started | - |
+| 4 | Router | 04-01 📝 | 📝 Planning | - |
 | 5 | watch tool primitive | TBD | Not started | - |
 | 6 | Tier adapters | TBD | Not started | - |
 | 7 | Config surface | TBD | Not started | - |
