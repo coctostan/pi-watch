@@ -12,3 +12,11 @@ export {
 	type SelectedFrame,
 	type SelectOptions,
 } from "./select-frames.js";
+
+export {
+	formatTimestamp,
+	mergeTranscript,
+	assembleWatchedFrameSet,
+	type FrameImage,
+	type AssembleInput,
+} from "./assemble.js";
