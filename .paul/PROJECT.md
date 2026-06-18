@@ -10,13 +10,14 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.1.0 |
-| Status | Phase 3 complete (sampler implemented end-to-end: pure core + effect boundary + sample() entry point) |
+| Status | Phase 4 complete (router shipped: pure tier-selection + escalation-chain decision unit over the WatchedFrameSet) |
 | Last Updated | 2026-06-18 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
 - **Phase 2 (2026-06-18):** First production code shipped — the tier-neutral `WatchedFrameSet` data contract (TypeBox schemas + pure invariant validator) and a pure `toOpenAIContent()` serializer to the proven OpenAI `content[]` wire shape, on a Vitest + TypeBox toolchain. This is the seam every tier plugs into. `DESIGN.md` remains the build seed.
 - **Phase 3 (2026-06-18):** The sampler is implemented end-to-end. 03-01 shipped the pure decision/assembly core (`selectFrameTimes` scene-cut + gap-gated backfill + budget cap; `assembleWatchedFrameSet`; `mergeTranscript`). 03-02 added the explicit effect boundary (`effects.ts`: ffprobe duration, ffmpeg scene detection + per-time PNG decode, best-effort transcript) and the **`sample()` entry point** that composes them into a validated `WatchedFrameSet`. Proven by a ffmpeg-`lavfi` golden-clip round-trip. `sample()` is the single surface the router (Phase 4) and `watch` tool (Phase 5) will wrap. 48/48 tests, 0 vulns, no new deps; local-first (system ffmpeg/ffprobe, no required cloud/Whisper).
+- **Phase 4 (2026-06-18):** The **router** is shipped (`src/router/`) — a pure, deterministically-tested tier-selection decision unit (DESIGN §2). `classifyQuestion` + `route` + `routeContextFromSet` turn a question + transcript-availability context into an ordered tier escalation chain: spoken+transcript → `[1,2,3]`; spoken-no-transcript / visual / on-screen-text → `[2,3]`; on-screen-text triggers the high-res/OCR path; every chain terminates in tier 3 (universal fallback). "Route, don't answer": the router emits a decision; the `watch` tool (Phase 5) walks the chain and owns confidence-based escalation. 16 new route-asserting specs (48→64), 0 vulns, no new deps; contract + sampler imported as types only (untouched). PR #5 merged (f9c558f).
 
 ## Scope Snapshot
 ### Active
@@ -56,6 +57,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Pure Core, Explicit Effects: all sampler I/O isolated in `effects.ts`; decision/assembly core stays pure | Keeps the load-bearing selection logic deterministic + unit-testable; effects are spawn-only at the boundary | 2026-06-18 | Active |
 | Effect spawns use `execFile` arg-arrays only (no shell, no `ref` interpolation) with per-call timeouts | `ref` is caller-supplied → command-injection-safe and bounded by construction | 2026-06-18 | Active |
 | `sample()` is the single sampler surface; transcript ships best-effort ("none" fallback) for now | One stable, validator-guaranteed entry point downstream wraps; real caption/Whisper parsing is a deferred extension point that won't change the seam | 2026-06-18 | Active |
+| Router is a pure decision unit that emits an ordered tier chain, not an answer ("route, don't answer") | Separates "which path" (pure, deterministically testable) from "run the path + decide if it worked" (effectful, model-dependent); routing is the PRD's un-de-risked hard part so it gets its own test surface | 2026-06-18 | Active |
+| On-screen-text intent is classified before spoken (keyword precedence) | OCR phrasing ("what does the sign say") embeds spoken keywords; the high-res path must win | 2026-06-18 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -65,4 +68,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-18 after Phase 3*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-18 after Phase 4*

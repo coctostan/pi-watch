@@ -5,30 +5,31 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 4 (Router) — 04-01 UNIFIED; pure tier-selection + escalation-chain decision unit shipped. Awaiting PR #5 merge gate before Phase 5.
+**Current focus:** Phase 5 (watch tool primitive) — ready to plan. Wire video ref + question → sample() → route() → walk the tier chain → answer. Phases 1–4 complete and merged to main.
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 04-router
-Plan: 04-01 (.paul/phases/04-router/04-01-PLAN.md)
-Status: Unified — phase complete; PR #5 merge gate pending
-Last activity: 2026-06-18 — Phase 4 UNIFY complete (04-01 Router: SUMMARY written, all 5 ACs PASS, suite 48→64; CODI+QUALITY rows appended)
-Next action: merge PR #5 → main, then transition to Phase 5 (watch tool primitive) and /paul:plan
+Phase: 05-watch-tool-primitive
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-18 — Phase 4 complete (04-01 Router unified, PR #5 merged f9c558f); transitioned to Phase 5
+Next action: /paul:plan (Phase 5 — watch tool primitive: ref + question → sample() → route() → answer)
 
 Progress:
-- Milestone: [███░░░░░░░] ~33% (3 of ~9 phases complete)
+- Milestone: [████░░░░░░] ~44% (4 of ~9 phases complete)
 - Phase 1: ✅ complete (PR #1 merged)
 - Phase 2: ✅ complete (02-01; PR #2 merged)
 - Phase 3: ✅ complete (03-01 + 03-02; PR #4 merged 2f9f669)
-- Phase 4: Router — ✅ unified (04-01; 64/64 green), PR #5 merge gate pending
+- Phase 4: ✅ complete (04-01 Router; PR #5 merged f9c558f; 64/64 green)
+- Phase 5: watch tool primitive — not started
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 4: 04-01 complete → merge PR #5, then Phase 5]
+  ○        ○        ○     [Phase 5: not started → /paul:plan next]
 ```
 
 ## Accumulated Context
@@ -42,6 +43,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (Phase 2) `WatchedFrameSet` is tier-neutral; OpenAI `content[]` serialization isolated in `serialize.ts`.
 - (Phase 3) Sampler backfill is gap-gated/cadence-aware (not flat fill-to-budget); budget cap uniformly subsamples scene cuts (never first-N truncation).
 - (Phase 3) Sampler core is a pure decision layer; ffmpeg/ffprobe/transcript-fetch effects deferred to plan 03-02.
+- (Phase 4) Router is a pure decision unit that emits an ordered tier chain ("route, don't answer"); the watch tool walks it + owns confidence-based escalation. Policy: spoken+transcript → [1,2,3]; else → [2,3]; on-screen-text → resolution "high"; every chain ends in tier 3.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -52,22 +54,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — Phase 4 APPLY complete (04-01 Router)
-Stopped at: 04-01 applied — router + specs committed (502d5ec, 21c00c5) on branch phase-04-router; pushed; PR #5 open; STATE → APPLY ✓; awaiting UNIFY
-Next action: /paul:unify .paul/phases/04-router/04-01-PLAN.md (Phase 4 — Router)
-Resume file: .paul/phases/04-router/04-01-PLAN.md
-wip_result: skipped (no project changes; only untracked .codegraph/ tooling dir)
+Last session: 2026-06-18 — Phase 4 complete + transitioned to Phase 5
+Stopped at: Phase 4 (Router) closed end-to-end — 04-01 unified, PR #5 merged (f9c558f), phase transition done (PROJECT/ROADMAP/STATE evolved, handoff archived)
+Next action: /paul:plan (Phase 5 — watch tool primitive)
+Resume file: .paul/ROADMAP.md
 Resume context:
-- Phase 3 shipped the sampler end-to-end: 03-01 pure core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript) and 03-02 effect boundary (effects.ts: ffprobe/ffmpeg/transcript) + sample() entry point. Validated by a ffmpeg-lavfi golden-clip round-trip; 48/48 suite on main.
-- sample() is the stable, validator-guaranteed surface Phase 4 (router) and Phase 5 (watch tool) wrap. Effect fns + pure parsers exported for reuse.
-- Planned deferral: real caption/Whisper transcript parsing — fetchTranscript returns "none" (best-effort, never throws); a later tier-1/transcript plan fills it in without changing the seam.
-- Phase 4 PLAN (04-01): pure `src/router/` decision unit — `classifyQuestion` + `route` + `routeContextFromSet`. Policy: spoken+transcript → [1,2,3]; spoken-no-transcript/visual/on-screen-text → [2,3]; on-screen-text → resolution "high"; every chain ends in tier 3 (universal fallback). 2 tasks (impl + deterministic route specs), no new deps, contract+sampler frozen (import types only).
-- github-flow: prior phases merged to main (PR #1/#2/#3/#4); Phase 4 on branch phase-04-router, PR #5 OPEN (CI = Socket Security pending; no project ci.yml yet). UNIFY owns merge readiness + the .paul/ lifecycle commit (PLAN/STATE/ROADMAP still uncommitted).
+- Phases 1–4 complete and merged to main (suite 64/64 green; 0 vulns; no runtime deps beyond typebox). On main, synced 0/0, no open PRs.
+- The two surfaces Phase 5 wraps: `sample(opts)` → validated `WatchedFrameSet` (src/sampler), and `route({question, context})` → `RoutingDecision` with an ordered `tiers` chain (src/router). Bridge: `routeContextFromSet(set)` → `RouteContext`.
+- Phase 5 (watch tool primitive): wire a video ref + question → sample() → routeContextFromSet → route() → walk the tier chain → answer, exposed as a pi custom tool. ⚠️ Carry the Phase-1 activation finding: ship `watch` as an installed package + ensure it's in the active loadout (a setActiveTools governor strips ad-hoc/-e tools). Tier *adapters* themselves are Phase 6 — Phase 5 may need a thin seam/stub to return an answer; clarify scope at plan time.
+- Import, don't modify: src/contract/*, src/sampler/*, src/router/* are stable surfaces. Transcript still ships "none" (best-effort) until a real caption/Whisper plan lands.
+- DAVE advisory carry: still no .github/workflows/ci.yml — only Socket Security runs on PRs. Consider adding CI as a separate change.
 
 ### Git State
-Last commit: 21c00c5 (Phase 04-01 Task 2 test, on branch phase-04-router)
-Branch: phase-04-router (PR #5 open → main; ahead by 2 commits 502d5ec, 21c00c5)
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669)
+Last commit: f9c558f (Phase 04 Router PR #5 squash-merge, on main)
+Branch: main (synced 0/0; no open PRs)
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f)
 
 ---
 *STATE.md — Updated after every significant action*
