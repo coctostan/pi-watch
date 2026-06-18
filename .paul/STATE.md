@@ -5,28 +5,29 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 3 (Sampler implementation) — 03-01 UNIFY complete (pure sampler core); next plan 03-02 (ffmpeg effect boundary)
+**Current focus:** Phase 3 (Sampler implementation) — COMPLETE (03-01 pure core + 03-02 effect boundary/sample() both unified); merge PR #4 then transition to Phase 4 (router)
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
 Phase: 03-sampler-implementation
-Plan: 03-01 (Sampler core — pure frame-selection + assembly; type: tdd)
-Status: UNIFY complete — loop closed; PR #3 merged to main
-Last activity: 2026-06-18 — UNIFY 03-01: SUMMARY written; pure sampler core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript), 26 new specs, 38/38 suite, AC-1..5 PASS, 0 vulns
-Next action: /paul:plan (Phase 3 plan 03-02 — ffmpeg/ffprobe/transcript effect boundary + sample() entry point)
+Plan: 03-02 (ffmpeg/ffprobe effect boundary + sample() entry point; type: execute)
+Status: UNIFY complete — loop closed; SUMMARY written; AC-1..5 PASS; awaiting PR #4 merge gate + phase transition
+Last activity: 2026-06-18 — UNIFY 03-02: SUMMARY written; effect boundary + sample() entry point reconciled; 48/48 suite, 0 vulns, no new deps; all 5 ACs PASS; 1 planned deferral (real transcript parsing)
+Next action: github-flow merge gate (merge PR #4) → phase 3 transition
 
 Progress:
-- Milestone: [██░░░░░░░░] ~22% (2 of ~9 phases)
+- Milestone: [██░░░░░░░░] ~22% (2 of ~9 phases; Phase 3 implementation complete, pending merge + transition)
 - Phase 1: ✅ complete (merged to main)
 - Phase 2: ✅ complete (02-01 unified; PR #2 merged)
+- Phase 3: ✅ implemented (03-01 + 03-02 unified; PR #4 pending merge)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 3: 03-01 unified; loop closed → plan 03-02 next]
+  ✓        ✓        ✓     [Phase 3: 03-02 unified; loop closed → merge gate + transition]
 ```
 
 ## Accumulated Context
@@ -50,20 +51,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — APPLY+UNIFY Phase 3 plan 03-01 (pure sampler core, type: tdd); paused after merge
-Stopped at: 03-01 loop closed and merged (PR #3 squashed to main); paused before planning 03-02
-Next action: /paul:plan (Phase 3 plan 03-02 — ffmpeg/ffprobe/transcript effect boundary + sample() entry point)
-Resume file: .paul/HANDOFF-2026-06-18-phase3-02-ready.md
-wip_result: skipped (clean tree; on main, synced 0/0)
+Last session: 2026-06-18 — UNIFY Phase 3 plan 03-02 (effect boundary + sample() entry point)
+Stopped at: UNIFY complete; SUMMARY written; PR #4 open — next is merge gate + phase 3 transition
+Next action: merge PR #4 (github-flow gate) → transition phase 3 → /paul:plan (phase 4 router)
+Resume file: none (loop closed)
+wip_result: n/a (UNIFY artifacts commit with merge-gate step)
 Resume context:
-- 03-01 shipped the pure deterministic sampler core: selectFrameTimes (scene-cut + gap-gated cadence-aware backfill + budget-cap uniform subsample), mergeTranscript, assembleWatchedFrameSet → produces values that pass validateWatchedFrameSet. 26 new specs, 38/38 suite, AC-1..5 PASS, 0 vulns, no new deps.
-- Key 03-01 decision: backfill is gap-gated/cadence-aware (grid step = lower-median inter-cut gap for >=2 cuts; durationMs/budget for 0/1), not flat fill-to-budget — resolves the dense-vs-sparse example tension.
-- 03-02 (next): ffmpeg scene-detect + ffprobe duration + yt-dlp/Whisper transcript fetch + frame decode behind the effect boundary, plus the sample() entry point and live golden-clip round-trips. ffmpeg/ffprobe/yt-dlp confirmed present on this machine.
-- github-flow: Phase 2 PR #2 merged; 03-01 PR #3 squash-merged to main (82aff62); feature branch deleted; on main, synced.
+- Phase 3 fully implemented across two plans: 03-01 pure sampler core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript) and 03-02 effect boundary (effects.ts: ffprobe/ffmpeg/transcript) + sample() entry point.
+- sample() is the stable, validator-guaranteed surface Phase 4 (router) and Phase 5 (watch tool) wrap. Effect fns + pure parsers exported for reuse.
+- Planned deferral: real caption/Whisper transcript parsing — fetchTranscript currently returns "none" (best-effort, never throws); a later tier-1/transcript plan fills it in without changing the seam.
+- Phase 3 complete (2 PLANs / 2 SUMMARYs) → after PR #4 merge, run phase transition, then /paul:plan for Phase 4 (router).
+- github-flow: Phase 2 PR #2 merged; 03-01 PR #3 squash-merged (82aff62); 03-02 on feature/03-02-sampler-effects → PR #4 OPEN (mergeable; Socket Security check).
 
 ### Git State
-Last commit: 82aff62 (Phase 03-01 squash-merge on main, PR #3)
-Branch: main (synced 0/0; feature/03-sampler-implementation deleted)
+Last commit: 3cac4b1 (03-02 Task 3 tests, on feature/03-02-sampler-effects)
+Branch: feature/03-02-sampler-effects (PR #4 open → main; ahead 3 task commits + pending UNIFY metadata)
 Feature branches merged: feature/01-tool-activation-spike (PR #1), feature/02-sampler-data-contract (PR #2), feature/03-sampler-implementation (PR #3)
 
 ---
