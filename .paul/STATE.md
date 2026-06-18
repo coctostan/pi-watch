@@ -5,27 +5,28 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 2 (Sampler data contract) — ready to plan
+**Current focus:** Phase 2 (Sampler data contract) — plan 02-01 created, APPLY next
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
 Phase: 02-sampler-data-contract
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-18 — Phase 1 complete (PR #1 merged), transitioned to Phase 2
-Next action: /paul:plan for Phase 2
+Plan: 02-01 (Sampler data contract) — created, awaiting approval
+Status: Planned (PLAN ✓); checkpoint:decision on toolchain pending at APPLY
+Last activity: 2026-06-18 — Phase 2 plan 02-01 created
+Next action: /paul:apply .paul/phases/02-sampler-data-contract/02-01-PLAN.md
 
 Progress:
 - Milestone: [█░░░░░░░░░] ~11% (1 of ~9 phases)
 - Phase 1: ✅ complete (merged to main)
+- Phase 2: 📋 planned (02-01) — not yet applied
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 1 closed; Phase 2 not started]
+  ✓        ○        ○     [Phase 2 plan 02-01 created; APPLY next]
 ```
 
 ## Accumulated Context
@@ -45,16 +46,18 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — Phase 1 complete & merged; transitioned to Phase 2
-Stopped at: Phase 1 closed (PR #1 squash-merged to main); Phase 2 not started
-Next action: /paul:plan for Phase 2 (Sampler data contract)
-Resume file: .paul/ROADMAP.md
+Last session: 2026-06-18 — created Phase 2 plan 02-01 (sampler data contract)
+Stopped at: PLAN ✓ for Phase 2; APPLY not started (awaiting approval)
+Next action: /paul:apply .paul/phases/02-sampler-data-contract/02-01-PLAN.md
+Resume file: .paul/HANDOFF-2026-06-18-phase2-ready.md (consumed — plan now exists)
+wip_result: skipped (clean tree; untracked spike report JSONs only)
 Resume context:
-- Tool-activation risk fully de-risked; recipe in spikes/01-tool-activation/FINDINGS.md.
-- Phase-5 carry: ship `watch` as installed package + ensure it's in active loadout.
+- Plan 02-01 bootstraps first production TS (package.json/tsconfig/test runner) + the WatchedFrameSet contract + toOpenAIContent serializer.
+- autonomous:false — Task 1 is a checkpoint:decision on the toolchain (recommended: Vitest + TypeBox) per AGENTS.md "ask before adding deps."
+- github-flow: APPLY should open a feature branch (e.g. feature/02-sampler-data-contract) → PR → CI gate before Phase 3.
 
 ### Git State
-Last commit: 7ea09aa (main)
+Last commit: 045bd03 (main)
 Branch: main
 Feature branches merged: feature/01-tool-activation-spike (PR #1, squash, deleted)
 

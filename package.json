@@ -1,0 +1,29 @@
+{
+  "name": "pi-watch",
+  "version": "0.1.0",
+  "description": "A pi extension that watches videos via the cheapest path that works (transcript \u2192 native video model \u2192 frames-into-context), local-first and model-agnostic.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/contract/index.js",
+  "types": "dist/contract/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "typebox": "^1.2.16"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.9"
+  }
+}

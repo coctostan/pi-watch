@@ -23,3 +23,7 @@ venv/
 # Build output
 dist/
 build/
+
+# Throwaway spike-generated activation reports (Phase 1 — not source)
+spikes/01-tool-activation/activation-report.json
+spikes/01-tool-activation/report.*.json
