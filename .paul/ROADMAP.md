@@ -5,14 +5,22 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
-Status: Not started
-Phases: 0 of TBD complete
+Status: In progress
+Phases: 0 of ~9 complete (Phase 1 UNIFY done — PR #1 merge + transition pending)
 
 ## Phases
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
-| 1 | TBD | TBD | Not started | - |
+| 1 | Tool-activation spike | 01-01 | UNIFY done (merge pending) | - |
+| 2 | Sampler data contract | TBD | Not started | - |
+| 3 | Sampler implementation | TBD | Not started | - |
+| 4 | Router | TBD | Not started | - |
+| 5 | watch tool primitive | TBD | Not started | - |
+| 6 | Tier adapters | TBD | Not started | - |
+| 7 | Config surface | TBD | Not started | - |
+| 8 | /watch command | TBD | Not started | - |
+| 9 | Batching | TBD | Not started | - |
 
 ## Phase Details
 
