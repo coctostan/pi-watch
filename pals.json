@@ -27,13 +27,18 @@
     "implementer": { "enabled": true, "model": null }
   },
   "git": {
-    "workflow": "none",
-    "remote": null,
-    "branching": "feature-per-phase",
+    "workflow": "github-flow",
+    "remote": "https://github.com/coctostan/pi-watch.git",
+    "base_branch": "main",
+    "merge_method": "squash",
     "worktree_isolation": false,
-    "auto_push": false,
-    "auto_pr": false,
-    "ci_checks": false
+    "auto_push": true,
+    "auto_pr": true,
+    "ci_checks": true,
+    "delete_branch_on_merge": true,
+    "update_branch_when_behind": true,
+    "require_pr_before_next_phase": true,
+    "require_reviews": false
   },
   "integrations": {
     "sonarqube": { "enabled": false, "project_key": "" }

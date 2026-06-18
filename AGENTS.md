@@ -7,7 +7,7 @@ This project uses [PALS](https://github.com/coctostan/pals) — a project automa
 - **Lifecycle:** PLAN → APPLY → UNIFY loop
 - **State:** `.paul/STATE.md` tracks current position
 - **Commands:** `/paul:plan`, `/paul:apply`, `/paul:unify`, `/paul:fix`
-- **Git workflow:** none (not a git repo yet — run `git init` and update `pals.json` to enable)
+- **Git workflow:** GitHub Flow — feature branch per phase, PRs, CI gates, merge before next phase ([coctostan/pi-watch](https://github.com/coctostan/pi-watch))
 - **Active modules:** carl, codi, todd, walt, dean, iris, skip, dave, ruby, arch, seth, pete, gabe, luke, aria, dana, omar, reed, vera, docs, rev
 
 ## Boundaries
