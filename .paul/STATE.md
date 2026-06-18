@@ -5,16 +5,16 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 3 (Sampler implementation) — ready to plan (Phase 2 complete)
+**Current focus:** Phase 3 (Sampler implementation) — 03-01 UNIFY complete (pure sampler core); next plan 03-02 (ffmpeg effect boundary)
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
 Phase: 03-sampler-implementation
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-18 — Phase 2 complete (02-01 unified); transitioned to Phase 3
-Next action: /paul:plan for Phase 3 (Sampler implementation)
+Plan: 03-01 (Sampler core — pure frame-selection + assembly; type: tdd)
+Status: UNIFY complete — loop closed; merge gate pending
+Last activity: 2026-06-18 — UNIFY 03-01: SUMMARY written; pure sampler core (selectFrameTimes + assembleWatchedFrameSet + mergeTranscript), 26 new specs, 38/38 suite, AC-1..5 PASS, 0 vulns
+Next action: /paul:plan (Phase 3 plan 03-02 — ffmpeg/ffprobe/transcript effect boundary + sample() entry point) after PR #3 merges
 
 Progress:
 - Milestone: [██░░░░░░░░] ~22% (2 of ~9 phases)
@@ -26,7 +26,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 2 closed; Phase 3 ready to plan]
+  ✓        ✓        ✓     [Phase 3: 03-01 unified; loop closed → plan 03-02 next]
 ```
 
 ## Accumulated Context
@@ -38,6 +38,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - No mandatory Gemini/cloud dependency; local-first on Apple Silicon (M4 Pro, 48 GB).
 - (Phase 2) Toolchain = Vitest + TypeBox; one schema → static type + runtime validator.
 - (Phase 2) `WatchedFrameSet` is tier-neutral; OpenAI `content[]` serialization isolated in `serialize.ts`.
+- (Phase 3) Sampler backfill is gap-gated/cadence-aware (not flat fill-to-budget); budget cap uniformly subsamples scene cuts (never first-N truncation).
+- (Phase 3) Sampler core is a pure decision layer; ffmpeg/ffprobe/transcript-fetch effects deferred to plan 03-02.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -48,19 +50,20 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — completed Phase 2 (02-01 unified), transitioned to Phase 3, then paused
-Stopped at: Phase 2 complete; ready to plan Phase 3 (session paused)
-Next action: /paul:plan for Phase 3 (Sampler implementation)
-Resume file: .paul/HANDOFF-2026-06-18-phase3-ready.md
-wip_result: skipped (clean tree; on main, synced 0/0)
+Last session: 2026-06-18 — APPLY+UNIFY Phase 3 plan 03-01 (pure sampler core, type: tdd)
+Stopped at: 03-01 loop closed (SUMMARY written); PR #3 open on feature/03-sampler-implementation; merge gate pending
+Next action: merge PR #3 (UNIFY merge gate), then /paul:plan for 03-02
+Resume file: .paul/phases/03-sampler-implementation/03-01-SUMMARY.md
+wip_result: n/a (code committed per-task; metadata committed at UNIFY)
 Resume context:
-- Phase 2 shipped the WatchedFrameSet contract + pure toOpenAIContent serializer (tier-neutral; OpenAI shapes in serialize.ts) on the first production TS toolchain (Vitest + TypeBox). 12 tests, 0 vulns.
-- Phase 3 (sampler implementation) will PRODUCE WatchedFrameSet: ffmpeg scene-change + uniform backfill + budget cap + transcript merge, with golden-clip fixtures.
-- github-flow: Phase 2 PR #2 merged to main; on main, synced.
+- 03-01 shipped the pure deterministic sampler core: selectFrameTimes (scene-cut + gap-gated cadence-aware backfill + budget-cap uniform subsample), mergeTranscript, assembleWatchedFrameSet → produces values that pass validateWatchedFrameSet. 26 new specs, 38/38 suite, AC-1..5 PASS, 0 vulns, no new deps.
+- Key 03-01 decision: backfill is gap-gated/cadence-aware (grid step = lower-median inter-cut gap for >=2 cuts; durationMs/budget for 0/1), not flat fill-to-budget — resolves the dense-vs-sparse example tension.
+- 03-02 (next): ffmpeg scene-detect + ffprobe duration + yt-dlp/Whisper transcript fetch + frame decode behind the effect boundary, plus the sample() entry point and live golden-clip round-trips. ffmpeg/ffprobe/yt-dlp confirmed present on this machine.
+- github-flow: Phase 2 PR #2 merged; 03-01 code on feature/03-sampler-implementation, PR #3 open.
 
 ### Git State
-Last commit: a2c1a5b (Phase 2 squash-merge on main, PR #2)
-Branch: main (synced)
+Last commit: cd83265 (03-01 GREEN: assemble + surface) on feature/03-sampler-implementation
+Branch: feature/03-sampler-implementation (pushed; PR #3 open → main)
 Feature branches merged: feature/01-tool-activation-spike (PR #1), feature/02-sampler-data-contract (PR #2)
 
 ---
