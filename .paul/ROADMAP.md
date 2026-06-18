@@ -16,13 +16,19 @@ Phases: 0 of TBD complete
 
 ## Phase Details
 
-Phases will be defined during `/paul:plan`. The proposed build order from `DESIGN.md` §7 is a strong starting point:
-1. Sampler data contract (the "watched frame set" type)
-2. Sampler implementation (ffmpeg scene-change + backfill + transcript merge)
-3. `watch` tool primitive (resolve print-mode tool-activation gotcha)
-4. Tier adapters (1: transcript, 2: OpenAI-compat video, 3: frames → orchestrator)
-5. `/watch` command
-6. Batching (tiers 1/2 first; tier-3 fan-out deferred)
+Phases will be finalized during `/paul:plan`. The proposed order below is **risk-first** (prove the un-de-risked tool-activation assumption before building for it), then follows the DESIGN.md §7 build order. See `.paul/PRD.md` → Recommended Direction / Risks / Testing Strategy for rationale.
+
+1. **Tool-activation spike** — prove a `pi -e ext.ts`-registered `watch` tool actually runs (TUI/print mode) before building anything for it. ⚠️ only un-de-risked load-bearing assumption.
+2. **Sampler data contract** — the in-memory "watched frame set" type.
+3. **Sampler implementation** — ffmpeg scene-change + uniform backfill + transcript merge, with golden-clip fixtures.
+4. **Router** — tier-selection + escalation policy as its own deterministically-tested unit.
+5. **`watch` tool primitive** — video ref + question → sampler → router → answer.
+6. **Tier adapters** — tier 1 (transcript), tier 2 (OpenAI-compat video: local Qwen / hosted Gemini), tier 3 (frames → orchestrator `ImageContent`).
+7. **Config surface** — `baseURL`/`model id`, tier order, frame budget, resolution thresholds, transcript source.
+8. **`/watch` command** — UX wrapper over the tool.
+9. **Batching** — `Promise.all` over tiers 1/2; tier-3 subagent fan-out deferred.
+
+**Early architectural decision (resolve in/before phase 1):** standalone vs interop with pi-web-access / s2p2-agent (already does Gemini video) — see PRD Open Questions.
 
 ---
 *Roadmap created: 2026-06-18 10:13:09*

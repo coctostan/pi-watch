@@ -38,6 +38,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 
 ## Success Metrics
 - A working `watch` tool + `/watch` command that answers video questions via the cheapest applicable tier, with a local default (Qwen3-VL via mlx_vlm.server) and no required cloud key.
+- Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
 | Decision | Rationale | Date | Status |
