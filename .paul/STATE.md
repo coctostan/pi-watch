@@ -5,28 +5,28 @@
 See: .paul/PROJECT.md (updated 2026-06-18 10:13:09)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 2 (Sampler data contract) — plan 02-01 created, APPLY next
+**Current focus:** Phase 3 (Sampler implementation) — ready to plan (Phase 2 complete)
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 02-sampler-data-contract
-Plan: 02-01 (Sampler data contract) — created, awaiting approval
-Status: Planned (PLAN ✓); checkpoint:decision on toolchain pending at APPLY
-Last activity: 2026-06-18 — Phase 2 plan 02-01 created
-Next action: /paul:apply .paul/phases/02-sampler-data-contract/02-01-PLAN.md
+Phase: 03-sampler-implementation
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-18 — Phase 2 complete (02-01 unified); transitioned to Phase 3
+Next action: /paul:plan for Phase 3 (Sampler implementation)
 
 Progress:
-- Milestone: [█░░░░░░░░░] ~11% (1 of ~9 phases)
+- Milestone: [██░░░░░░░░] ~22% (2 of ~9 phases)
 - Phase 1: ✅ complete (merged to main)
-- Phase 2: 📋 planned (02-01) — not yet applied
+- Phase 2: ✅ complete (02-01 unified; PR #2 merged)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ○        ○     [Phase 2 plan 02-01 created; APPLY next]
+  ○        ○        ○     [Phase 2 closed; Phase 3 ready to plan]
 ```
 
 ## Accumulated Context
@@ -36,6 +36,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Build the `watch` tool as the primitive first; the `/watch` command and batching wrap it.
 - Qwen3-VL is the local tier-2 pick (real temporal architecture vs Gemma ≈ frames).
 - No mandatory Gemini/cloud dependency; local-first on Apple Silicon (M4 Pro, 48 GB).
+- (Phase 2) Toolchain = Vitest + TypeBox; one schema → static type + runtime validator.
+- (Phase 2) `WatchedFrameSet` is tier-neutral; OpenAI `content[]` serialization isolated in `serialize.ts`.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -46,20 +48,19 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — created Phase 2 plan 02-01 (sampler data contract)
-Stopped at: PLAN ✓ for Phase 2; APPLY not started (awaiting approval)
-Next action: /paul:apply .paul/phases/02-sampler-data-contract/02-01-PLAN.md
-Resume file: .paul/HANDOFF-2026-06-18-phase2-ready.md (consumed — plan now exists)
-wip_result: skipped (clean tree; untracked spike report JSONs only)
+Last session: 2026-06-18 — completed Phase 2 (02-01 unified), transitioned to Phase 3
+Stopped at: Phase 2 complete; ready to plan Phase 3
+Next action: /paul:plan for Phase 3 (Sampler implementation)
+Resume file: .paul/ROADMAP.md
 Resume context:
-- Plan 02-01 bootstraps first production TS (package.json/tsconfig/test runner) + the WatchedFrameSet contract + toOpenAIContent serializer.
-- autonomous:false — Task 1 is a checkpoint:decision on the toolchain (recommended: Vitest + TypeBox) per AGENTS.md "ask before adding deps."
-- github-flow: APPLY should open a feature branch (e.g. feature/02-sampler-data-contract) → PR → CI gate before Phase 3.
+- Phase 2 shipped the WatchedFrameSet contract + pure toOpenAIContent serializer (tier-neutral; OpenAI shapes in serialize.ts) on the first production TS toolchain (Vitest + TypeBox). 12 tests, 0 vulns.
+- Phase 3 (sampler implementation) will PRODUCE WatchedFrameSet: ffmpeg scene-change + uniform backfill + budget cap + transcript merge, with golden-clip fixtures.
+- github-flow: Phase 2 PR #2 merged to main; on main, synced.
 
 ### Git State
-Last commit: 045bd03 (main)
-Branch: main
-Feature branches merged: feature/01-tool-activation-spike (PR #1, squash, deleted)
+Last commit: (Phase 2 squash-merge on main — see PR #2)
+Branch: main (synced)
+Feature branches merged: feature/01-tool-activation-spike (PR #1), feature/02-sampler-data-contract (PR #2)
 
 ---
 *STATE.md — Updated after every significant action*
