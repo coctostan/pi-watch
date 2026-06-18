@@ -48,10 +48,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — completed Phase 2 (02-01 unified), transitioned to Phase 3
-Stopped at: Phase 2 complete; ready to plan Phase 3
+Last session: 2026-06-18 — completed Phase 2 (02-01 unified), transitioned to Phase 3, then paused
+Stopped at: Phase 2 complete; ready to plan Phase 3 (session paused)
 Next action: /paul:plan for Phase 3 (Sampler implementation)
-Resume file: .paul/ROADMAP.md
+Resume file: .paul/HANDOFF-2026-06-18-phase3-ready.md
+wip_result: skipped (clean tree; on main, synced 0/0)
 Resume context:
 - Phase 2 shipped the WatchedFrameSet contract + pure toOpenAIContent serializer (tier-neutral; OpenAI shapes in serialize.ts) on the first production TS toolchain (Vitest + TypeBox). 12 tests, 0 vulns.
 - Phase 3 (sampler implementation) will PRODUCE WatchedFrameSet: ffmpeg scene-change + uniform backfill + budget cap + transcript merge, with golden-clip fixtures.
