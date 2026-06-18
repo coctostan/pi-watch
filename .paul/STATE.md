@@ -50,11 +50,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-18 — APPLY+UNIFY Phase 3 plan 03-01 (pure sampler core, type: tdd)
-Stopped at: 03-01 loop closed and merged (PR #3 squashed to main); ready to plan 03-02
-Next action: /paul:plan for 03-02
-Resume file: .paul/phases/03-sampler-implementation/03-01-SUMMARY.md
-wip_result: n/a (code committed per-task; metadata committed at UNIFY)
+Last session: 2026-06-18 — APPLY+UNIFY Phase 3 plan 03-01 (pure sampler core, type: tdd); paused after merge
+Stopped at: 03-01 loop closed and merged (PR #3 squashed to main); paused before planning 03-02
+Next action: /paul:plan (Phase 3 plan 03-02 — ffmpeg/ffprobe/transcript effect boundary + sample() entry point)
+Resume file: .paul/HANDOFF-2026-06-18-phase3-02-ready.md
+wip_result: skipped (clean tree; on main, synced 0/0)
 Resume context:
 - 03-01 shipped the pure deterministic sampler core: selectFrameTimes (scene-cut + gap-gated cadence-aware backfill + budget-cap uniform subsample), mergeTranscript, assembleWatchedFrameSet → produces values that pass validateWatchedFrameSet. 26 new specs, 38/38 suite, AC-1..5 PASS, 0 vulns, no new deps.
 - Key 03-01 decision: backfill is gap-gated/cadence-aware (grid step = lower-median inter-cut gap for >=2 cuts; durationMs/budget for 0/1), not flat fill-to-budget — resolves the dense-vs-sparse example tension.
