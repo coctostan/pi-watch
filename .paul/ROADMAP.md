@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
 Status: In progress
-Phases: 4 of ~9 complete (~44%) — Phase 4 (Router) ✅ done; pure tier-selection decision unit routes over the WatchedFrameSet sample() produces. Next: Phase 5 (watch tool primitive).
+Phases: 5 of ~9 complete (~56%) — Phase 5 (watch tool primitive) ✅ done; `watch` pi tool wires sample→route→walkTierChain end-to-end, tier 3 (frames-into-context) live-verified, tiers 1–2 escalating Phase-6 seams. Next: Phase 6 (tier adapters).
 
 ## Phases
 
@@ -16,7 +16,7 @@ Phases: 4 of ~9 complete (~44%) — Phase 4 (Router) ✅ done; pure tier-selecti
 | 2 | Sampler data contract | 02-01 | ✅ Complete | 2026-06-18 |
 | 3 | Sampler implementation | 03-01 ✅ + 03-02 ✅ | ✅ Complete | 2026-06-18 |
 | 4 | Router | 04-01 ✅ | ✅ Complete | 2026-06-18 |
-| 5 | watch tool primitive | TBD | Not started | - |
+| 5 | watch tool primitive | 05-01 ✅ | ✅ Complete | 2026-06-19 |
 | 6 | Tier adapters | TBD | Not started | - |
 | 7 | Config surface | TBD | Not started | - |
 | 8 | /watch command | TBD | Not started | - |
