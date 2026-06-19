@@ -12,6 +12,11 @@
   "files": [
     "dist"
   ],
+  "pi": {
+    "extensions": [
+      "./dist/watch/extension.js"
+    ]
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.test.json",
@@ -20,6 +25,9 @@
   },
   "dependencies": {
     "typebox": "^1.2.16"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.79.8",
