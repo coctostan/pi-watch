@@ -2,34 +2,35 @@
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-06-19 after Phase 5)
+See: .paul/PROJECT.md (updated 2026-06-19 after Phase 6)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 6 (tier adapters) — plan 06-01 UNIFY complete (async seam + tier 1 transcript adapter). Tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) is next (Plan 06-02). Tier 3 already ships. Phases 1–5 complete and merged to main.
+**Current focus:** Phase 6 (tier adapters) complete and merged (all three tiers real). Next: Phase 7 (config surface) — typed baseURL/model/tier-order/budget config replacing the tier-2 env bridge. Phases 1–6 complete and merged to main.
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 06-tier-adapters
-Plan: 06-02 (tier-2 OpenAI-compatible video adapter) — APPLY complete, awaiting UNIFY
-Status: 06-02 APPLY done — tier-2 adapter implemented (src/watch/tier2.ts, option-a) + 16 specs; suite 93/93 green, typecheck+build clean, 0 vulns, 0 new deps. PR #8 open (Socket pending). Checkpoint Task 1 resolved → option-a (new tier2.ts; keeps tier-runner pure).
-Last activity: 2026-06-19 — applied 06-02 on feature/06-02-tier2-adapter (commits f5d9b1f feat, 08776b2 test); pushed; opened PR #8.
-Next action: /paul:unify for Phase 6 Plan 06-02
+Phase: 07-config-surface
+Plan: Not started
+Status: Ready to plan — Phase 6 complete (06-01 + 06-02 merged; all three tiers implemented; suite 93/93). Transitioned to Phase 7.
+Last activity: 2026-06-19 — Phase 6 complete: 06-02 merged (PR #8 → squash 0bd585a), main synced, branch deleted; transitioned to Phase 7.
+Next action: /paul:plan for Phase 7 (config surface)
 
 Progress:
-- Milestone: [█████░░░░░] ~56% (5 of ~9 phases complete)
+- Milestone: [██████░░░░] ~67% (6 of ~9 phases complete)
 - Phase 1: ✅ complete (PR #1 merged)
 - Phase 2: ✅ complete (02-01; PR #2 merged)
 - Phase 3: ✅ complete (03-01 + 03-02; PR #4 merged 2f9f669)
 - Phase 4: ✅ complete (04-01 Router; PR #5 merged f9c558f; 64/64 green)
 - Phase 5: ✅ complete (05-01; UNIFY closed; PR #6 merged d355a91; 73/73 green)
+- Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; all 3 tiers; 93/93 green)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [Phase 6 / tier-adapters: 06-02 APPLY done → UNIFY next; PR #8 open]
+  ○        ○        ○     [Phase 6 complete + merged (PR #8 → 0bd585a); Phase 7 not started — ready to /paul:plan]
 ```
 
 ## Accumulated Context
@@ -56,22 +57,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — UNIFY 06-02 closed (loop PLAN ✓ / APPLY ✓ / UNIFY ✓); tier 2 shipped, all tiers implemented
-Stopped at: 06-02 SUMMARY written; awaiting UNIFY merge gate on PR #8 (Socket only — no test/build CI)
-Next action: merge PR #8, then phase transition → /paul:plan Phase 7 (config surface)
-Resume file: .paul/phases/06-tier-adapters/06-02-SUMMARY.md
-wip_result: code per-task (f5d9b1f feat, 08776b2 test); 06-02 SUMMARY + STATE + ROADMAP pending metadata commit on feature/06-02-tier2-adapter
+Last session: 2026-06-19 — Phase 6 complete: 06-02 merged (PR #8 → 0bd585a), transitioned to Phase 7
+Stopped at: Phase 6 closed; on main; ready to plan Phase 7 (config surface)
+Next action: /paul:plan for Phase 7 (config surface)
+Resume file: .paul/ROADMAP.md
 Resume context:
-- Phase 6 = tier adapters: tier 1 (transcript) SHIPPED in 06-01; tier 3 (frames-into-context) already ships + live-verified. 06-02 implements tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) behind the stable `TierRunner` seam in src/watch/tier-runner.ts by replacing the tier2Runner stub.
-- Runners plug in by replacing the null stubs tier1Runner/tier2Runner in defaultRunners (null = escalate). REVISED in 06-01: the seam becomes async (`(args) => Promise<TierResult | null>`) and `extension.ts` must `await walkTierChain` — network I/O for tier 2 is unavoidably async, so the Phase-5 "no extension.ts change" note is superseded. Router chain policy: spoken+transcript → [1,2,3]; else → [2,3].
+- Phase 6 = tier adapters DONE: tier 1 (transcript, 06-01), tier 2 (OpenAI-compat video, 06-02 — src/watch/tier2.ts), tier 3 (frames-into-context) all implemented. `watch` answers via the cheapest tier or escalates to tier 3.
+- Phase 7 = config surface: replace the tier-2 env bridge (`resolveTier2ConfigFromEnv`, `WATCH_TIER2_*`) with a typed config (baseURL/model id/tier order/frame budget/resolution thresholds, optional API key, fetch timeout/AbortSignal). The adapter already takes a `Tier2Config`, so the seam is `createTier2Runner({ config })`.
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
-- Carries: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — no .github/workflows/ci.yml yet; (3) DOCS — `typebox` could move to peerDependencies.
-- State: on main (PR #7 merged → 5dbf603); suite 77/77 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/* are stable — import, don't modify. No test/build ci.yml yet (DAVE).
+- Carries: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (merge gate is Socket-only); (3) PETE — tier-2 `fetch` has no timeout/abort (fold into Phase-7 config); (4) DOCS — `typebox` could move to peerDependencies.
+- State: on main (PR #8 merged → 0bd585a); suite 93/93 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/*, src/watch/* are stable — import, don't modify casually.
 
 ### Git State
-Last commit: 5dbf603 (Phase 6 (06-01): async tier seam + tier 1 transcript adapter (#7), on main)
-Branch: main (synced 0/0 with origin/main); feature/06-tier-adapters merged + deleted
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603)
+Last commit: 0bd585a (Phase 6 (06-02): tier-2 OpenAI-compatible video adapter (#8), on main)
+Branch: main (synced 0/0 with origin/main); feature/06-02-tier2-adapter merged + deleted
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a)
 
 ---
 *STATE.md — Updated after every significant action*

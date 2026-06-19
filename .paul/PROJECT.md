@@ -10,7 +10,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.1.0 |
-| Status | Phase 5 complete (watch tool primitive shipped: `watch` pi tool wires sample→route→walkTierChain end-to-end; tier 3 frames-into-context live-verified; tiers 1–2 escalating Phase-6 seams) |
+| Status | Phase 6 complete (all three tiers implemented: 1 transcript passthrough, 2 OpenAI-compatible native-video adapter, 3 frames-into-context; `watch` answers via the cheapest path or escalates). Next: Phase 7 config surface. |
 | Last Updated | 2026-06-19 |
 
 **Current system summary:**
@@ -19,6 +19,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 3 (2026-06-18):** The sampler is implemented end-to-end. 03-01 shipped the pure decision/assembly core (`selectFrameTimes` scene-cut + gap-gated backfill + budget cap; `assembleWatchedFrameSet`; `mergeTranscript`). 03-02 added the explicit effect boundary (`effects.ts`: ffprobe duration, ffmpeg scene detection + per-time PNG decode, best-effort transcript) and the **`sample()` entry point** that composes them into a validated `WatchedFrameSet`. Proven by a ffmpeg-`lavfi` golden-clip round-trip. `sample()` is the single surface the router (Phase 4) and `watch` tool (Phase 5) will wrap. 48/48 tests, 0 vulns, no new deps; local-first (system ffmpeg/ffprobe, no required cloud/Whisper).
 - **Phase 4 (2026-06-18):** The **router** is shipped (`src/router/`) — a pure, deterministically-tested tier-selection decision unit (DESIGN §2). `classifyQuestion` + `route` + `routeContextFromSet` turn a question + transcript-availability context into an ordered tier escalation chain: spoken+transcript → `[1,2,3]`; spoken-no-transcript / visual / on-screen-text → `[2,3]`; on-screen-text triggers the high-res/OCR path; every chain terminates in tier 3 (universal fallback). "Route, don't answer": the router emits a decision; the `watch` tool (Phase 5) walks the chain and owns confidence-based escalation. 16 new route-asserting specs (48→64), 0 vulns, no new deps; contract + sampler imported as types only (untouched). PR #5 merged (f9c558f).
 - **Phase 5 (2026-06-19):** The load-bearing **`watch` pi tool primitive** is shipped (`src/watch/`). `tier-runner.ts` is the pure, pi-free walk core (`walkTierChain` consumes `RoutingDecision.tiers`; `framesToToolResultContent` serializes frames to tool-result `ImageContent`); `extension.ts` is the thin effect boundary that registers `watch` (synchronous `registerTool`, mandatory `promptSnippet` — Phase-1 recipe) and composes `sample() → routeContextFromSet() → route() → walkTierChain()`. **Tier 3 (frames-into-context) is fully implemented and live-verified** (model read red→green→blue scene order from returned frames under `pi --no-extensions -e`), proving tool-result images reach the orchestrator; tiers 1–2 are null-returning `TierRunner` stubs that escalate (real adapters = Phase 6). Package declares `"pi": { extensions: ["./dist/watch/extension.js"] }`. 9 new specs (64→73), 0 vulns; one types-only dep added (`@earendil-works/pi-coding-agent`, peerDependencies "*" + devDep pin); contract/sampler/router imported, untouched. PR #6 merged (d355a91).
+- **Phase 6 (2026-06-19):** All three **tier adapters** are real. 06-01 made the `TierRunner` seam async (`walkTierChain` awaits each runner) and shipped tier 1 (transcript passthrough: hands the mm:ss transcript to the orchestrator, else escalates). 06-02 shipped tier 2 (`src/watch/tier2.ts`) — the OpenAI-compatible native-video adapter: pure `buildTier2Request` (serializes frames as ordered `image_url` blocks + text via `toOpenAIContent`) + defensive `parseTier2Answer` + an isolated env-bridge config (`resolveTier2ConfigFromEnv`, `WATCH_TIER2_*`) + an injectable `createTier2Runner`. Adapter = `baseURL` + `model id` (one path for local Qwen3-VL via mlx_vlm.server or a hosted endpoint; no per-model forks); returns `null` on missing config / non-2xx / network error / empty answer so the chain falls through to tier 3. Zero new deps (Node ≥20 global `fetch`); suite 93/93 green. Tier-2 config surface deferred to Phase 7.
 
 ## Scope Snapshot
 ### Active
@@ -50,7 +51,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Layered artifact model (`PROJECT.md` + `PRD.md`) adopted at init | Keep hot-path context concise while preserving deeper product definition | 2026-06-18 | Active |
 | WE own the sampling; model end is a thin OpenAI-compatible adapter | Native video and frame-sampling are the same mechanism underneath → local-vs-hosted becomes config, not code forks | 2026-06-18 | Active |
 | Build the `watch` tool as the primitive first; command + batch wrap it | Tool is the load-bearing seam every tier plugs into | 2026-06-18 | ✓ Validated (Phase 5) |
-| Qwen3-VL is the local tier-2 pick (vs Gemma ≈ frames) | Qwen3-VL has real temporal architecture (3D patch + temporal RoPE) that justifies a real local tier-2 | 2026-06-18 | Active |
+| Qwen3-VL is the local tier-2 pick (vs Gemma ≈ frames) | Qwen3-VL has real temporal architecture (3D patch + temporal RoPE) that justifies a real local tier-2 | 2026-06-18 | ✓ Validated (Phase 6) |
 | Custom-tool activation works in all modes; print-mode is NOT limited | Phase 1 spike: official example + template fail identically under a `setActiveTools` governor (`pi-loadout`); all pass with `--no-extensions` | 2026-06-18 | Active |
 | Ship the real `watch` tool as an installed package and ensure it's in the active loadout | A `setActiveTools`-allowlist governor strips ad-hoc/`-e`-loaded tools from the model-facing set | 2026-06-18 | Active |
 | Toolchain = Vitest + TypeBox | TypeBox matches the Phase-1 spike; one schema yields static type + runtime validator; Vitest is TS-native and CI-friendly | 2026-06-18 | Active |
@@ -63,6 +64,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | `watch` module = pure tier-walk core (`tier-runner.ts`, pi-free) + thin effect boundary (`extension.ts`) | Keeps the tier-walk/serialization logic unit-testable without the pi runtime or ffmpeg; effects (sample, registerTool) stay at the boundary | 2026-06-19 | Active |
 | `TierRunner` returns `null` to escalate; tier 3 is total (never null) | Uniform seam: Phase-6 tier 1/2 adapters drop in behind the same signature; the universal fallback can never fail to produce a result | 2026-06-19 | Active |
 | ExtensionAPI typed via real `@earendil-works/pi-coding-agent` (peerDependencies "*" + devDep pin), not a hand-rolled shim | docs name the package as the canonical type source; pi bundles it so consumers get host types; type-only import is erased at build (never runtime `dependencies`) | 2026-06-19 | Active |
+| (Phase 6) Effectful tier adapters live in their own module (`tier2.ts`); `tier-runner.ts` stays a pure walk core and only references the runner factory | Isolates the watch module's first network/env effect at the boundary; mirrors the serialize.ts/route.ts one-concern split; gives Phase 7 a clean config seam | 2026-06-19 | Active |
+| (Phase 6) Tier-2 config via isolated env bridge (`WATCH_TIER2_*`) for now; typed config surface deferred to Phase 7 | Keeps the adapter shippable + testable without pulling Phase-7 scope forward; the env read is a single swappable function | 2026-06-19 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -72,4 +75,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-19 after Phase 5*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-19 after Phase 6*
