@@ -29,6 +29,10 @@ export {
 	type TierRunner,
 } from "./tier-runner.js";
 
+// `resolveTier2ConfigFromEnv` + `Tier2Config` remain the low-level tier-2 env
+// building blocks. The typed configuration composition point is `src/config`
+// (resolveWatchConfig) — the extension boundary resolves it and feeds the
+// tier-2 runner + sample defaults.
 export {
 	createTier2Runner,
 	buildTier2Request,
