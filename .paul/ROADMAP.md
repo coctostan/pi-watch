@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
 Status: In progress
-Phases: 6 of ~9 complete (~67%) — Phase 6 (tier adapters) ✅ done; all three tiers implemented (1 transcript, 2 OpenAI-compat video, 3 frames-into-context). Now: Phase 7 (config surface) — plan 07-01 created, in planning/review.
+Phases: 7 of ~9 complete (~78%) — Phase 7 (config surface) ✅ done: typed `resolveWatchConfig` replaces the tier-2 env bridge, tier-2 fetch bounded by an AbortSignal timeout. All three tiers real + config-driven. Now: Phase 8 (`/watch` command).
 
 ## Phases
 

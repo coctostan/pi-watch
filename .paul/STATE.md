@@ -2,36 +2,36 @@
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-06-19 after Phase 6)
+See: .paul/PROJECT.md (updated 2026-06-19 after Phase 7)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 6 (tier adapters) complete and merged (all three tiers real). Next: Phase 7 (config surface) — typed baseURL/model/tier-order/budget config replacing the tier-2 env bridge. Phases 1–6 complete and merged to main.
+**Current focus:** Phase 7 (config surface) complete and merged (PR #9 → 7745f07) — typed config replaces the tier-2 env bridge; tier-2 fetch timeout added. Next: Phase 8 (`/watch` command). Phases 1–7 complete and merged to main.
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 07-config-surface
-Plan: 07-01 (config surface) — UNIFY complete (SUMMARY written); merge gate pending
-Status: UNIFY ✓ — AC-1/2/3 all PASS; 07-01-SUMMARY.md written. Typed config surface replaces the WATCH_TIER2_* env bridge; tier-2 fetch AbortSignal timeout added (PETE carry closed). Suite 105/105; 0 vulns; 0 new deps. PR #9 CI passing (Socket).
-Last activity: 2026-06-19 — /paul:unify reconciled 07-01 (SUMMARY + lifecycle writes); proceeding to GitHub Flow merge gate.
-Next action: Merge PR #9, then transition Phase 7 → Phase 8
+Phase: 08-watch-command
+Plan: Not started
+Status: Ready to plan — Phase 7 complete (07-01 merged; PR #9 → squash 7745f07; suite 105/105; main synced; branch deleted). Transitioned to Phase 8.
+Last activity: 2026-06-19 — Phase 7 complete: 07-01 merged, main synced, feature branch deleted; PROJECT/STATE/ROADMAP advanced to Phase 8.
+Next action: /paul:plan for Phase 8 (/watch command)
 
 Progress:
-- Milestone: [██████░░░░] ~67% (6 of ~9 phases complete)
+- Milestone: [███████░░░] ~78% (7 of ~9 phases complete)
 - Phase 1: ✅ complete (PR #1 merged)
 - Phase 2: ✅ complete (02-01; PR #2 merged)
 - Phase 3: ✅ complete (03-01 + 03-02; PR #4 merged 2f9f669)
 - Phase 4: ✅ complete (04-01 Router; PR #5 merged f9c558f; 64/64 green)
 - Phase 5: ✅ complete (05-01; UNIFY closed; PR #6 merged d355a91; 73/73 green)
 - Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; all 3 tiers; 93/93 green)
-- Phase 7: ✅ complete (07-01 config surface; suite 105/105; PR #9 — merging)
+- Phase 7: ✅ complete (07-01 config surface; suite 105/105; PR #9 merged 7745f07)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [UNIFY reconciled; SUMMARY written; merge gate + phase transition next]
+  ○        ○        ○     [Phase 7 complete + merged (PR #9 → 7745f07); Phase 8 not started — ready to /paul:plan]
 ```
 
 ## Accumulated Context
@@ -58,22 +58,22 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — /paul:plan for Phase 7: wrote 07-01-PLAN.md (typed config surface + tier-2 fetch timeout)
-Stopped at: Phase 7 plan created and awaiting review/approval; on main (synced 0/0); no feature branch yet
-Next action: Review 07-01-PLAN.md, then /paul:apply (Task 1 is a decision checkpoint: config source/precedence + module placement)
-Resume file: .paul/phases/07-config-surface/07-01-PLAN.md
-wip_result: skipped (clean tree; only untracked .codegraph/ cache)
+Last session: 2026-06-19 — completed the full PLAN→APPLY→UNIFY loop for Phase 7 (07-01 config surface); merged PR #9 and transitioned to Phase 8.
+Stopped at: Phase 7 complete + merged (PR #9 → 7745f07); on main (synced 0/0); feature branch deleted. Phase 8 not started.
+Next action: /paul:plan for Phase 8 (/watch command)
+Resume file: .paul/ROADMAP.md
+wip_result: n/a (loop closed; only untracked .codegraph/ cache)
 Resume context:
-- Phase 6 = tier adapters DONE: tier 1 (transcript, 06-01), tier 2 (OpenAI-compat video, 06-02 — src/watch/tier2.ts), tier 3 (frames-into-context) all implemented. `watch` answers via the cheapest tier or escalates to tier 3.
-- Phase 7 = config surface: replace the tier-2 env bridge (`resolveTier2ConfigFromEnv`, `WATCH_TIER2_*`) with a typed config (baseURL/model id/tier order/frame budget/resolution thresholds, optional API key, fetch timeout/AbortSignal). The adapter already takes a `Tier2Config`, so the seam is `createTier2Runner({ config })`.
+- Phases 1–7 complete + merged. All three tiers real (transcript / OpenAI-compat video / frames-into-context) AND config-driven: `src/config/resolveWatchConfig` resolves a typed `WatchConfig` (tier-2 endpoint, budget, resolution, fetch timeout) with precedence overrides > env > defaults; the extension boundary builds a config-driven tier-2 runner and applies budget/resolution defaults under per-call `WATCH_PARAMS`.
+- Phase 8 = `/watch` command: a UX wrapper over the `watch` tool primitive (DESIGN §7 build order step 5). Tool, sampler, router, tiers, and config are all in place to wrap.
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
-- Carries: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (merge gate is Socket-only); (3) PETE — tier-2 `fetch` has no timeout/abort (fold into Phase-7 config); (4) DOCS — `typebox` could move to peerDependencies.
-- State: on main (PR #8 merged → 0bd585a); suite 93/93 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/*, src/watch/* are stable — import, don't modify casually.
+- Carries: (1) installed `watch`/`/watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (merge gate is Socket-only) — consider a dedicated CI plan; (3) DOCS — `typebox` could move to peerDependencies; (4) deferred: file-based config + tier-order override (Phase-7 decision).
+- State: on main (PR #9 merged → 7745f07); suite 105/105 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/*, src/watch/*, src/config/* are stable — import, don't modify casually.
 
 ### Git State
-Last commit: 0bd585a (Phase 6 (06-02): tier-2 OpenAI-compatible video adapter (#8), on main)
-Branch: main (synced 0/0 with origin/main); feature/06-02-tier2-adapter merged + deleted
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a)
+Last commit: 7745f07 (Phase 7: typed config surface + tier-2 fetch timeout (#9), on main)
+Branch: main (synced 0/0 with origin/main); feature/07-config-surface merged + deleted
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07)
 
 ---
 *STATE.md — Updated after every significant action*
