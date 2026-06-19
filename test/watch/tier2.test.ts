@@ -272,6 +272,56 @@ describe("createTier2Runner — effectful runner with injected transport", () =>
 	});
 });
 
+// ── fetch timeout / abort (AC-3) ───────────────────────────────────────────────
+
+describe("createTier2Runner — fetch timeout / abort (AC-3)", () => {
+	it("passes an AbortSignal on init when timeoutMs is set", async () => {
+		const { impl, calls } = fakeFetch({
+			json: { choices: [{ message: { content: "ok" } }] },
+		});
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl, timeoutMs: 5000 });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result?.tier).toBe(2);
+		const init = calls[0]![1];
+		expect(init?.signal).toBeInstanceOf(AbortSignal);
+	});
+
+	it("does NOT attach a signal when timeoutMs is omitted (no behaviour change)", async () => {
+		const { impl, calls } = fakeFetch({
+			json: { choices: [{ message: { content: "ok" } }] },
+		});
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result?.tier).toBe(2);
+		expect(calls[0]![1]?.signal).toBeUndefined();
+	});
+
+	it("escalates (null) on an abort/timeout rejection without throwing (AC-3)", async () => {
+		// Simulate a timeout: fetch rejects with an AbortError when a signal is present.
+		const calls: Array<[string, RequestInit | undefined]> = [];
+		const impl = (async (url: unknown, init?: unknown) => {
+			calls.push([String(url), init as RequestInit | undefined]);
+			if ((init as RequestInit | undefined)?.signal) {
+				throw new DOMException("The operation was aborted", "AbortError");
+			}
+			return { ok: true, status: 200, json: async () => ({}) };
+		}) as unknown as typeof fetch;
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl, timeoutMs: 1 });
+		await expect(
+			runner({ set: makeSet(), decision: decision([2, 3]), question: "q" }),
+		).resolves.toBeNull();
+		expect(calls).toHaveLength(1);
+	});
+});
+
 // ── walkTierChain integration (AC-1 / AC-2) ───────────────────────────────────
 
 describe("walkTierChain — tier-2 integration", () => {

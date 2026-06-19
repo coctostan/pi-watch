@@ -26,12 +26,15 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 
 import { sample } from "../sampler/index.js";
-import { route, routeContextFromSet } from "../router/index.js";
+import { route, routeContextFromSet, type Tier } from "../router/index.js";
+import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
 	defaultRunners,
+	type TierRunner,
 	type WatchContentPart,
 } from "./tier-runner.js";
+import { createTier2Runner } from "./tier2.js";
 
 /**
  * `watch` tool parameters (TypeBox → static type + runtime schema).
@@ -75,8 +78,23 @@ const WATCH_DESCRIPTION =
 /**
  * Extension factory: registers the `watch` tool. Synchronous registration (no
  * await before `registerTool`) per the Phase-1 activation recipe.
+ *
+ * Config (Phase 7): the typed config surface is resolved ONCE here from the
+ * environment (`resolveWatchConfig`). It supplies the tier-2 endpoint + fetch
+ * timeout (used to build a config-driven tier-2 runner) and the default frame
+ * budget/resolution applied under per-call `WATCH_PARAMS` overrides. Reading
+ * `process.env` synchronously is fine; no await is introduced before registration.
  */
 export default function watchExtension(pi: ExtensionAPI): void {
+	// Resolve the typed config once (the only env read) and build a config-driven
+	// runner table: tiers 1 + 3 from defaults, tier 2 from the resolved endpoint +
+	// fetch timeout. Replaces the adapter's former raw process.env read.
+	const config = resolveWatchConfig(process.env);
+	const runners: Record<Tier, TierRunner> = {
+		...defaultRunners,
+		2: createTier2Runner({ config: config.tier2, timeoutMs: config.fetchTimeoutMs }),
+	};
+
 	// Pin TDetails to a shared record so the success and error branches of
 	// `execute` return a single, consistent details shape (otherwise TS infers
 	// TDetails from the first branch and rejects the other).
@@ -96,8 +114,8 @@ export default function watchExtension(pi: ExtensionAPI): void {
 			try {
 				const set = await sample({
 					ref: params.ref,
-					budget: params.budget,
-					resolution: params.resolution,
+					budget: params.budget ?? config.budget,
+					resolution: params.resolution ?? config.resolution,
 				});
 				const ctx = routeContextFromSet(set);
 				const decision = route({ question: params.question, context: ctx });
@@ -105,7 +123,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					set,
 					decision,
 					question: params.question,
-					runners: defaultRunners,
+					runners,
 				});
 
 				return {

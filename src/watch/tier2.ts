@@ -133,9 +133,10 @@ export function parseTier2Answer(json: unknown): string | null {
 }
 
 /**
- * Resolve tier-2 config from environment variables. This is the ONLY env read in
- * the watch module; it is deliberately isolated so Phase 7 (the config surface)
- * can swap it for a typed config without touching the adapter. Pure aside from
+ * Resolve tier-2 config from environment variables. As of Phase 7 the typed
+ * config surface (`src/config`) is the composition point that the extension
+ * boundary uses; this function remains the low-level tier-2 env building block it
+ * reuses (and the only place that parses `WATCH_TIER2_*`). Pure aside from
  * reading the passed `env` (defaults to `process.env`).
  *
  * Requires BOTH `WATCH_TIER2_BASE_URL` and `WATCH_TIER2_MODEL` (non-empty);
@@ -158,16 +159,21 @@ export function resolveTier2ConfigFromEnv(
  *   1. resolves config (injected `config` when provided — including an explicit
  *      `null` to force "unconfigured" — else from the environment);
  *   2. returns `null` WITHOUT any network call when unconfigured;
- *   3. POSTs the serialized frames to the endpoint via `fetch`;
+ *   3. POSTs the serialized frames to the endpoint via `fetch`, optionally bounded
+ *      by an `AbortSignal` timeout when `timeoutMs` is a positive finite number;
  *   4. returns the parsed answer as a tier-2 `TierResult`, or `null` on any
- *      non-2xx status, network error, or empty/garbled answer.
+ *      non-2xx status, network error, empty/garbled answer, OR a timeout/abort.
  *
- * The API key is never logged. `fetchImpl` is injectable for deterministic tests
- * (no live model); it defaults to Node's global `fetch` (Node ≥20, zero deps).
+ * On timeout the call is aborted, `fetch` rejects, and the runner resolves to
+ * `null` (so `walkTierChain` escalates to tier 3) — it never throws through the
+ * host. The API key is never logged. `fetchImpl` is injectable for deterministic
+ * tests (no live model); it defaults to Node's global `fetch`. `AbortSignal.timeout`
+ * is Node ≥20 (zero deps).
  */
 export function createTier2Runner(deps?: {
 	config?: Tier2Config | null;
 	fetchImpl?: typeof fetch;
+	timeoutMs?: number;
 }): TierRunner {
 	return async ({ set, question }) => {
 		const config =
@@ -177,8 +183,16 @@ export function createTier2Runner(deps?: {
 		const { url, init } = buildTier2Request(set, question, config);
 		const f = deps?.fetchImpl ?? fetch;
 
+		// Bound the call with an AbortSignal timeout when configured. Build a fresh
+		// init (do NOT mutate buildTier2Request's pure output) carrying the signal.
+		const timeoutMs = deps?.timeoutMs;
+		const requestInit: RequestInit =
+			typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0
+				? { ...init, signal: AbortSignal.timeout(timeoutMs) }
+				: init;
+
 		try {
-			const res = await f(url, init);
+			const res = await f(url, requestInit);
 			if (!res.ok) return null;
 			const json: unknown = await res.json();
 			const answer = parseTier2Answer(json);

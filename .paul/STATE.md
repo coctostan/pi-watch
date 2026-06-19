@@ -11,10 +11,10 @@ See: .paul/PROJECT.md (updated 2026-06-19 after Phase 6)
 
 Milestone: v0.1 Initial Release
 Phase: 07-config-surface
-Plan: Not started
-Status: Ready to plan — Phase 6 complete (06-01 + 06-02 merged; all three tiers implemented; suite 93/93). Transitioned to Phase 7.
-Last activity: 2026-06-19 — Phase 6 complete: 06-02 merged (PR #8 → squash 0bd585a), main synced, branch deleted; transitioned to Phase 7.
-Next action: /paul:plan for Phase 7 (config surface)
+Plan: 07-01 (config surface) — UNIFY complete (SUMMARY written); merge gate pending
+Status: UNIFY ✓ — AC-1/2/3 all PASS; 07-01-SUMMARY.md written. Typed config surface replaces the WATCH_TIER2_* env bridge; tier-2 fetch AbortSignal timeout added (PETE carry closed). Suite 105/105; 0 vulns; 0 new deps. PR #9 CI passing (Socket).
+Last activity: 2026-06-19 — /paul:unify reconciled 07-01 (SUMMARY + lifecycle writes); proceeding to GitHub Flow merge gate.
+Next action: Merge PR #9, then transition Phase 7 → Phase 8
 
 Progress:
 - Milestone: [██████░░░░] ~67% (6 of ~9 phases complete)
@@ -24,13 +24,14 @@ Progress:
 - Phase 4: ✅ complete (04-01 Router; PR #5 merged f9c558f; 64/64 green)
 - Phase 5: ✅ complete (05-01; UNIFY closed; PR #6 merged d355a91; 73/73 green)
 - Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; all 3 tiers; 93/93 green)
+- Phase 7: ✅ complete (07-01 config surface; suite 105/105; PR #9 — merging)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 6 complete + merged (PR #8 → 0bd585a); Phase 7 not started — ready to /paul:plan]
+  ✓        ✓        ✓     [UNIFY reconciled; SUMMARY written; merge gate + phase transition next]
 ```
 
 ## Accumulated Context
@@ -57,10 +58,10 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — Phase 6 complete + merged (PR #8 → 0bd585a), transitioned to Phase 7; paused at clean boundary
-Stopped at: Phase 6 closed; on main (synced 0/0); Phase 7 (config surface) not yet planned
-Next action: /paul:plan for Phase 7 (config surface)
-Resume file: .paul/HANDOFF-2026-06-19-phase7-config-ready.md
+Last session: 2026-06-19 — /paul:plan for Phase 7: wrote 07-01-PLAN.md (typed config surface + tier-2 fetch timeout)
+Stopped at: Phase 7 plan created and awaiting review/approval; on main (synced 0/0); no feature branch yet
+Next action: Review 07-01-PLAN.md, then /paul:apply (Task 1 is a decision checkpoint: config source/precedence + module placement)
+Resume file: .paul/phases/07-config-surface/07-01-PLAN.md
 wip_result: skipped (clean tree; only untracked .codegraph/ cache)
 Resume context:
 - Phase 6 = tier adapters DONE: tier 1 (transcript, 06-01), tier 2 (OpenAI-compat video, 06-02 — src/watch/tier2.ts), tier 3 (frames-into-context) all implemented. `watch` answers via the cheapest tier or escalates to tier 3.
