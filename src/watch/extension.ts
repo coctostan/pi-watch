@@ -101,7 +101,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				});
 				const ctx = routeContextFromSet(set);
 				const decision = route({ question: params.question, context: ctx });
-				const result = walkTierChain({
+				const result = await walkTierChain({
 					set,
 					decision,
 					question: params.question,

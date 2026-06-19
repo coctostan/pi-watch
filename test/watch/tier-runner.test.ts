@@ -82,9 +82,9 @@ const TWO_FRAMES: WatchedFrame[] = [
 // ── AC-1: walk escalates through stubs and resolves at tier 3 ─────────────────
 
 describe("walkTierChain — escalation (AC-1)", () => {
-	it("skips unavailable tiers 1–2 and returns the tier-3 result", () => {
+	it("skips unavailable tiers 1–2 and returns the tier-3 result", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
-		const result = walkTierChain({
+		const result = await walkTierChain({
 			set,
 			decision: decision([1, 2, 3]),
 			question: "What happens?",
@@ -94,9 +94,9 @@ describe("walkTierChain — escalation (AC-1)", () => {
 		expect(result.content.length).toBeGreaterThan(0);
 	});
 
-	it("resolves at tier 3 for a [2, 3] chain with the default stubs", () => {
+	it("resolves at tier 3 for a [2, 3] chain with the default stubs", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
-		const result = walkTierChain({
+		const result = await walkTierChain({
 			set,
 			decision: decision([2, 3]),
 			question: "What happens?",
@@ -104,39 +104,39 @@ describe("walkTierChain — escalation (AC-1)", () => {
 		expect(result.tier).toBe(3);
 	});
 
-	it("throws (never silently empty) if the chain yields no result", () => {
+	it("rejects (never silently empty) if the chain yields no result", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
 		const allNull: Record<1 | 2 | 3, TierRunner> = {
-			1: () => null,
-			2: () => null,
-			3: () => null,
+			1: async () => null,
+			2: async () => null,
+			3: async () => null,
 		};
-		expect(() =>
+		await expect(
 			walkTierChain({
 				set,
 				decision: decision([2, 3]),
 				question: "What happens?",
 				runners: allNull,
 			}),
-		).toThrow(/no tier produced a result/);
+		).rejects.toThrow(/no tier produced a result/);
 	});
 });
 
 // ── AC-2: walk stops at the first available tier ──────────────────────────────
 
 describe("walkTierChain — stops at first available tier (AC-2)", () => {
-	it("returns the tier-2 result without invoking tier 3", () => {
+	it("returns the tier-2 result without invoking tier 3", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
 		let tier3Invoked = false;
 		const runners: Record<1 | 2 | 3, TierRunner> = {
-			1: () => null,
-			2: () => ({ tier: 2, content: [{ type: "text", text: "tier-2 answer" }] }),
+			1: async () => null,
+			2: async () => ({ tier: 2, content: [{ type: "text", text: "tier-2 answer" }] }),
 			3: (args) => {
 				tier3Invoked = true;
 				return tier3Runner(args);
 			},
 		};
-		const result = walkTierChain({
+		const result = await walkTierChain({
 			set,
 			decision: decision([2, 3]),
 			question: "What happens?",

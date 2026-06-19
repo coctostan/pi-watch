@@ -44,14 +44,18 @@ export interface TierResult {
 }
 
 /**
- * A tier implementation. Returns a `TierResult` when it can answer, or `null`
- * to signal "unavailable / not confident → escalate to the next tier".
+ * A tier implementation. Resolves to a `TierResult` when it can answer, or to
+ * `null` to signal "unavailable / not confident → escalate to the next tier".
+ *
+ * Async by contract: real adapters (e.g. tier 2's OpenAI-compatible video model)
+ * perform network I/O, so every runner returns a Promise. Pure runners (tier 1
+ * transcript passthrough, tier 3 frames-into-context) simply resolve immediately.
  */
 export type TierRunner = (args: {
 	set: WatchedFrameSet;
 	decision: RoutingDecision;
 	question: string;
-}) => TierResult | null;
+}) => Promise<TierResult | null>;
 
 /** Format a millisecond offset as mm:ss (or h:mm:ss). Pure, no deps. */
 function formatMs(ms: number): string {
@@ -127,17 +131,17 @@ export function framesToToolResultContent(
  * Tier 3 — frames-into-context. TOTAL: always returns a result (never null);
  * it is the universal terminal fallback every routing chain ends in.
  */
-export const tier3Runner: TierRunner = ({ set, question }) => ({
+export const tier3Runner: TierRunner = async ({ set, question }) => ({
 	tier: 3,
 	content: framesToToolResultContent(set, question),
 	details: { tier: 3, frameCount: set.frames.length },
 });
 
 /** Tier 1 — transcript summarization adapter. Phase 6 seam; stub escalates. */
-export const tier1Runner: TierRunner = () => null;
+export const tier1Runner: TierRunner = async () => null;
 
 /** Tier 2 — OpenAI-compatible native video adapter. Phase 6 seam; stub escalates. */
-export const tier2Runner: TierRunner = () => null;
+export const tier2Runner: TierRunner = async () => null;
 
 /** Default runner table: tiers 1–2 escalating stubs, tier 3 fully implemented. */
 export const defaultRunners: Record<Tier, TierRunner> = {
@@ -156,19 +160,19 @@ export const defaultRunners: Record<Tier, TierRunner> = {
  * exists only to fail loudly if those invariants are ever violated — it never
  * silently returns empty content.
  */
-export function walkTierChain(args: {
+export async function walkTierChain(args: {
 	set: WatchedFrameSet;
 	decision: RoutingDecision;
 	question: string;
 	runners?: Record<Tier, TierRunner>;
-}): TierResult {
+}): Promise<TierResult> {
 	const { set, decision, question } = args;
 	const runners = args.runners ?? defaultRunners;
 
 	for (const tier of decision.tiers) {
 		const runner = runners[tier];
 		if (!runner) continue;
-		const result = runner({ set, decision, question });
+		const result = await runner({ set, decision, question });
 		if (result !== null) {
 			return result;
 		}
