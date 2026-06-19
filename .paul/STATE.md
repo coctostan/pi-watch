@@ -58,10 +58,10 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — completed the full PLAN→APPLY→UNIFY loop for Phase 7 (07-01 config surface); merged PR #9 and transitioned to Phase 8.
+Last session: 2026-06-19 — completed the full PLAN→APPLY→UNIFY loop for Phase 7 (07-01 config surface), merged PR #9, transitioned to Phase 8, then paused at the clean boundary.
 Stopped at: Phase 7 complete + merged (PR #9 → 7745f07); on main (synced 0/0); feature branch deleted. Phase 8 not started.
 Next action: /paul:plan for Phase 8 (/watch command)
-Resume file: .paul/ROADMAP.md
+Resume file: .paul/HANDOFF-2026-06-19-phase8-watch-command-ready.md
 wip_result: n/a (loop closed; only untracked .codegraph/ cache)
 Resume context:
 - Phases 1–7 complete + merged. All three tiers real (transcript / OpenAI-compat video / frames-into-context) AND config-driven: `src/config/resolveWatchConfig` resolves a typed `WatchConfig` (tier-2 endpoint, budget, resolution, fetch timeout) with precedence overrides > env > defaults; the extension boundary builds a config-driven tier-2 runner and applies budget/resolution defaults under per-call `WATCH_PARAMS`.
