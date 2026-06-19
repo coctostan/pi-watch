@@ -25,3 +25,9 @@ export {
 	type TierResult,
 	type TierRunner,
 } from "./tier-runner.js";
+
+export {
+	default as watchExtension,
+	WATCH_PARAMS,
+	type WatchInput,
+} from "./extension.js";

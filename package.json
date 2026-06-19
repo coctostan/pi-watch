@@ -1,7 +1,7 @@
 {
   "name": "pi-watch",
   "version": "0.1.0",
-  "description": "A pi extension that watches videos via the cheapest path that works (transcript \u2192 native video model \u2192 frames-into-context), local-first and model-agnostic.",
+  "description": "A pi extension that watches videos via the cheapest path that works (transcript → native video model → frames-into-context), local-first and model-agnostic.",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -22,6 +22,7 @@
     "typebox": "^1.2.16"
   },
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.79.8",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.9"
