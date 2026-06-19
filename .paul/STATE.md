@@ -57,10 +57,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — Phase 6 complete: 06-02 merged (PR #8 → 0bd585a), transitioned to Phase 7
-Stopped at: Phase 6 closed; on main; ready to plan Phase 7 (config surface)
+Last session: 2026-06-19 — Phase 6 complete + merged (PR #8 → 0bd585a), transitioned to Phase 7; paused at clean boundary
+Stopped at: Phase 6 closed; on main (synced 0/0); Phase 7 (config surface) not yet planned
 Next action: /paul:plan for Phase 7 (config surface)
-Resume file: .paul/ROADMAP.md
+Resume file: .paul/HANDOFF-2026-06-19-phase7-config-ready.md
+wip_result: skipped (clean tree; only untracked .codegraph/ cache)
 Resume context:
 - Phase 6 = tier adapters DONE: tier 1 (transcript, 06-01), tier 2 (OpenAI-compat video, 06-02 — src/watch/tier2.ts), tier 3 (frames-into-context) all implemented. `watch` answers via the cheapest tier or escalates to tier 3.
 - Phase 7 = config surface: replace the tier-2 env bridge (`resolveTier2ConfigFromEnv`, `WATCH_TIER2_*`) with a typed config (baseURL/model id/tier order/frame budget/resolution thresholds, optional API key, fetch timeout/AbortSignal). The adapter already takes a `Tier2Config`, so the seam is `createTier2Runner({ config })`.
