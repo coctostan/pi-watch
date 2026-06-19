@@ -5,16 +5,16 @@
 See: .paul/PROJECT.md (updated 2026-06-19 after Phase 5)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 6 (tier adapters) — not started. Build real tier 1 (transcript summarization) + tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) adapters behind the stable `TierRunner` seam; tier 3 already ships. Phases 1–5 complete and merged to main.
+**Current focus:** Phase 6 (tier adapters) — plan 06-01 UNIFY complete (async seam + tier 1 transcript adapter). Tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) is next (Plan 06-02). Tier 3 already ships. Phases 1–5 complete and merged to main.
 
 ## Current Position
 
 Milestone: v0.1 Initial Release
 Phase: 06-tier-adapters
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-19 — Phase 5 complete + merged (PR #6 d355a91); transitioned to Phase 6 (tier adapters).
-Next action: /paul:plan for Phase 6 (tier adapters)
+Plan: 06-01 (async tier seam + tier 1 transcript adapter)
+Status: UNIFY complete — loop closed for 06-01 (77/77 green; 0 vulns)
+Last activity: 2026-06-19 — UNIFY 06-01: SUMMARY written, AC-1/2/3 all PASS; merge gate next (PR #7).
+Next action: merge PR #7, then /paul:plan for Phase 6 Plan 06-02 (tier-2 adapter)
 
 Progress:
 - Milestone: [█████░░░░░] ~56% (5 of ~9 phases complete)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 6 / tier-adapters: not started → /paul:plan next]
+  ✓        ✓        ✓     [Phase 6 / tier-adapters: 06-01 loop closed → merge gate → 06-02 next]
 ```
 
 ## Accumulated Context
@@ -56,21 +56,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — Phase 5 complete + merged (PR #6 d355a91); transitioned to Phase 6
-Stopped at: Phase 5 complete, ready to plan Phase 6 (tier adapters)
-Next action: /paul:plan for Phase 6 (tier adapters)
-Resume file: .paul/ROADMAP.md
+Last session: 2026-06-19 — UNIFY 06-01 complete (async tier seam + tier 1 transcript adapter); loop closed
+Stopped at: SUMMARY written; merge gate next (PR #7 → main)
+Next action: merge PR #7, then /paul:plan for Plan 06-02 (tier-2 adapter)
+Resume file: .paul/phases/06-tier-adapters/06-01-SUMMARY.md
+wip_result: APPLY work committed on feature/06-tier-adapters (3 task commits) + UNIFY metadata
 Resume context:
-- Phase 5 watch tool primitive shipped: src/watch/{tier-runner.ts, extension.ts, index.ts} + test/watch/tier-runner.test.ts. Suite 73/73 green (prior 64 + 9 new); npm audit 0 vulns.
-- Tier 3 (frames-into-context) fully implemented + live-verified (red→green→blue on a 3-scene clip via `pi --no-extensions -e ./dist/watch/extension.js`); tiers 1–2 are null-returning escalating stubs (real adapters = Phase 6).
-- Deviation for UNIFY: registerTool pinned `TDetails` to `Record<string, unknown>` so execute success/error branches share one details shape (minor, in-scope).
-- checkpoint:decision RESOLVED → option-a (see Decisions). Added @earendil-works/pi-coding-agent (peerDependencies "*" + devDep pin); typebox unchanged.
-- Carries for UNIFY/later: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (only Socket Security on PRs); (3) DOCS — `typebox` sits in `dependencies` though it is a pi-bundled package (could move to peer); (4) `.paul/*` lifecycle artifacts + SUMMARY commit happen at plan completion (after UNIFY).
-- Import, don't modify: src/contract/*, src/sampler/*, src/router/* stayed stable (consumed only). Transcript still ships "none" (best-effort).
+- Phase 6 = tier adapters: implement real tier 1 (transcript summarization) + tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) behind the stable `TierRunner` seam in src/watch/tier-runner.ts; tier 3 (frames-into-context) already ships + live-verified.
+- Runners plug in by replacing the null stubs tier1Runner/tier2Runner in defaultRunners (null = escalate). REVISED in 06-01: the seam becomes async (`(args) => Promise<TierResult | null>`) and `extension.ts` must `await walkTierChain` — network I/O for tier 2 is unavoidably async, so the Phase-5 "no extension.ts change" note is superseded. Router chain policy: spoken+transcript → [1,2,3]; else → [2,3].
+- We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
+- Carries: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — no .github/workflows/ci.yml yet; (3) DOCS — `typebox` could move to peerDependencies.
+- State: on feature/06-tier-adapters; suite 77/77 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/* are stable — import, don't modify. CI (Socket Security) passing on PR #7; no test/build ci.yml yet (DAVE).
 
 ### Git State
-Last commit: d355a91 (Phase 5 (05-01): watch tool primitive (#6), on main)
-Branch: main (synced 0/0 with origin/main); feature/05-watch-tool-primitive merged + deleted
+Last commit: 6e2a934 (test(06-01): cover tier 1 transcript adapter, on feature/06-tier-adapters)
+Branch: feature/06-tier-adapters (PR #7 open → main); 3 commits ahead (7bf11b6 refactor seam async, c687b55 feat tier1, 6e2a934 test tier1)
 Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91)
 
 ---

@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
 	walkTierChain,
 	framesToToolResultContent,
+	transcriptToToolResultContent,
 	defaultRunners,
+	tier1Runner,
 	tier3Runner,
 	type TierRunner,
 	type WatchImagePart,
@@ -19,8 +21,8 @@ import type {
  *
  * The tier runner walks the router's ordered chain — it does not route or
  * sample. All fixtures are hand-built in memory: no ffmpeg, no sample()/route(),
- * no model calls. Tier 3 (frames-into-context) is the only implemented tier;
- * tiers 1–2 are escalating stubs.
+ * no model calls. Tier 1 (transcript) and tier 3 (frames-into-context) are
+ * implemented; tier 2 (OpenAI-compatible video) is an escalating stub.
  */
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -82,9 +84,9 @@ const TWO_FRAMES: WatchedFrame[] = [
 // ── AC-1: walk escalates through stubs and resolves at tier 3 ─────────────────
 
 describe("walkTierChain — escalation (AC-1)", () => {
-	it("skips unavailable tiers 1–2 and returns the tier-3 result", () => {
+	it("skips unavailable tiers 1–2 and returns the tier-3 result", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
-		const result = walkTierChain({
+		const result = await walkTierChain({
 			set,
 			decision: decision([1, 2, 3]),
 			question: "What happens?",
@@ -94,9 +96,9 @@ describe("walkTierChain — escalation (AC-1)", () => {
 		expect(result.content.length).toBeGreaterThan(0);
 	});
 
-	it("resolves at tier 3 for a [2, 3] chain with the default stubs", () => {
+	it("resolves at tier 3 for a [2, 3] chain with the default stubs", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
-		const result = walkTierChain({
+		const result = await walkTierChain({
 			set,
 			decision: decision([2, 3]),
 			question: "What happens?",
@@ -104,39 +106,39 @@ describe("walkTierChain — escalation (AC-1)", () => {
 		expect(result.tier).toBe(3);
 	});
 
-	it("throws (never silently empty) if the chain yields no result", () => {
+	it("rejects (never silently empty) if the chain yields no result", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
 		const allNull: Record<1 | 2 | 3, TierRunner> = {
-			1: () => null,
-			2: () => null,
-			3: () => null,
+			1: async () => null,
+			2: async () => null,
+			3: async () => null,
 		};
-		expect(() =>
+		await expect(
 			walkTierChain({
 				set,
 				decision: decision([2, 3]),
 				question: "What happens?",
 				runners: allNull,
 			}),
-		).toThrow(/no tier produced a result/);
+		).rejects.toThrow(/no tier produced a result/);
 	});
 });
 
 // ── AC-2: walk stops at the first available tier ──────────────────────────────
 
 describe("walkTierChain — stops at first available tier (AC-2)", () => {
-	it("returns the tier-2 result without invoking tier 3", () => {
+	it("returns the tier-2 result without invoking tier 3", async () => {
 		const set = makeSet({ frames: TWO_FRAMES });
 		let tier3Invoked = false;
 		const runners: Record<1 | 2 | 3, TierRunner> = {
-			1: () => null,
-			2: () => ({ tier: 2, content: [{ type: "text", text: "tier-2 answer" }] }),
+			1: async () => null,
+			2: async () => ({ tier: 2, content: [{ type: "text", text: "tier-2 answer" }] }),
 			3: (args) => {
 				tier3Invoked = true;
 				return tier3Runner(args);
 			},
 		};
-		const result = walkTierChain({
+		const result = await walkTierChain({
 			set,
 			decision: decision([2, 3]),
 			question: "What happens?",
@@ -217,5 +219,92 @@ describe("framesToToolResultContent — tier-3 serializer (AC-3)", () => {
 		);
 		expect(hasTranscriptLabel).toBe(false);
 		expect(content.some((p) => p.type === "text" && p.text.includes("ghost"))).toBe(false);
+	});
+});
+
+// ── Phase-6 tier 1: transcript adapter ────────────────────────────────────────
+
+describe("tier1Runner — transcript adapter", () => {
+	it("escalates (returns null) when transcriptSource is 'none'", async () => {
+		// A stray segment must not defeat the source gate.
+		const set = makeSet({
+			frames: TWO_FRAMES,
+			transcriptSource: "none",
+			transcript: [{ startMs: 0, endMs: 1_000, text: "ghost", source: "captions" }],
+		});
+		const result = await tier1Runner({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+		expect(result).toBeNull();
+	});
+
+	it("escalates (returns null) when the transcript is empty", async () => {
+		const set = makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript: [] });
+		const result = await tier1Runner({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+		expect(result).toBeNull();
+	});
+
+	it("answers at tier 1 from the transcript and does not invoke tiers 2/3", async () => {
+		const set = makeSet({
+			frames: TWO_FRAMES,
+			transcriptSource: "captions",
+			transcript: [
+				{ startMs: 0, endMs: 2_000, text: "hello world", source: "captions" },
+				{ startMs: 5_000, endMs: 7_000, text: "second line", source: "captions" },
+			],
+		});
+		let tier2Invoked = false;
+		let tier3Invoked = false;
+		const runners: Record<1 | 2 | 3, TierRunner> = {
+			1: tier1Runner,
+			2: async () => {
+				tier2Invoked = true;
+				return null;
+			},
+			3: (args) => {
+				tier3Invoked = true;
+				return tier3Runner(args);
+			},
+		};
+		const result = await walkTierChain({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+			runners,
+		});
+		expect(result.tier).toBe(1);
+		expect(tier2Invoked).toBe(false);
+		expect(tier3Invoked).toBe(false);
+		expect(result.details).toMatchObject({ transcriptSource: "captions", segmentCount: 2 });
+		// No image parts on the tier-1 path.
+		expect(result.content.every((p) => p.type === "text")).toBe(true);
+	});
+});
+
+describe("transcriptToToolResultContent — tier-1 serializer", () => {
+	it("leads with the question and transcript source, then mm:ss-labelled lines", () => {
+		const set = makeSet({
+			frames: TWO_FRAMES,
+			transcriptSource: "whisper",
+			transcript: [
+				{ startMs: 0, endMs: 2_000, text: "hello world", source: "whisper" },
+				{ startMs: 65_000, endMs: 67_000, text: "second line", source: "whisper" },
+			],
+		});
+		const content = transcriptToToolResultContent(set, "What is said?");
+		const lead = content[0];
+		expect(lead?.type).toBe("text");
+		expect(lead?.type === "text" && lead.text).toContain("What is said?");
+		expect(lead?.type === "text" && lead.text).toContain("whisper");
+		// All parts are text; transcript lines carry mm:ss labels in timeline order.
+		expect(content.every((p) => p.type === "text")).toBe(true);
+		expect(content.some((p) => p.type === "text" && p.text === "00:00 hello world")).toBe(true);
+		expect(content.some((p) => p.type === "text" && p.text === "01:05 second line")).toBe(true);
 	});
 });
