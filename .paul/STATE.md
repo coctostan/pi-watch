@@ -11,10 +11,10 @@ See: .paul/PROJECT.md (updated 2026-06-19 after Phase 5)
 
 Milestone: v0.1 Initial Release
 Phase: 06-tier-adapters
-Plan: 06-01 (async tier seam + tier 1 transcript adapter)
-Status: 06-01 loop closed + merged (PR #7 → 5dbf603); Phase 6 in progress, 06-02 (tier-2 adapter) not yet planned
-Last activity: 2026-06-19 — merged PR #7 (squash 5dbf603), synced main, archived consumed handoff; paused before planning 06-02.
-Next action: /paul:plan for Phase 6 Plan 06-02 (tier-2 OpenAI-compatible video adapter)
+Plan: 06-02 (tier-2 OpenAI-compatible video adapter) — APPLY complete, awaiting UNIFY
+Status: 06-02 APPLY done — tier-2 adapter implemented (src/watch/tier2.ts, option-a) + 16 specs; suite 93/93 green, typecheck+build clean, 0 vulns, 0 new deps. PR #8 open (Socket pending). Checkpoint Task 1 resolved → option-a (new tier2.ts; keeps tier-runner pure).
+Last activity: 2026-06-19 — applied 06-02 on feature/06-02-tier2-adapter (commits f5d9b1f feat, 08776b2 test); pushed; opened PR #8.
+Next action: /paul:unify for Phase 6 Plan 06-02
 
 Progress:
 - Milestone: [█████░░░░░] ~56% (5 of ~9 phases complete)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 6 / tier-adapters: 06-01 loop closed → merge gate → 06-02 next]
+  ✓        ✓        ○     [Phase 6 / tier-adapters: 06-02 APPLY done → UNIFY next; PR #8 open]
 ```
 
 ## Accumulated Context
@@ -56,11 +56,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — 06-01 merged (PR #7 → 5dbf603), main synced, handoff archived; paused before planning 06-02
-Stopped at: clean boundary — Phase 6 in progress, Plan 06-02 (tier-2 adapter) not yet planned
-Next action: /paul:plan for Phase 6 Plan 06-02 (tier-2 OpenAI-compatible video adapter)
-Resume file: .paul/HANDOFF-2026-06-19-phase6-plan02-tier2-ready.md
-wip_result: skipped (only untracked .codegraph/ tooling cache; no lifecycle changes)
+Last session: 2026-06-19 — UNIFY 06-02 closed (loop PLAN ✓ / APPLY ✓ / UNIFY ✓); tier 2 shipped, all tiers implemented
+Stopped at: 06-02 SUMMARY written; awaiting UNIFY merge gate on PR #8 (Socket only — no test/build CI)
+Next action: merge PR #8, then phase transition → /paul:plan Phase 7 (config surface)
+Resume file: .paul/phases/06-tier-adapters/06-02-SUMMARY.md
+wip_result: code per-task (f5d9b1f feat, 08776b2 test); 06-02 SUMMARY + STATE + ROADMAP pending metadata commit on feature/06-02-tier2-adapter
 Resume context:
 - Phase 6 = tier adapters: tier 1 (transcript) SHIPPED in 06-01; tier 3 (frames-into-context) already ships + live-verified. 06-02 implements tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) behind the stable `TierRunner` seam in src/watch/tier-runner.ts by replacing the tier2Runner stub.
 - Runners plug in by replacing the null stubs tier1Runner/tier2Runner in defaultRunners (null = escalate). REVISED in 06-01: the seam becomes async (`(args) => Promise<TierResult | null>`) and `extension.ts` must `await walkTierChain` — network I/O for tier 2 is unavoidably async, so the Phase-5 "no extension.ts change" note is superseded. Router chain policy: spoken+transcript → [1,2,3]; else → [2,3].

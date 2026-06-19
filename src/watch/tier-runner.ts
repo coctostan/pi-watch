@@ -6,24 +6,29 @@
  * one that produces a result. A runner returns `null` to mean "this tier is
  * unavailable / not confident → escalate to the next tier".
  *
- *   - tier 1 (transcript summarization) and tier 2 (OpenAI-compat native video)
- *     are seams — they ship here as null-returning stubs; the real adapters land
- *     in Phase 6 behind this same `TierRunner` signature.
+ *   - tier 1 (transcript passthrough) is implemented here (pure, no I/O): it
+ *     hands the transcript to the orchestrator, or returns null to escalate.
+ *   - tier 2 (OpenAI-compat native video) is the network adapter; its code lives
+ *     in tier2.ts (the effect boundary). This module only references its runner
+ *     factory (`createTier2Runner`) when building `defaultRunners` — a table
+ *     wiring, not an effect, so the walk core below stays pure.
  *   - tier 3 (frames-into-context) is fully implemented and TOTAL — it never
  *     returns null. It hands the sampled frames straight back to the orchestrator
  *     model as tool-result image parts (DESIGN §2 universal fallback, §5 Verified
  *     Fact #1: tool-result images reach the orchestrator), so it needs no external
  *     model call.
  *
- * This file is intentionally pure and pi-free: it imports the contract/router
- * shapes as TYPES only and defines a local content union mirroring pi's
- * tool-result shape, so it is unit-testable without the pi runtime or ffmpeg.
- * It consumes the routing decision as given ("route, don't answer") — no routing,
- * sampling, or OpenAI-wire serialization happens here.
+ * The tier-walk core in this file is intentionally pure and pi-free: it imports
+ * the contract/router shapes as TYPES only and defines a local content union
+ * mirroring pi's tool-result shape, so it is unit-testable without the pi runtime
+ * or ffmpeg. It consumes the routing decision as given ("route, don't answer") —
+ * no routing, sampling, or OpenAI-wire serialization happens here. The only
+ * network/env effects (tier 2) are isolated in tier2.ts.
  */
 
 import type { Tier, RoutingDecision } from "../router/index.js";
 import type { WatchedFrameSet } from "../contract/index.js";
+import { createTier2Runner } from "./tier2.js";
 
 // ── Tool-result content shape (mirrors pi's TextContent | ImageContent) ───────
 // Defined locally so this module imports no pi package. The extension boundary
@@ -196,10 +201,14 @@ export const tier1Runner: TierRunner = async ({ set, question }) => {
 	};
 };
 
-/** Tier 2 — OpenAI-compatible native video adapter. Phase 6 seam; stub escalates. */
-export const tier2Runner: TierRunner = async () => null;
+/**
+ * Tier 2 — OpenAI-compatible native video adapter (DESIGN §4). The runner is
+ * built in tier2.ts; this default reads its endpoint config from the environment
+ * (`WATCH_TIER2_*`) and escalates (returns null) when unconfigured or on failure.
+ */
+export const tier2Runner: TierRunner = createTier2Runner();
 
-/** Default runner table: tier 1 (transcript) + tier 3 (frames) implemented; tier 2 is an escalating stub. */
+/** Default runner table: tiers 1 (transcript), 2 (OpenAI-compat video), and 3 (frames) all implemented; tier 2 escalates when unconfigured. */
 export const defaultRunners: Record<Tier, TierRunner> = {
 	1: tier1Runner,
 	2: tier2Runner,
