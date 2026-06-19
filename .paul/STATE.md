@@ -12,9 +12,9 @@ See: .paul/PROJECT.md (updated 2026-06-19 after Phase 5)
 Milestone: v0.1 Initial Release
 Phase: 06-tier-adapters
 Plan: 06-01 (async tier seam + tier 1 transcript adapter)
-Status: UNIFY complete — loop closed for 06-01 (77/77 green; 0 vulns)
-Last activity: 2026-06-19 — UNIFY 06-01: SUMMARY written, AC-1/2/3 all PASS; merge gate next (PR #7).
-Next action: merge PR #7, then /paul:plan for Phase 6 Plan 06-02 (tier-2 adapter)
+Status: 06-01 loop closed + merged (PR #7 → 5dbf603); Phase 6 in progress, 06-02 (tier-2 adapter) not yet planned
+Last activity: 2026-06-19 — merged PR #7 (squash 5dbf603), synced main, archived consumed handoff; paused before planning 06-02.
+Next action: /paul:plan for Phase 6 Plan 06-02 (tier-2 OpenAI-compatible video adapter)
 
 Progress:
 - Milestone: [█████░░░░░] ~56% (5 of ~9 phases complete)
@@ -56,13 +56,13 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — UNIFY 06-01 complete (async tier seam + tier 1 transcript adapter); loop closed
-Stopped at: SUMMARY written; merge gate next (PR #7 → main)
-Next action: merge PR #7, then /paul:plan for Plan 06-02 (tier-2 adapter)
-Resume file: .paul/phases/06-tier-adapters/06-01-SUMMARY.md
-wip_result: APPLY work committed on feature/06-tier-adapters (3 task commits) + UNIFY metadata
+Last session: 2026-06-19 — 06-01 merged (PR #7 → 5dbf603), main synced, handoff archived; paused before planning 06-02
+Stopped at: clean boundary — Phase 6 in progress, Plan 06-02 (tier-2 adapter) not yet planned
+Next action: /paul:plan for Phase 6 Plan 06-02 (tier-2 OpenAI-compatible video adapter)
+Resume file: .paul/HANDOFF-2026-06-19-phase6-plan02-tier2-ready.md
+wip_result: skipped (only untracked .codegraph/ tooling cache; no lifecycle changes)
 Resume context:
-- Phase 6 = tier adapters: implement real tier 1 (transcript summarization) + tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) behind the stable `TierRunner` seam in src/watch/tier-runner.ts; tier 3 (frames-into-context) already ships + live-verified.
+- Phase 6 = tier adapters: tier 1 (transcript) SHIPPED in 06-01; tier 3 (frames-into-context) already ships + live-verified. 06-02 implements tier 2 (OpenAI-compat video: local Qwen / hosted Gemini) behind the stable `TierRunner` seam in src/watch/tier-runner.ts by replacing the tier2Runner stub.
 - Runners plug in by replacing the null stubs tier1Runner/tier2Runner in defaultRunners (null = escalate). REVISED in 06-01: the seam becomes async (`(args) => Promise<TierResult | null>`) and `extension.ts` must `await walkTierChain` — network I/O for tier 2 is unavoidably async, so the Phase-5 "no extension.ts change" note is superseded. Router chain policy: spoken+transcript → [1,2,3]; else → [2,3].
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
 - Carries: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — no .github/workflows/ci.yml yet; (3) DOCS — `typebox` could move to peerDependencies.
