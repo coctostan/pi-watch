@@ -66,12 +66,12 @@ Resume context:
 - Runners plug in by replacing the null stubs tier1Runner/tier2Runner in defaultRunners (null = escalate). REVISED in 06-01: the seam becomes async (`(args) => Promise<TierResult | null>`) and `extension.ts` must `await walkTierChain` — network I/O for tier 2 is unavoidably async, so the Phase-5 "no extension.ts change" note is superseded. Router chain policy: spoken+transcript → [1,2,3]; else → [2,3].
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
 - Carries: (1) installed `watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — no .github/workflows/ci.yml yet; (3) DOCS — `typebox` could move to peerDependencies.
-- State: on feature/06-tier-adapters; suite 77/77 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/* are stable — import, don't modify. CI (Socket Security) passing on PR #7; no test/build ci.yml yet (DAVE).
+- State: on main (PR #7 merged → 5dbf603); suite 77/77 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/* are stable — import, don't modify. No test/build ci.yml yet (DAVE).
 
 ### Git State
-Last commit: 6e2a934 (test(06-01): cover tier 1 transcript adapter, on feature/06-tier-adapters)
-Branch: feature/06-tier-adapters (PR #7 open → main); 3 commits ahead (7bf11b6 refactor seam async, c687b55 feat tier1, 6e2a934 test tier1)
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91)
+Last commit: 5dbf603 (Phase 6 (06-01): async tier seam + tier 1 transcript adapter (#7), on main)
+Branch: main (synced 0/0 with origin/main); feature/06-tier-adapters merged + deleted
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603)
 
 ---
 *STATE.md — Updated after every significant action*

@@ -17,7 +17,7 @@ Phases: 5 of ~9 complete (~56%) — Phase 5 (watch tool primitive) ✅ done; `wa
 | 3 | Sampler implementation | 03-01 ✅ + 03-02 ✅ | ✅ Complete | 2026-06-18 |
 | 4 | Router | 04-01 ✅ | ✅ Complete | 2026-06-18 |
 | 5 | watch tool primitive | 05-01 ✅ | ✅ Complete | 2026-06-19 |
-| 6 | Tier adapters | 06-01 (planned) | 📝 Planning | - |
+| 6 | Tier adapters | 06-01 ✅ + 06-02 (pending) | 🔨 In progress | - |
 | 7 | Config surface | TBD | Not started | - |
 | 8 | /watch command | TBD | Not started | - |
 | 9 | Batching | TBD | Not started | - |
