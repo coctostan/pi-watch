@@ -1,0 +1,315 @@
+import { describe, it, expect } from "vitest";
+import {
+	walkTierChain,
+	defaultRunners,
+	tier3Runner,
+	createTier2Runner,
+	buildTier2Request,
+	parseTier2Answer,
+	resolveTier2ConfigFromEnv,
+	type TierRunner,
+	type Tier2Config,
+} from "../../src/watch/index.js";
+import type { RoutingDecision } from "../../src/router/index.js";
+import type { WatchedFrame, WatchedFrameSet } from "../../src/contract/index.js";
+
+/**
+ * Deterministic specs for the tier-2 OpenAI-compatible video adapter (AC-1,
+ * AC-2, AC-3). No live model: the pure request-builder / response-parser are
+ * tested directly, and the runner is exercised with an INJECTED `fetchImpl`.
+ * All fixtures are hand-built in memory — no ffmpeg, no sample()/route().
+ */
+
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+
+function frame(overrides: Partial<WatchedFrame> = {}): WatchedFrame {
+	return {
+		index: 0,
+		tMs: 0,
+		timestamp: "00:00",
+		imageBase64: "AAAA",
+		mediaType: "image/png",
+		resolution: "low",
+		origin: "scene-cut",
+		...overrides,
+	};
+}
+
+const TWO_FRAMES: WatchedFrame[] = [
+	frame({ index: 0, tMs: 0, timestamp: "00:00", imageBase64: "FRAME0" }),
+	frame({
+		index: 1,
+		tMs: 5_000,
+		timestamp: "00:05",
+		imageBase64: "FRAME1",
+		mediaType: "image/jpeg",
+		origin: "backfill",
+	}),
+];
+
+function makeSet(): WatchedFrameSet {
+	return {
+		source: {
+			ref: "fixture.mp4",
+			durationMs: 10_000,
+			fpsSampled: 1,
+			frameCount: TWO_FRAMES.length,
+			transcriptSource: "none",
+		},
+		frames: TWO_FRAMES,
+		transcript: [],
+	};
+}
+
+function decision(tiers: RoutingDecision["tiers"]): RoutingDecision {
+	return {
+		intent: "visual",
+		resolution: "low",
+		tiers,
+		primaryTier: tiers[0]!,
+		rationale: "fixture",
+	};
+}
+
+const CONFIG: Tier2Config = {
+	baseURL: "http://localhost:8080/v1",
+	model: "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+};
+
+/** Build a fake `fetch` returning a chosen JSON body / ok flag, recording calls. */
+function fakeFetch(opts: {
+	ok?: boolean;
+	status?: number;
+	json?: unknown;
+	throws?: boolean;
+}): { impl: typeof fetch; calls: Array<[string, RequestInit | undefined]> } {
+	const calls: Array<[string, RequestInit | undefined]> = [];
+	const impl = (async (url: unknown, init?: unknown) => {
+		calls.push([String(url), init as RequestInit | undefined]);
+		if (opts.throws) throw new Error("network down");
+		return {
+			ok: opts.ok ?? true,
+			status: opts.status ?? 200,
+			json: async () => opts.json ?? {},
+		};
+	}) as unknown as typeof fetch;
+	return { impl, calls };
+}
+
+// ── PURE buildTier2Request (AC-1) ─────────────────────────────────────────────
+
+describe("buildTier2Request — pure wire-shape builder (AC-1)", () => {
+	it("targets <baseURL>/chat/completions and strips a trailing slash", () => {
+		const { url } = buildTier2Request(makeSet(), "q", {
+			...CONFIG,
+			baseURL: "http://localhost:8080/v1/",
+		});
+		expect(url).toBe("http://localhost:8080/v1/chat/completions");
+	});
+
+	it("POSTs the model id and a single user message in OpenAI shape", () => {
+		const { init } = buildTier2Request(makeSet(), "What happens?", CONFIG);
+		expect(init.method).toBe("POST");
+		const body = JSON.parse(String(init.body));
+		expect(body.model).toBe(CONFIG.model);
+		expect(body.messages[0].role).toBe("user");
+	});
+
+	it("serializes frames as ordered image_url blocks plus text (via toOpenAIContent)", () => {
+		const { init } = buildTier2Request(makeSet(), "What happens?", CONFIG);
+		const body = JSON.parse(String(init.body));
+		const content: Array<{ type: string; image_url?: { url: string } }> =
+			body.messages[0].content;
+		const images = content.filter((p) => p.type === "image_url");
+		expect(images).toHaveLength(2);
+		expect(images[0]!.image_url!.url).toMatch(/^data:image\/png;base64,FRAME0$/);
+		expect(content.some((p) => p.type === "text")).toBe(true);
+	});
+
+	it("adds an Authorization: Bearer header only when apiKey is set", () => {
+		const withKey = buildTier2Request(makeSet(), "q", { ...CONFIG, apiKey: "sk-secret" });
+		expect((withKey.init.headers as Record<string, string>).Authorization).toBe(
+			"Bearer sk-secret",
+		);
+		const withoutKey = buildTier2Request(makeSet(), "q", CONFIG);
+		expect(
+			(withoutKey.init.headers as Record<string, string>).Authorization,
+		).toBeUndefined();
+	});
+});
+
+// ── PURE parseTier2Answer (AC-1 / AC-2) ───────────────────────────────────────
+
+describe("parseTier2Answer — pure response parser (AC-1/AC-2)", () => {
+	it("returns the string content of a well-formed completion", () => {
+		expect(
+			parseTier2Answer({ choices: [{ message: { content: "red -> green -> blue" } }] }),
+		).toBe("red -> green -> blue");
+	});
+
+	it("joins the text parts when content is an array", () => {
+		expect(
+			parseTier2Answer({
+				choices: [
+					{
+						message: {
+							content: [
+								{ type: "text", text: "red " },
+								{ type: "image_url", image_url: { url: "x" } },
+								{ type: "text", text: "green" },
+							],
+						},
+					},
+				],
+			}),
+		).toBe("red green");
+	});
+
+	it("returns null for missing/empty/garbled responses", () => {
+		expect(parseTier2Answer({})).toBeNull();
+		expect(parseTier2Answer({ choices: [] })).toBeNull();
+		expect(parseTier2Answer({ choices: [{ message: { content: "" } }] })).toBeNull();
+		expect(parseTier2Answer({ choices: [{ message: { content: "   " } }] })).toBeNull();
+		expect(parseTier2Answer({ choices: [{ message: {} }] })).toBeNull();
+		expect(parseTier2Answer("nope")).toBeNull();
+		expect(parseTier2Answer(null)).toBeNull();
+	});
+});
+
+// ── resolveTier2ConfigFromEnv — env bridge ────────────────────────────────────
+
+describe("resolveTier2ConfigFromEnv — env bridge", () => {
+	it("returns a config when BASE_URL + MODEL are present (apiKey optional)", () => {
+		expect(
+			resolveTier2ConfigFromEnv({
+				WATCH_TIER2_BASE_URL: "http://localhost:8080/v1",
+				WATCH_TIER2_MODEL: "qwen",
+			}),
+		).toEqual({ baseURL: "http://localhost:8080/v1", model: "qwen" });
+
+		expect(
+			resolveTier2ConfigFromEnv({
+				WATCH_TIER2_BASE_URL: "http://localhost:8080/v1",
+				WATCH_TIER2_MODEL: "qwen",
+				WATCH_TIER2_API_KEY: "k",
+			}),
+		).toEqual({ baseURL: "http://localhost:8080/v1", model: "qwen", apiKey: "k" });
+	});
+
+	it("returns null when either required value is missing or empty", () => {
+		expect(resolveTier2ConfigFromEnv({ WATCH_TIER2_MODEL: "qwen" })).toBeNull();
+		expect(
+			resolveTier2ConfigFromEnv({ WATCH_TIER2_BASE_URL: "http://x/v1" }),
+		).toBeNull();
+		expect(
+			resolveTier2ConfigFromEnv({
+				WATCH_TIER2_BASE_URL: "  ",
+				WATCH_TIER2_MODEL: "qwen",
+			}),
+		).toBeNull();
+	});
+});
+
+// ── createTier2Runner with INJECTED fetch (AC-1 / AC-2) ───────────────────────
+
+describe("createTier2Runner — effectful runner with injected transport", () => {
+	it("resolves a tier-2 result on a well-formed response (AC-1)", async () => {
+		const { impl } = fakeFetch({
+			json: { choices: [{ message: { content: "red -> green -> blue" } }] },
+		});
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "What order?",
+		});
+		expect(result?.tier).toBe(2);
+		expect(result?.content).toEqual([{ type: "text", text: "red -> green -> blue" }]);
+		expect(result?.details).toMatchObject({ tier: 2, model: CONFIG.model });
+	});
+
+	it("escalates (null) on a non-2xx status, having called fetch (AC-2)", async () => {
+		const { impl, calls } = fakeFetch({ ok: false, status: 500 });
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(calls).toHaveLength(1);
+	});
+
+	it("escalates (null) on a network error without throwing (AC-2)", async () => {
+		const { impl } = fakeFetch({ throws: true });
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl });
+		await expect(
+			runner({ set: makeSet(), decision: decision([2, 3]), question: "q" }),
+		).resolves.toBeNull();
+	});
+
+	it("escalates (null) on an empty answer (AC-2)", async () => {
+		const { impl } = fakeFetch({ json: { choices: [{ message: { content: "" } }] } });
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+	});
+
+	it("escalates (null) WITHOUT calling fetch when unconfigured (AC-2)", async () => {
+		const { impl, calls } = fakeFetch({});
+		const runner = createTier2Runner({ config: null, fetchImpl: impl });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(calls).toHaveLength(0);
+	});
+});
+
+// ── walkTierChain integration (AC-1 / AC-2) ───────────────────────────────────
+
+describe("walkTierChain — tier-2 integration", () => {
+	it("resolves at tier 2 and does not invoke tier 3 when configured (AC-1)", async () => {
+		const { impl } = fakeFetch({
+			json: { choices: [{ message: { content: "an answer" } }] },
+		});
+		let tier3Invoked = false;
+		const runners: Record<1 | 2 | 3, TierRunner> = {
+			...defaultRunners,
+			2: createTier2Runner({ config: CONFIG, fetchImpl: impl }),
+			3: (args) => {
+				tier3Invoked = true;
+				return tier3Runner(args);
+			},
+		};
+		const result = await walkTierChain({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+			runners,
+		});
+		expect(result.tier).toBe(2);
+		expect(tier3Invoked).toBe(false);
+	});
+
+	it("falls through to tier 3 when tier 2 fails (AC-2)", async () => {
+		const { impl } = fakeFetch({ ok: false, status: 502 });
+		const runners: Record<1 | 2 | 3, TierRunner> = {
+			...defaultRunners,
+			2: createTier2Runner({ config: CONFIG, fetchImpl: impl }),
+		};
+		const result = await walkTierChain({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+			runners,
+		});
+		expect(result.tier).toBe(3);
+	});
+});
