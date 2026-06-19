@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
 Status: In progress
-Phases: 5 of ~9 complete (~56%) — Phase 5 (watch tool primitive) ✅ done; `watch` pi tool wires sample→route→walkTierChain end-to-end, tier 3 (frames-into-context) live-verified, tiers 1–2 escalating Phase-6 seams. Next: Phase 6 (tier adapters).
+Phases: 6 of ~9 complete (~67%) — Phase 6 (tier adapters) ✅ done; all three tiers implemented (1 transcript, 2 OpenAI-compat video, 3 frames-into-context). Next: Phase 7 (config surface).
 
 ## Phases
 
@@ -17,7 +17,7 @@ Phases: 5 of ~9 complete (~56%) — Phase 5 (watch tool primitive) ✅ done; `wa
 | 3 | Sampler implementation | 03-01 ✅ + 03-02 ✅ | ✅ Complete | 2026-06-18 |
 | 4 | Router | 04-01 ✅ | ✅ Complete | 2026-06-18 |
 | 5 | watch tool primitive | 05-01 ✅ | ✅ Complete | 2026-06-19 |
-| 6 | Tier adapters | 06-01 ✅ + 06-02 (pending) | 🔨 In progress | - |
+| 6 | Tier adapters | 06-01 ✅ + 06-02 ✅ | ✅ Complete | 2026-06-19 |
 | 7 | Config surface | TBD | Not started | - |
 | 8 | /watch command | TBD | Not started | - |
 | 9 | Batching | TBD | Not started | - |
