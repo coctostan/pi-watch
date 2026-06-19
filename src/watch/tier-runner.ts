@@ -128,6 +128,45 @@ export function framesToToolResultContent(
 }
 
 /**
+ * Build the tier-1 tool-result content: the video's transcript handed back to
+ * the orchestrator as text on a shared mm:ss timeline (DESIGN §2 — tier 1 is the
+ * cheapest, model-agnostic answering path: no frames, no external model call).
+ *
+ * Layout:
+ *   1. a leading text part stating the question, the transcript source, and that
+ *      the answer should come from the transcript below;
+ *   2. one text part per segment, formatted `mm:ss <text>`, in timeline order.
+ *
+ * Pure: reads only, no mutation. Assumes a usable transcript exists; the caller
+ * (`tier1Runner`) gates on transcriptSource/segments and escalates when absent.
+ */
+export function transcriptToToolResultContent(
+	set: WatchedFrameSet,
+	question: string,
+): WatchContentPart[] {
+	const parts: WatchContentPart[] = [];
+	const transcriptSource = set.source.transcriptSource;
+
+	parts.push({
+		type: "text",
+		text:
+			`Question: ${question}\n` +
+			`Tier 1 (transcript) is in use: the video's transcript ` +
+			`(source: ${transcriptSource}) is provided below in timeline order. ` +
+			`Answer the question from the transcript.`,
+	});
+
+	for (const seg of set.transcript) {
+		parts.push({
+			type: "text",
+			text: `${formatMs(seg.startMs)} ${seg.text}`,
+		});
+	}
+
+	return parts;
+}
+
+/**
  * Tier 3 — frames-into-context. TOTAL: always returns a result (never null);
  * it is the universal terminal fallback every routing chain ends in.
  */
@@ -137,13 +176,30 @@ export const tier3Runner: TierRunner = async ({ set, question }) => ({
 	details: { tier: 3, frameCount: set.frames.length },
 });
 
-/** Tier 1 — transcript summarization adapter. Phase 6 seam; stub escalates. */
-export const tier1Runner: TierRunner = async () => null;
+/**
+ * Tier 1 — transcript adapter (DESIGN §2: cheapest, model-agnostic). When a
+ * usable transcript exists, hand it to the orchestrator as text; otherwise
+ * return null to escalate to the video tiers. No network, no external model.
+ */
+export const tier1Runner: TierRunner = async ({ set, question }) => {
+	if (set.source.transcriptSource === "none" || set.transcript.length === 0) {
+		return null;
+	}
+	return {
+		tier: 1,
+		content: transcriptToToolResultContent(set, question),
+		details: {
+			tier: 1,
+			transcriptSource: set.source.transcriptSource,
+			segmentCount: set.transcript.length,
+		},
+	};
+};
 
 /** Tier 2 — OpenAI-compatible native video adapter. Phase 6 seam; stub escalates. */
 export const tier2Runner: TierRunner = async () => null;
 
-/** Default runner table: tiers 1–2 escalating stubs, tier 3 fully implemented. */
+/** Default runner table: tier 1 (transcript) + tier 3 (frames) implemented; tier 2 is an escalating stub. */
 export const defaultRunners: Record<Tier, TierRunner> = {
 	1: tier1Runner,
 	2: tier2Runner,
