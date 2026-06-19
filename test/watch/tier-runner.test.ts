@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
 	walkTierChain,
 	framesToToolResultContent,
+	transcriptToToolResultContent,
 	defaultRunners,
+	tier1Runner,
 	tier3Runner,
 	type TierRunner,
 	type WatchImagePart,
@@ -19,8 +21,8 @@ import type {
  *
  * The tier runner walks the router's ordered chain — it does not route or
  * sample. All fixtures are hand-built in memory: no ffmpeg, no sample()/route(),
- * no model calls. Tier 3 (frames-into-context) is the only implemented tier;
- * tiers 1–2 are escalating stubs.
+ * no model calls. Tier 1 (transcript) and tier 3 (frames-into-context) are
+ * implemented; tier 2 (OpenAI-compatible video) is an escalating stub.
  */
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -217,5 +219,92 @@ describe("framesToToolResultContent — tier-3 serializer (AC-3)", () => {
 		);
 		expect(hasTranscriptLabel).toBe(false);
 		expect(content.some((p) => p.type === "text" && p.text.includes("ghost"))).toBe(false);
+	});
+});
+
+// ── Phase-6 tier 1: transcript adapter ────────────────────────────────────────
+
+describe("tier1Runner — transcript adapter", () => {
+	it("escalates (returns null) when transcriptSource is 'none'", async () => {
+		// A stray segment must not defeat the source gate.
+		const set = makeSet({
+			frames: TWO_FRAMES,
+			transcriptSource: "none",
+			transcript: [{ startMs: 0, endMs: 1_000, text: "ghost", source: "captions" }],
+		});
+		const result = await tier1Runner({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+		expect(result).toBeNull();
+	});
+
+	it("escalates (returns null) when the transcript is empty", async () => {
+		const set = makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript: [] });
+		const result = await tier1Runner({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+		expect(result).toBeNull();
+	});
+
+	it("answers at tier 1 from the transcript and does not invoke tiers 2/3", async () => {
+		const set = makeSet({
+			frames: TWO_FRAMES,
+			transcriptSource: "captions",
+			transcript: [
+				{ startMs: 0, endMs: 2_000, text: "hello world", source: "captions" },
+				{ startMs: 5_000, endMs: 7_000, text: "second line", source: "captions" },
+			],
+		});
+		let tier2Invoked = false;
+		let tier3Invoked = false;
+		const runners: Record<1 | 2 | 3, TierRunner> = {
+			1: tier1Runner,
+			2: async () => {
+				tier2Invoked = true;
+				return null;
+			},
+			3: (args) => {
+				tier3Invoked = true;
+				return tier3Runner(args);
+			},
+		};
+		const result = await walkTierChain({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+			runners,
+		});
+		expect(result.tier).toBe(1);
+		expect(tier2Invoked).toBe(false);
+		expect(tier3Invoked).toBe(false);
+		expect(result.details).toMatchObject({ transcriptSource: "captions", segmentCount: 2 });
+		// No image parts on the tier-1 path.
+		expect(result.content.every((p) => p.type === "text")).toBe(true);
+	});
+});
+
+describe("transcriptToToolResultContent — tier-1 serializer", () => {
+	it("leads with the question and transcript source, then mm:ss-labelled lines", () => {
+		const set = makeSet({
+			frames: TWO_FRAMES,
+			transcriptSource: "whisper",
+			transcript: [
+				{ startMs: 0, endMs: 2_000, text: "hello world", source: "whisper" },
+				{ startMs: 65_000, endMs: 67_000, text: "second line", source: "whisper" },
+			],
+		});
+		const content = transcriptToToolResultContent(set, "What is said?");
+		const lead = content[0];
+		expect(lead?.type).toBe("text");
+		expect(lead?.type === "text" && lead.text).toContain("What is said?");
+		expect(lead?.type === "text" && lead.text).toContain("whisper");
+		// All parts are text; transcript lines carry mm:ss labels in timeline order.
+		expect(content.every((p) => p.type === "text")).toBe(true);
+		expect(content.some((p) => p.type === "text" && p.text === "00:00 hello world")).toBe(true);
+		expect(content.some((p) => p.type === "text" && p.text === "01:05 second line")).toBe(true);
 	});
 });
