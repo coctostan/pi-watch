@@ -11,10 +11,10 @@ See: .paul/PROJECT.md (updated 2026-06-19 after Phase 7)
 
 Milestone: v0.1 Initial Release
 Phase: 08-watch-command
-Plan: Not started
-Status: Ready to plan — Phase 7 complete (07-01 merged; PR #9 → squash 7745f07; suite 105/105; main synced; branch deleted). Transitioned to Phase 8.
-Last activity: 2026-06-19 — Phase 7 complete: 07-01 merged, main synced, feature branch deleted; PROJECT/STATE/ROADMAP advanced to Phase 8.
-Next action: /paul:plan for Phase 8 (/watch command)
+Plan: 08-01 (UNIFY complete) — `.paul/phases/08-watch-command/08-01-SUMMARY.md`
+Status: UNIFY done — `/watch` command shipped + reconciled (AC-1/2/3 PASS; option-a decision recorded). Suite 117/117; typecheck+build clean; npm audit 0 vulns; 0 new deps. Awaiting merge gate: PR #10 (CI Socket-Security).
+Last activity: 2026-06-20 — /paul:unify 08-01: SUMMARY written, STATE/ROADMAP advanced; ready for merge gate on PR #10.
+Next action: complete merge gate for PR #10 (CI pass → merge → sync main → delete branch), then phase transition
 
 Progress:
 - Milestone: [███████░░░] ~78% (7 of ~9 phases complete)
@@ -31,7 +31,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 7 complete + merged (PR #9 → 7745f07); Phase 8 not started — ready to /paul:plan]
+  ✓        ✓        ✓     [Phase 8 (08-01) loop closed; suite 117/117; merge gate pending on PR #10]
 ```
 
 ## Accumulated Context
@@ -58,14 +58,14 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-19 — completed the full PLAN→APPLY→UNIFY loop for Phase 7 (07-01 config surface), merged PR #9, transitioned to Phase 8, then paused at the clean boundary.
-Stopped at: Phase 7 complete + merged (PR #9 → 7745f07); on main (synced 0/0); feature branch deleted. Phase 8 not started.
-Next action: /paul:plan for Phase 8 (/watch command)
-Resume file: .paul/HANDOFF-2026-06-19-phase8-watch-command-ready.md
+Last session: 2026-06-20 — ran /paul:apply for Phase 8 (08-01); Task-1 decision → option-a; Tasks 2–3 PASS; PR #10 opened.
+Stopped at: Phase 8 APPLY complete (PLAN ✓ / APPLY ✓ / UNIFY ○); on feature/08-watch-command (pushed); PR #10 open, CI Socket-Security in progress.
+Next action: /paul:unify .paul/phases/08-watch-command/08-01-PLAN.md (writes SUMMARY + metadata commit, then merge-gate PR #10)
+Resume file: .paul/phases/08-watch-command/08-01-PLAN.md
 wip_result: n/a (loop closed; only untracked .codegraph/ cache)
 Resume context:
 - Phases 1–7 complete + merged. All three tiers real (transcript / OpenAI-compat video / frames-into-context) AND config-driven: `src/config/resolveWatchConfig` resolves a typed `WatchConfig` (tier-2 endpoint, budget, resolution, fetch timeout) with precedence overrides > env > defaults; the extension boundary builds a config-driven tier-2 runner and applies budget/resolution defaults under per-call `WATCH_PARAMS`.
-- Phase 8 = `/watch` command: a UX wrapper over the `watch` tool primitive (DESIGN §7 build order step 5). Tool, sampler, router, tiers, and config are all in place to wrap.
+- Phase 8 = `/watch` command (SHIPPED in APPLY): pure core `src/watch/command.ts` (parse + prompt + effect-injected runner) + `pi.registerCommand("watch", …)` in the extension boundary. Decision option-a: the command DELEGATES to the agent via `pi.sendUserMessage` rather than running the pipeline inline — a handler returns void and can only notify text, so delegation is the only path that preserves tier-3 (frames → orchestrator, DESIGN §5 #1). Budget/resolution flags + autocomplete deferred to a later phase.
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
 - Carries: (1) installed `watch`/`/watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (merge gate is Socket-only) — consider a dedicated CI plan; (3) DOCS — `typebox` could move to peerDependencies; (4) deferred: file-based config + tier-order override (Phase-7 decision).
 - State: on main (PR #9 merged → 7745f07); suite 105/105 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/*, src/watch/*, src/config/* are stable — import, don't modify casually.
