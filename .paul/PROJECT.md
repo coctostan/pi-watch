@@ -10,8 +10,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.1.0 |
-| Status | Phase 7 complete (typed config surface — `src/config/resolveWatchConfig` replaces the `WATCH_TIER2_*` env bridge; tier-2 fetch bounded by an AbortSignal timeout). All three tiers real + config-driven. Next: Phase 8 `/watch` command. |
-| Last Updated | 2026-06-19 |
+| Status | Phase 8 complete (`/watch` command — UX wrapper over the `watch` tool; delegates to the agent via `pi.sendUserMessage` to preserve all three tiers). The tool + command pairing the project was built around is done. Next: Phase 9 batching. |
+| Last Updated | 2026-06-20 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -21,10 +21,11 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 5 (2026-06-19):** The load-bearing **`watch` pi tool primitive** is shipped (`src/watch/`). `tier-runner.ts` is the pure, pi-free walk core (`walkTierChain` consumes `RoutingDecision.tiers`; `framesToToolResultContent` serializes frames to tool-result `ImageContent`); `extension.ts` is the thin effect boundary that registers `watch` (synchronous `registerTool`, mandatory `promptSnippet` — Phase-1 recipe) and composes `sample() → routeContextFromSet() → route() → walkTierChain()`. **Tier 3 (frames-into-context) is fully implemented and live-verified** (model read red→green→blue scene order from returned frames under `pi --no-extensions -e`), proving tool-result images reach the orchestrator; tiers 1–2 are null-returning `TierRunner` stubs that escalate (real adapters = Phase 6). Package declares `"pi": { extensions: ["./dist/watch/extension.js"] }`. 9 new specs (64→73), 0 vulns; one types-only dep added (`@earendil-works/pi-coding-agent`, peerDependencies "*" + devDep pin); contract/sampler/router imported, untouched. PR #6 merged (d355a91).
 - **Phase 6 (2026-06-19):** All three **tier adapters** are real. 06-01 made the `TierRunner` seam async (`walkTierChain` awaits each runner) and shipped tier 1 (transcript passthrough: hands the mm:ss transcript to the orchestrator, else escalates). 06-02 shipped tier 2 (`src/watch/tier2.ts`) — the OpenAI-compatible native-video adapter: pure `buildTier2Request` (serializes frames as ordered `image_url` blocks + text via `toOpenAIContent`) + defensive `parseTier2Answer` + an isolated env-bridge config (`resolveTier2ConfigFromEnv`, `WATCH_TIER2_*`) + an injectable `createTier2Runner`. Adapter = `baseURL` + `model id` (one path for local Qwen3-VL via mlx_vlm.server or a hosted endpoint; no per-model forks); returns `null` on missing config / non-2xx / network error / empty answer so the chain falls through to tier 3. Zero new deps (Node ≥20 global `fetch`); suite 93/93 green. Tier-2 config surface deferred to Phase 7.
 - **Phase 7 (2026-06-19):** The **config surface** is shipped (`src/config/`). A pure `resolveWatchConfig(env, overrides?)` resolves one typed `WatchConfig` (tier-2 endpoint, frame budget, resolution, fetch timeout) with precedence **explicit overrides > env > defaults**, replacing the raw `WATCH_TIER2_*` env bridge. The extension boundary resolves it once and builds a config-driven tier-2 runner; per-call `WATCH_PARAMS` (budget/resolution) layer over config defaults. The tier-2 `fetch` is now bounded by a configurable `AbortSignal` timeout that escalates (null) to tier 3 on abort (closing the Phase-6 PETE carry). Suite 105/105; zero new deps; PR #9 merged (7745f07).
+- **Phase 8 (2026-06-20):** The **`/watch` command** is shipped (`src/watch/command.ts` + `extension.ts`) — the UX wrapper over the `watch` tool primitive (DESIGN §7 step 5), completing the tool+command pairing the project was built around. A pure parse/prompt/run core (`parseWatchCommand`, `buildWatchPrompt`, `runWatchCommand`) with effects (`ctx.ui.notify`, `pi.sendUserMessage`) injected at the boundary; `pi.registerCommand("watch", …)` is registered synchronously alongside the tool (activation recipe). Load-bearing decision (option-a): the command **delegates to the agent** rather than running the pipeline in a void-returning handler — the only path that preserves tier 3 (frames-into-context must reach the orchestrator, DESIGN §5 #1). Additive only; frozen core untouched; suite 117/117; 0 new deps. Budget/resolution flags + autocomplete deferred.
 
 ## Scope Snapshot
 ### Active
-- v0.1: sampler data contract → sampler implementation → `watch` tool primitive → tier adapters (1/2/3) → `/watch` command.
+- v0.1: sampler data contract ✓ → sampler implementation ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → `/watch` command ✓. Remaining: batching (Phase 9).
 
 ### Planned
 - Batching: `Promise.all` over tiers 1/2 first; subagent fan-out for tier-3 batch only if/when needed.
@@ -51,7 +52,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 |----------|-----------|------|--------|
 | Layered artifact model (`PROJECT.md` + `PRD.md`) adopted at init | Keep hot-path context concise while preserving deeper product definition | 2026-06-18 | Active |
 | WE own the sampling; model end is a thin OpenAI-compatible adapter | Native video and frame-sampling are the same mechanism underneath → local-vs-hosted becomes config, not code forks | 2026-06-18 | Active |
-| Build the `watch` tool as the primitive first; command + batch wrap it | Tool is the load-bearing seam every tier plugs into | 2026-06-18 | ✓ Validated (Phase 5) |
+| Build the `watch` tool as the primitive first; command + batch wrap it | Tool is the load-bearing seam every tier plugs into | 2026-06-18 | ✓ Validated (Phase 5 tool, Phase 8 command) |
 | Qwen3-VL is the local tier-2 pick (vs Gemma ≈ frames) | Qwen3-VL has real temporal architecture (3D patch + temporal RoPE) that justifies a real local tier-2 | 2026-06-18 | ✓ Validated (Phase 6) |
 | Custom-tool activation works in all modes; print-mode is NOT limited | Phase 1 spike: official example + template fail identically under a `setActiveTools` governor (`pi-loadout`); all pass with `--no-extensions` | 2026-06-18 | Active |
 | Ship the real `watch` tool as an installed package and ensure it's in the active loadout | A `setActiveTools`-allowlist governor strips ad-hoc/`-e`-loaded tools from the model-facing set | 2026-06-18 | Active |
@@ -70,6 +71,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 7) Tool config = pure `resolveWatchConfig` over env + explicit overrides, composed at the effect boundary; adapters receive resolved config | Mirrors the pure-core/effect-boundary split; one testable resolver; adapters no longer self-read env | 2026-06-19 | Active |
 | (Phase 7) Tier-2 `fetch` carries a configurable AbortSignal timeout; abort escalates (null) to tier 3 | Bounds a slow/hung endpoint without a new failure mode through the host; consistent with null-to-escalate | 2026-06-19 | Active |
 | (Phase 7) Defer file-based config + tier-order override | Out of v0.1 scope; env + overrides cover the local-first default flow | 2026-06-19 | Deferred |
+| (Phase 8) The `/watch` command delegates to the agent via `pi.sendUserMessage` rather than running the pipeline in the handler | A slash-command handler returns void / can only notify text → it cannot deliver tier-3 frames (ImageContent for the orchestrator, DESIGN §5 #1); delegation reuses the tool path untouched and preserves all three tiers | 2026-06-20 | Active |
+| (Phase 8) Defer `/watch` budget/resolution flags + autocomplete | Under agent-delegation the router/config pick budget/resolution from question intent; flags add no v0.1 value | 2026-06-20 | Deferred |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -79,4 +82,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-19 after Phase 7*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-20 after Phase 8*

@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
 Status: In progress
-Phases: 7 of ~9 complete (~78%) — Phase 7 (config surface) ✅ done: typed `resolveWatchConfig` replaces the tier-2 env bridge, tier-2 fetch bounded by an AbortSignal timeout. All three tiers real + config-driven. Now: Phase 8 (`/watch` command).
+Phases: 8 of ~9 complete (~89%) — Phase 8 (`/watch` command) ✅ done: the UX wrapper over the `watch` tool (delegates to the agent via `pi.sendUserMessage` to preserve all three tiers). The tool+command pairing the project was built around is complete. Now: Phase 9 (batching).
 
 ## Phases
 
