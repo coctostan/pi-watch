@@ -19,7 +19,7 @@ Phases: 7 of ~9 complete (~78%) — Phase 7 (config surface) ✅ done: typed `re
 | 5 | watch tool primitive | 05-01 ✅ | ✅ Complete | 2026-06-19 |
 | 6 | Tier adapters | 06-01 ✅ + 06-02 ✅ | ✅ Complete | 2026-06-19 |
 | 7 | Config surface | 07-01 ✅ | ✅ Complete | 2026-06-19 |
-| 8 | /watch command | TBD | Not started | - |
+| 8 | /watch command | 08-01 ✅ | ✅ Complete | 2026-06-20 |
 | 9 | Batching | TBD | Not started | - |
 
 ## Phase Details

@@ -46,3 +46,14 @@ export {
 	WATCH_PARAMS,
 	type WatchInput,
 } from "./extension.js";
+
+// The `/watch` command (Phase 8): the UX layer over the `watch` tool primitive.
+// Pure parse/prompt/run core (effects injected at the extension boundary).
+export {
+	parseWatchCommand,
+	buildWatchPrompt,
+	runWatchCommand,
+	WATCH_COMMAND_USAGE,
+	type WatchCommandParse,
+	type WatchCommandEffects,
+} from "./command.js";

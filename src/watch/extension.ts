@@ -35,6 +35,7 @@ import {
 	type WatchContentPart,
 } from "./tier-runner.js";
 import { createTier2Runner } from "./tier2.js";
+import { runWatchCommand } from "./command.js";
 
 /**
  * `watch` tool parameters (TypeBox → static type + runtime schema).
@@ -76,8 +77,9 @@ const WATCH_DESCRIPTION =
 	"and, for the frames tier, the sampled frames themselves.";
 
 /**
- * Extension factory: registers the `watch` tool. Synchronous registration (no
- * await before `registerTool`) per the Phase-1 activation recipe.
+ * Extension factory: registers the `watch` tool AND the `/watch` command.
+ * Synchronous registration (no await before `registerTool`/`registerCommand`)
+ * per the Phase-1 activation recipe.
  *
  * Config (Phase 7): the typed config surface is resolved ONCE here from the
  * environment (`resolveWatchConfig`). It supplies the tier-2 endpoint + fetch
@@ -150,6 +152,23 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					isError: true,
 				};
 			}
+		},
+	});
+
+	// `/watch` command (Phase 8): the UX wrapper over the `watch` tool. It does
+	// NOT run the pipeline itself — a command handler returns void and can only
+	// notify text, so it cannot deliver tier-3 frames (tool-result ImageContent
+	// destined for the orchestrator, DESIGN §5 #1). Instead it steers the agent
+	// to invoke the `watch` tool via the normal tool-call flow, preserving all
+	// three tiers. Registered synchronously alongside the tool (activation recipe).
+	pi.registerCommand("watch", {
+		description:
+			"Watch a video and answer a question (UX wrapper over the watch tool)",
+		handler: async (args, ctx) => {
+			runWatchCommand(args, {
+				notify: (message, level) => ctx.ui.notify(message, level),
+				send: (content) => pi.sendUserMessage(content),
+			});
 		},
 	});
 }
