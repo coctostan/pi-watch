@@ -82,7 +82,7 @@ function pushBoundedText(
 		return false;
 	}
 
-	if (value.length > remaining) {
+	if (value.length >= remaining) {
 		const suffix =
 			remaining > WATCH_BATCH_TRUNCATION_NOTE.length
 				? WATCH_BATCH_TRUNCATION_NOTE

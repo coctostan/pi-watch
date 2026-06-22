@@ -255,15 +255,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				};
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				const errorPart: WatchContentPart = {
-					type: "text",
-					text: `watch_batch failed: ${message}`,
-				};
-				return {
-					content: [errorPart],
-					details: { error: message, count: params.items.length },
-					isError: true,
-				};
+				throw new Error(`watch_batch failed: ${message}`);
 			}
 		},
 	});
