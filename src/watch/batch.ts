@@ -20,6 +20,12 @@ import type { TierResult, WatchContentPart, WatchTextPart } from "./tier-runner.
 /** Conservative cap for local ffmpeg/model fan-out in one batch call. */
 export const WATCH_BATCH_MAX_ITEMS = 8;
 
+/** Hard cap for aggregate text emitted by one watch_batch call. */
+export const WATCH_BATCH_MAX_TEXT_CHARS = 24_000;
+
+const WATCH_BATCH_TRUNCATION_NOTE =
+	"\n\n[watch_batch output truncated; run /watch on individual items for more.]";
+
 /** One video/question pair in a batch request. */
 export interface BatchItem {
 	ref: string;
@@ -62,41 +68,81 @@ function textPartsOnly(content: WatchContentPart[]): WatchTextPart[] {
 	return content.filter((part): part is WatchTextPart => part.type === "text");
 }
 
+/** Append a text part while enforcing the aggregate text cap. */
+function pushBoundedText(
+	content: WatchTextPart[],
+	state: { chars: number; truncated: boolean },
+	value: string,
+): boolean {
+	if (state.truncated) return false;
+
+	const remaining = WATCH_BATCH_MAX_TEXT_CHARS - state.chars;
+	if (remaining <= 0) {
+		state.truncated = true;
+		return false;
+	}
+
+	if (value.length > remaining) {
+		const suffix =
+			remaining > WATCH_BATCH_TRUNCATION_NOTE.length
+				? WATCH_BATCH_TRUNCATION_NOTE
+				: WATCH_BATCH_TRUNCATION_NOTE.slice(0, remaining);
+		const sliceLength = Math.max(0, remaining - suffix.length);
+		const bounded = value.slice(0, sliceLength) + suffix;
+		content.push(text(bounded));
+		state.chars += bounded.length;
+		state.truncated = true;
+		return false;
+	}
+
+	content.push(text(value));
+	state.chars += value.length;
+	return true;
+}
+
 /** Aggregate isolated item results into one bounded text-only tool result. */
 function aggregateBatchContent(results: BatchItemResult[]): WatchContentPart[] {
 	if (results.length === 0) {
 		return [text("watch_batch: no videos were provided.")];
 	}
 
-	const content: WatchTextPart[] = [
-		text(`Watched ${results.length} video${results.length === 1 ? "" : "s"}; results below.`),
-	];
+	const content: WatchTextPart[] = [];
+	const state = { chars: 0, truncated: false };
+	pushBoundedText(
+		content,
+		state,
+		`Watched ${results.length} video${results.length === 1 ? "" : "s"}; results below.`,
+	);
 
 	for (const item of results) {
-		content.push(text(`── [${item.index}] ${item.ref} — ${item.question}`));
+		if (!pushBoundedText(content, state, `── [${item.index}] ${item.ref} — ${item.question}`)) {
+			break;
+		}
 
 		if (item.status === "error") {
-			content.push(text(`Error: ${item.error ?? "unknown error"}`));
+			pushBoundedText(content, state, `Error: ${item.error ?? "unknown error"}`);
 			continue;
 		}
 
 		if (item.tier === 3) {
-			content.push(
-				text(
-					`This item routed to tier 3 (frames-into-context). ` +
-						`Run /watch "${item.ref}" ${item.question} individually to bring its frames into context. ` +
-						`Batch frame fan-out is deferred (DESIGN §5/§9).`,
-				),
+			pushBoundedText(
+				content,
+				state,
+				`This item routed to tier 3 (frames-into-context). ` +
+					`Run /watch "${item.ref}" ${item.question} individually to bring its frames into context. ` +
+					`Batch frame fan-out is deferred (DESIGN §5/§9).`,
 			);
 			continue;
 		}
 
 		const textParts = textPartsOnly(item.content ?? []);
 		if (textParts.length === 0) {
-			content.push(text(`No text content returned for tier ${item.tier ?? "unknown"}.`));
+			pushBoundedText(content, state, `No text content returned for tier ${item.tier ?? "unknown"}.`);
 			continue;
 		}
-		content.push(...textParts);
+		for (const part of textParts) {
+			if (!pushBoundedText(content, state, part.text)) break;
+		}
 	}
 
 	return content;
@@ -116,7 +162,7 @@ export async function runWatchBatch(
 		);
 	}
 	const settled = await Promise.allSettled(
-		items.map((item) => deps.processItem(item)),
+		items.map((item) => Promise.resolve().then(() => deps.processItem(item))),
 	);
 
 	const results: BatchItemResult[] = settled.map((outcome, index) => {

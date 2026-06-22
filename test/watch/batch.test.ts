@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
 	runWatchBatch,
+	WATCH_BATCH_MAX_TEXT_CHARS,
 	type BatchItem,
 	type WatchItemProcessor,
 } from "../../src/watch/batch.js";
@@ -70,6 +71,7 @@ describe("runWatchBatch — fan-out and isolation (AC-1)", () => {
 		};
 
 		const pending = runWatchBatch(ITEMS, { processItem });
+		await Promise.resolve();
 
 		// If processing were sequential, only the first unresolved item would start.
 		expect(started).toEqual(["a.mp4", "b.mp4", "c.mp4"]);
@@ -100,6 +102,24 @@ describe("runWatchBatch — fan-out and isolation (AC-1)", () => {
 		expect(result.items[1]?.error).toBe("decode failed");
 		expect(contentText(result)).toContain("a.mp4 ok");
 		expect(contentText(result)).toContain("Error: decode failed");
+		expect(contentText(result)).toContain("c.mp4 ok");
+	});
+
+
+	it("isolates synchronous processor throws the same as async rejections", async () => {
+		const processItem: WatchItemProcessor = (item) => {
+			if (item.ref === "b.mp4") {
+				throw new Error("sync failure");
+			}
+			return Promise.resolve(makeTierResult(1, `${item.ref} ok`));
+		};
+
+		const result = await runWatchBatch(ITEMS, { processItem });
+
+		expect(result.items.map((item) => item.status)).toEqual(["ok", "error", "ok"]);
+		expect(result.items[1]?.error).toBe("sync failure");
+		expect(contentText(result)).toContain("a.mp4 ok");
+		expect(contentText(result)).toContain("Error: sync failure");
 		expect(contentText(result)).toContain("c.mp4 ok");
 	});
 });
@@ -161,6 +181,23 @@ describe("runWatchBatch — aggregate content (AC-2)", () => {
 		expect(text).toContain("/watch \"t3.mp4\" frames?");
 		expect(text).not.toContain("tier three image content");
 		expect(text).toContain("Error: bad fixture");
+	});
+
+
+	it("caps aggregate text output and adds a truncation note", async () => {
+		const oversized = `${"a".repeat(WATCH_BATCH_MAX_TEXT_CHARS + 1_000)}TAIL-SHOULD-NOT-APPEAR`;
+		const processItem: WatchItemProcessor = async () => makeTierResult(2, oversized);
+
+		const result = await runWatchBatch([ITEMS[0]!], { processItem });
+		const rawTextLength = result.content.reduce(
+			(sum, part) => sum + (part.type === "text" ? part.text.length : 0),
+			0,
+		);
+		const text = contentText(result);
+
+		expect(rawTextLength).toBeLessThanOrEqual(WATCH_BATCH_MAX_TEXT_CHARS);
+		expect(text).toContain("watch_batch output truncated");
+		expect(text).not.toContain("TAIL-SHOULD-NOT-APPEAR");
 	});
 
 	it("returns a graceful single-text result for an empty batch", async () => {
