@@ -10,8 +10,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.1.0 |
-| Status | Phase 8 complete (`/watch` command — UX wrapper over the `watch` tool; delegates to the agent via `pi.sendUserMessage` to preserve all three tiers). The tool + command pairing the project was built around is done. Next: Phase 9 batching. |
-| Last Updated | 2026-06-20 |
+| Status | v0.1 complete — all planned initial-release phases are done: sampler contract, sampler implementation, router, watch tool primitive, tier adapters, config surface, `/watch` command, and batching. |
+| Last Updated | 2026-06-22 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -22,13 +22,14 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 6 (2026-06-19):** All three **tier adapters** are real. 06-01 made the `TierRunner` seam async (`walkTierChain` awaits each runner) and shipped tier 1 (transcript passthrough: hands the mm:ss transcript to the orchestrator, else escalates). 06-02 shipped tier 2 (`src/watch/tier2.ts`) — the OpenAI-compatible native-video adapter: pure `buildTier2Request` (serializes frames as ordered `image_url` blocks + text via `toOpenAIContent`) + defensive `parseTier2Answer` + an isolated env-bridge config (`resolveTier2ConfigFromEnv`, `WATCH_TIER2_*`) + an injectable `createTier2Runner`. Adapter = `baseURL` + `model id` (one path for local Qwen3-VL via mlx_vlm.server or a hosted endpoint; no per-model forks); returns `null` on missing config / non-2xx / network error / empty answer so the chain falls through to tier 3. Zero new deps (Node ≥20 global `fetch`); suite 93/93 green. Tier-2 config surface deferred to Phase 7.
 - **Phase 7 (2026-06-19):** The **config surface** is shipped (`src/config/`). A pure `resolveWatchConfig(env, overrides?)` resolves one typed `WatchConfig` (tier-2 endpoint, frame budget, resolution, fetch timeout) with precedence **explicit overrides > env > defaults**, replacing the raw `WATCH_TIER2_*` env bridge. The extension boundary resolves it once and builds a config-driven tier-2 runner; per-call `WATCH_PARAMS` (budget/resolution) layer over config defaults. The tier-2 `fetch` is now bounded by a configurable `AbortSignal` timeout that escalates (null) to tier 3 on abort (closing the Phase-6 PETE carry). Suite 105/105; zero new deps; PR #9 merged (7745f07).
 - **Phase 8 (2026-06-20):** The **`/watch` command** is shipped (`src/watch/command.ts` + `extension.ts`) — the UX wrapper over the `watch` tool primitive (DESIGN §7 step 5), completing the tool+command pairing the project was built around. A pure parse/prompt/run core (`parseWatchCommand`, `buildWatchPrompt`, `runWatchCommand`) with effects (`ctx.ui.notify`, `pi.sendUserMessage`) injected at the boundary; `pi.registerCommand("watch", …)` is registered synchronously alongside the tool (activation recipe). Load-bearing decision (option-a): the command **delegates to the agent** rather than running the pipeline in a void-returning handler — the only path that preserves tier 3 (frames-into-context must reach the orchestrator, DESIGN §5 #1). Additive only; frozen core untouched; suite 117/117; 0 new deps. Budget/resolution flags + autocomplete deferred.
+- **Phase 9 (2026-06-22):** **Batching** shipped as the final v0.1 piece. A new `watch_batch` tool wraps the existing sample → route → tier-walk pipeline over multiple video/question items, backed by a pure `runWatchBatch` core (`src/watch/batch.ts`). Tier 1/2 text results aggregate into a bounded text response (8-item cap, 24k text cap), per-item sync/async failures are isolated, and tier-3 frame-heavy batch items defer to single-video watch follow-up calls instead of inlining many videos' `ImageContent`. Suite now 125/125; PR #11 merged.
 
 ## Scope Snapshot
 ### Active
-- v0.1: sampler data contract ✓ → sampler implementation ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → `/watch` command ✓. Remaining: batching (Phase 9).
+- v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 
 ### Planned
-- Batching: `Promise.all` over tiers 1/2 first; subagent fan-out for tier-3 batch only if/when needed.
+- Post-v0.1: release/milestone wrap-up, dedicated CI workflow, and deferred enhancements (tier-3 batch fan-out, richer command/config surfaces).
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -73,6 +74,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 7) Defer file-based config + tier-order override | Out of v0.1 scope; env + overrides cover the local-first default flow | 2026-06-19 | Deferred |
 | (Phase 8) The `/watch` command delegates to the agent via `pi.sendUserMessage` rather than running the pipeline in the handler | A slash-command handler returns void / can only notify text → it cannot deliver tier-3 frames (ImageContent for the orchestrator, DESIGN §5 #1); delegation reuses the tool path untouched and preserves all three tiers | 2026-06-20 | Active |
 | (Phase 8) Defer `/watch` budget/resolution flags + autocomplete | Under agent-delegation the router/config pick budget/resolution from question intent; flags add no v0.1 value | 2026-06-20 | Deferred |
+| (Phase 9) Batch surface = new `watch_batch` tool over pure `runWatchBatch`; do not extend existing `watch` | Keeps the proven single-video primitive stable; batch is a wrapper over the existing pipeline | 2026-06-22 | ✓ Validated (Phase 9) |
+| (Phase 9) Tier-3 batch is deferred to single-video watch follow-up calls | Frames-for-many-videos needs subagent fan-out and can blow context; v0.1 stays bounded/text-oriented | 2026-06-22 | Deferred enhancement |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -82,4 +85,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-20 after Phase 8*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-22 after Phase 9 / v0.1 completion*

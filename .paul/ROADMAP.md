@@ -5,8 +5,8 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 **v0.1 Initial Release** (v0.1.0)
-Status: In progress
-Phases: 8 of ~9 complete (~89%) — Phase 8 (`/watch` command) ✅ done: the UX wrapper over the `watch` tool (delegates to the agent via `pi.sendUserMessage` to preserve all three tiers). The tool+command pairing the project was built around is complete. Now: Phase 9 (batching).
+Status: Complete
+Phases: 9 of 9 complete (100%) — v0.1 initial release scope is complete: tool activation proven, sampler contract/implementation, router, watch tool, tier adapters, config surface, `/watch` command, and batching.
 
 ## Phases
 
@@ -20,7 +20,7 @@ Phases: 8 of ~9 complete (~89%) — Phase 8 (`/watch` command) ✅ done: the UX 
 | 6 | Tier adapters | 06-01 ✅ + 06-02 ✅ | ✅ Complete | 2026-06-19 |
 | 7 | Config surface | 07-01 ✅ | ✅ Complete | 2026-06-19 |
 | 8 | /watch command | 08-01 ✅ | ✅ Complete | 2026-06-20 |
-| 9 | Batching | 09-01 | 🟣 Unifying | - |
+| 9 | Batching | 09-01 ✅ | ✅ Complete | 2026-06-22 |
 
 ## Phase Details
 
@@ -39,4 +39,4 @@ Phases will be finalized during `/paul:plan`. The proposed order below is **risk
 **Early architectural decision (resolve in/before phase 1):** standalone vs interop with pi-web-access / s2p2-agent (already does Gemini video) — see PRD Open Questions.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22*

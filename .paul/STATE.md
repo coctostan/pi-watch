@@ -10,30 +10,30 @@ See: .paul/PROJECT.md (updated 2026-06-20 after Phase 8)
 ## Current Position
 
 Milestone: v0.1 Initial Release
-Phase: 09-batching
-Plan: 09-01 (UNIFY in progress) — .paul/phases/09-batching/09-01-PLAN.md
-Status: Unifying — SUMMARY drafted at .paul/phases/09-batching/09-01-SUMMARY.md; APPLY shipped `runWatchBatch` + `watch_batch`, verification green (typecheck/build clean, npm test 125/125, npm audit 0 vulns), PR #11 clean with Socket checks passing. Post-unify dispatch and merge gate pending.
-Last activity: 2026-06-22 — /paul:unify 09-01 started: reconciliation complete and SUMMARY drafted; awaiting post-unify dispatch + GitHub Flow merge gate.
-Next action: continue /paul:unify .paul/phases/09-batching/09-01-PLAN.md
+Phase: 09-batching (complete)
+Plan: 09-01 (UNIFY complete; PR #11 merged) — .paul/phases/09-batching/09-01-SUMMARY.md
+Status: Milestone complete — v0.1 Initial Release finished. Phase 9 batching shipped (`watch_batch` + pure `runWatchBatch`), SUMMARY finalized, PR #11 squash-merged to main as 6bf2270, Socket checks passed, local main synced.
+Last activity: 2026-06-22 — Phase 9 and v0.1 milestone completed: PR #11 merged (6bf2270); PROJECT/STATE/ROADMAP updated for v0.1 completion.
+Next action: choose next milestone action: [1] Start next milestone | [2] Review accomplishments | [3] Pause here
 
 Progress:
-- Milestone: [████████░░] ~89% (8 of ~9 phases complete)
+- Milestone: [██████████] 100% (9 of 9 phases complete)
 - Phase 1: ✅ complete (PR #1 merged)
 - Phase 2: ✅ complete (02-01; PR #2 merged)
 - Phase 3: ✅ complete (03-01 + 03-02; PR #4 merged 2f9f669)
 - Phase 4: ✅ complete (04-01 Router; PR #5 merged f9c558f; 64/64 green)
-- Phase 5: ✅ complete (05-01; UNIFY closed; PR #6 merged d355a91; 73/73 green)
-- Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; all 3 tiers; 93/93 green)
+- Phase 5: ✅ complete (05-01; PR #6 merged d355a91; 73/73 green)
+- Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; 93/93 green)
 - Phase 7: ✅ complete (07-01 config surface; suite 105/105; PR #9 merged 7745f07)
 - Phase 8: ✅ complete (08-01 /watch command; suite 117/117; PR #10 merged 0c26401)
-- Phase 9: 🔵 APPLY complete (09-01 batching; PR #11 open; awaiting UNIFY/merge gate)
+- Phase 9: ✅ complete (09-01 batching; suite 125/125; PR #11 merged 6bf2270)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ◐     [Phase 9 UNIFY in progress; SUMMARY drafted; merge gate pending]
+  ✓        ✓        ✓     [Phase 9 complete; v0.1 milestone complete]
 ```
 
 ## Accumulated Context
@@ -59,26 +59,24 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional Gemini tier-2 upgrade (only if a key is added).
 
 ### Blockers/Concerns
-- RESOLVED (Phase 1): the print-mode "tool not found" symptom was the `pi-loadout` governor stripping newly-registered tools from the active set — not pi/-e/print. Custom-tool activation works in all modes. Phase-5 carry: ship `watch` as an installed package and ensure it's in the active loadout. See spikes/01-tool-activation/FINDINGS.md.
+- No current blockers. Carry for next milestone: dedicated CI workflow (merge gate is Socket-only), live pi runtime smoke for watch/watch_batch, tier-3 batch fan-out, richer command/config surfaces, optional TypeBox peer-dependency cleanup.
 
 ## Session Continuity
 
-Last session: 2026-06-22 — /paul:unify 09-01 in progress. SUMMARY drafted; post-unify dispatch and GitHub Flow merge gate pending.
-Stopped at: UNIFY in progress; PLAN ✓ / APPLY ✓ / UNIFY ◐. Branch `feature/09-batching` pushed; PR #11 open and clean; Socket checks passing.
-Next action: continue /paul:unify .paul/phases/09-batching/09-01-PLAN.md
+Last session: 2026-06-22 — Phase 9 UNIFY and v0.1 milestone completion. SUMMARY finalized; post-unify WALT/CODI history rows written; PR #11 merged to main as 6bf2270; PROJECT/STATE/ROADMAP updated for milestone completion.
+Stopped at: v0.1 milestone complete; all 9 phases done; local main synced. Awaiting next milestone/review/pause choice.
+Next action: [1] Start next milestone | [2] Review accomplishments | [3] Pause here
 Resume file: .paul/phases/09-batching/09-01-SUMMARY.md
-wip_result: unify-in-progress (SUMMARY drafted; commits: c9e6347, ba5b1a0, 3e074fb, 2985953, cc2a407, 929d2ab; verification: typecheck/build clean, npm test 125/125, npm audit 0 vulns; PR #11 Socket checks pass)
+wip_result: unified (PR #11 merged 6bf2270; verification: typecheck/build clean, npm test 125/125, npm audit 0 vulns, Socket checks passed)
 Resume context:
-- Phases 1–8 complete + merged. All three tiers real (transcript / OpenAI-compat video / frames-into-context) AND config-driven (`src/config/resolveWatchConfig`). The `watch` tool primitive AND the `/watch` command (UX wrapper, delegates to the agent) are both shipped — the tool+command pairing the project was built around is done.
-- Phase 9 = batching (DESIGN §7 step 6): `Promise.all` over tiers 1/2 first; subagent fan-out for tier-3 batch only if/when needed. The sampler, router, all three tiers, config surface, tool, and command are all in place to batch over.
+- v0.1 is complete: sampler contract, sampler implementation, router, `watch` tool primitive, tier adapters, config surface, `/watch` command, and `watch_batch` batching all shipped.
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
-- Carries: (1) installed `watch`/`/watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (merge gate is Socket-only) — consider a dedicated CI plan; (3) DOCS — `typebox` could move to peerDependencies; (4) deferred: file-based config + tier-order override (Phase 7), `/watch` budget/resolution flags + autocomplete (Phase 8).
-- State: on feature/09-batching with PR #11 open; APPLY verification green (typecheck+build clean, npm test 125/125, npm audit 0 vulns, Socket checks passing). src/contract/*, src/sampler/*, src/router/*, src/watch/tier-runner.ts, src/watch/tier2.ts, src/watch/command.ts, and src/config/* remain stable — import, don't modify casually.
+- Carries for future milestone: installed `watch`/`/watch` must be enabled in active loadout; add dedicated CI workflow; consider TypeBox peer-dep cleanup; deferred file-based config + tier-order override, `/watch` budget/resolution flags + autocomplete, `/watch-batch` command, and tier-3 subagent fan-out.
 
 ### Git State
-Last commit: 929d2ab (fix(09-01): harden watch batch failure paths), on feature/09-batching
-Branch: feature/09-batching (tracks origin/feature/09-batching); PR #11 open → https://github.com/coctostan/pi-watch/pull/11; Socket Security checks passing; mergeStateStatus CLEAN
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401); active PR #11 (09-01)
+Last commit: 6bf2270 (feat(09-01): add watch batching), on main
+Branch: main (synced with origin/main); PR #11 merged → https://github.com/coctostan/pi-watch/pull/11; Socket checks passed
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270)
 
 ---
 *STATE.md — Updated after every significant action*
