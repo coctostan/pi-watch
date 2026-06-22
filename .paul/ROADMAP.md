@@ -20,7 +20,7 @@ Phases: 8 of ~9 complete (~89%) — Phase 8 (`/watch` command) ✅ done: the UX 
 | 6 | Tier adapters | 06-01 ✅ + 06-02 ✅ | ✅ Complete | 2026-06-19 |
 | 7 | Config surface | 07-01 ✅ | ✅ Complete | 2026-06-19 |
 | 8 | /watch command | 08-01 ✅ | ✅ Complete | 2026-06-20 |
-| 9 | Batching | TBD | Not started | - |
+| 9 | Batching | 09-01 | 🟣 Unifying | - |
 
 ## Phase Details
 
