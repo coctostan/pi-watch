@@ -143,7 +143,7 @@ describe("runWatchBatch — aggregate content (AC-2)", () => {
 		expect(text).toContain("native-video answer");
 	});
 
-	it("defers tier-3 items to individual /watch instead of inlining frame images", async () => {
+	it("defers tier-3 items to individual single-video watch calls instead of inlining frame images", async () => {
 		const processItem: WatchItemProcessor = async () =>
 			makeTierResult(3, "frames would have appeared here");
 
@@ -152,7 +152,8 @@ describe("runWatchBatch — aggregate content (AC-2)", () => {
 
 		expect(result.content.every((part) => part.type === "text")).toBe(true);
 		expect(text).toContain("tier 3 (frames-into-context)");
-		expect(text).toContain("/watch \"a.mp4\" What is said?");
+		expect(text).toContain('ref: "a.mp4"');
+		expect(text).toContain('question: "What is said?"');
 		expect(text).toContain("Batch frame fan-out is deferred");
 		expect(text).not.toContain("frames would have appeared here");
 	});
@@ -178,7 +179,8 @@ describe("runWatchBatch — aggregate content (AC-2)", () => {
 		expect(result.content.every((part) => part.type === "text")).toBe(true);
 		expect(text).toContain("tier one text");
 		expect(text).toContain("tier two text");
-		expect(text).toContain("/watch \"t3.mp4\" frames?");
+		expect(text).toContain('ref: "t3.mp4"');
+		expect(text).toContain('question: "frames?"');
 		expect(text).not.toContain("tier three image content");
 		expect(text).toContain("Error: bad fixture");
 	});

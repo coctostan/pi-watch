@@ -119,7 +119,7 @@ const WATCH_DESCRIPTION =
 const WATCH_BATCH_DESCRIPTION =
 	"Watch several videos in one call. Samples each video, routes each to the " +
 	"cheapest available tier, and returns combined text answers; tier-3 frame " +
-	"batch fan-out is deferred to individual /watch calls.";
+	"batch fan-out is deferred to individual single-video watch calls.";
 
 /**
  * Extension factory: registers the `watch` tool AND the `/watch` command.
@@ -211,11 +211,11 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		description: WATCH_BATCH_DESCRIPTION,
 		// MANDATORY (Phase-1 finding): omitting this drops the tool from the prompt.
 		promptSnippet:
-			"Watch several videos in one call and return combined text answers; use individual /watch for frame-heavy tier-3 items",
+			"Watch several videos in one call and return combined text answers; use single-video watch calls for frame-heavy tier-3 items",
 		promptGuidelines: [
 			"Use `watch_batch` when the user asks the same or related questions across multiple video refs.",
 			"Pass each video/question pair in `items`; shared budget/resolution overrides apply to every item.",
-			"For frame-heavy tier-3 cases, expect the batch result to ask for individual `/watch` follow-up calls.",
+			"For frame-heavy tier-3 cases, expect the batch result to ask for single-video watch follow-up calls.",
 		],
 		parameters: WATCH_BATCH_PARAMS,
 		async execute(_toolCallId, params: WatchBatchInput) {
@@ -227,7 +227,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 						content: [
 							{
 								type: "text",
-								text: "Tier 3 deferred for watch_batch; run /watch individually for frames.",
+								text: "Tier 3 deferred for watch_batch; run the single-video watch tool individually for frames.",
 							},
 						],
 						details: { tier: 3, frameCount: set.frames.length, deferred: true },

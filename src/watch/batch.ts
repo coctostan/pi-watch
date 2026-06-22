@@ -129,7 +129,8 @@ function aggregateBatchContent(results: BatchItemResult[]): WatchContentPart[] {
 				content,
 				state,
 				`This item routed to tier 3 (frames-into-context). ` +
-					`Run /watch "${item.ref}" ${item.question} individually to bring its frames into context. ` +
+					`Run the single-video watch tool individually with ref: ${JSON.stringify(item.ref)} ` +
+					`and question: ${JSON.stringify(item.question)} to bring its frames into context. ` +
 					`Batch frame fan-out is deferred (DESIGN §5/§9).`,
 			);
 			continue;
