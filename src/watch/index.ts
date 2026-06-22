@@ -29,6 +29,14 @@ export {
 	type TierRunner,
 } from "./tier-runner.js";
 
+export {
+	runWatchBatch,
+	type BatchItem,
+	type BatchItemResult,
+	type BatchResult,
+	type WatchItemProcessor,
+} from "./batch.js";
+
 // `resolveTier2ConfigFromEnv` + `Tier2Config` remain the low-level tier-2 env
 // building blocks. The typed configuration composition point is `src/config`
 // (resolveWatchConfig) — the extension boundary resolves it and feeds the
@@ -44,7 +52,9 @@ export {
 export {
 	default as watchExtension,
 	WATCH_PARAMS,
+	WATCH_BATCH_PARAMS,
 	type WatchInput,
+	type WatchBatchInput,
 } from "./extension.js";
 
 // The `/watch` command (Phase 8): the UX layer over the `watch` tool primitive.

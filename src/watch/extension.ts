@@ -36,6 +36,7 @@ import {
 } from "./tier-runner.js";
 import { createTier2Runner } from "./tier2.js";
 import { runWatchCommand } from "./command.js";
+import { runWatchBatch, type WatchItemProcessor } from "./batch.js";
 
 /**
  * `watch` tool parameters (TypeBox → static type + runtime schema).
@@ -70,11 +71,50 @@ export const WATCH_PARAMS = Type.Object({
 /** Static input type for the `watch` tool's `execute`. */
 export type WatchInput = Static<typeof WATCH_PARAMS>;
 
+/** `watch_batch` tool parameters (TypeBox → static type + runtime schema). */
+export const WATCH_BATCH_PARAMS = Type.Object({
+	items: Type.Array(
+		Type.Object({
+			ref: Type.String({
+				description: "Video reference: local file path or http(s) URL",
+			}),
+			question: Type.String({
+				description: "What to find out about this video",
+			}),
+		}),
+		{
+			minItems: 1,
+			description: "Video/question pairs to watch in parallel",
+		},
+	),
+	budget: Type.Optional(
+		Type.Integer({
+			minimum: 1,
+			description: "Shared max frames to sample per video (default ~16)",
+		}),
+	),
+	resolution: Type.Optional(
+		Type.Union([Type.Literal("low"), Type.Literal("high")], {
+			description:
+				"Shared frame-resolution override for every item; normally the router sets this by question intent.",
+		}),
+	),
+});
+
+/** Static input type for the `watch_batch` tool's `execute`. */
+export type WatchBatchInput = Static<typeof WATCH_BATCH_PARAMS>;
+
 const WATCH_DESCRIPTION =
 	"Watch a video (local file or URL) and answer a question about it. Samples " +
 	"frames + best-effort transcript, then routes to the cheapest tier that can " +
 	"answer (transcript → native video → frames-into-context), returning the answer " +
 	"and, for the frames tier, the sampled frames themselves.";
+
+
+const WATCH_BATCH_DESCRIPTION =
+	"Watch several videos in one call. Samples each video, routes each to the " +
+	"cheapest available tier, and returns combined text answers; tier-3 frame " +
+	"batch fan-out is deferred to individual /watch calls.";
 
 /**
  * Extension factory: registers the `watch` tool AND the `/watch` command.
@@ -149,6 +189,61 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				return {
 					content: [errorPart],
 					details: { error: message, ref: params.ref },
+					isError: true,
+				};
+			}
+		},
+	});
+
+
+	// `watch_batch` (Phase 9): a bounded batch wrapper over the same frozen
+	// sample → route → walkTierChain pipeline. Tier-1/2 text results aggregate;
+	// tier-3 frame batches are intentionally deferred to individual `/watch` calls
+	// rather than inlining many videos' frames into one tool result.
+	pi.registerTool<typeof WATCH_BATCH_PARAMS, Record<string, unknown>>({
+		name: "watch_batch",
+		label: "Watch Batch",
+		description: WATCH_BATCH_DESCRIPTION,
+		// MANDATORY (Phase-1 finding): omitting this drops the tool from the prompt.
+		promptSnippet:
+			"Watch several videos in one call and return combined text answers; use individual /watch for frame-heavy tier-3 items",
+		promptGuidelines: [
+			"Use `watch_batch` when the user asks the same or related questions across multiple video refs.",
+			"Pass each video/question pair in `items`; shared budget/resolution overrides apply to every item.",
+			"For frame-heavy tier-3 cases, expect the batch result to ask for individual `/watch` follow-up calls.",
+		],
+		parameters: WATCH_BATCH_PARAMS,
+		async execute(_toolCallId, params: WatchBatchInput) {
+			try {
+				const processItem: WatchItemProcessor = async ({ ref, question }) => {
+					const set = await sample({
+						ref,
+						budget: params.budget ?? config.budget,
+						resolution: params.resolution ?? config.resolution,
+					});
+					const ctx = routeContextFromSet(set);
+					const decision = route({ question, context: ctx });
+					return walkTierChain({ set, decision, question, runners });
+				};
+
+				const result = await runWatchBatch(params.items, { processItem });
+				return {
+					content: result.content,
+					details: {
+						count: params.items.length,
+						tiers: result.items.map((item) => item.tier),
+						errors: result.items.filter((item) => item.status === "error").length,
+					},
+				};
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				const errorPart: WatchContentPart = {
+					type: "text",
+					text: `watch_batch failed: ${message}`,
+				};
+				return {
+					content: [errorPart],
+					details: { error: message, count: params.items.length },
 					isError: true,
 				};
 			}
