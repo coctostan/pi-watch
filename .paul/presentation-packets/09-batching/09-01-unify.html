@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>09-01 UNIFY Review Brief</title>
+  <style>
+    :root { color-scheme: light; --bg:#ffffff; --fg:#17202a; --muted:#5f6b7a; --border:#d8dee9; --panel:#f7f9fc; --accent:#235a97; --warn:#8a5a00; --block:#a32020; }
+    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header, main, footer { max-width:980px; margin:0 auto; padding:1.25rem; }
+    header { border-bottom:2px solid var(--border); }
+    h1,h2,h3 { line-height:1.2; }
+    .meta,.source-map,.evidence,.callout { border:1px solid var(--border); border-radius:.5rem; background:var(--panel); padding:1rem; margin:1rem 0; }
+    .muted { color:var(--muted); }
+    .warning { border-color:var(--warn); }
+    table { border-collapse:collapse; width:100%; margin:1rem 0; }
+    th,td { border:1px solid var(--border); padding:.5rem; text-align:left; vertical-align:top; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#f2f4f8; border:1px solid var(--border); border-radius:.5rem; padding:.75rem; }
+    code { background:#eef2f7; padding:.1rem .25rem; border-radius:.25rem; }
+    @media print { body{font-size:12px;} header,main,footer{max-width:none;} .no-print{display:none;} }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="muted">PALS HTML Presentation Packet</p>
+    <h1>09-01 UNIFY Review Brief</h1>
+    <div class="meta" aria-label="Packet metadata">
+      <dl>
+        <dt>Packet ID</dt><dd>09-01-unify</dd>
+        <dt>Packet Type</dt><dd>UNIFY</dd>
+        <dt>Audience Mode</dt><dd>reviewer brief</dd>
+        <dt>Generated</dt><dd>2026-06-22</dd>
+        <dt>Lifecycle Moment</dt><dd>After SUMMARY finalization, before GitHub Flow merge gate</dd>
+        <dt>Status</dt><dd>SUMMARY finalized; post-unify modules recorded; PR #11 clean and Socket checks passing [S2][E3]</dd>
+        <dt>Authority Note</dt><dd>Derived review artifact only. Cited source artifacts and command outputs remain authoritative.</dd>
+      </dl>
+    </div>
+  </header>
+  <main>
+    <section aria-labelledby="summary">
+      <h2 id="summary">Summary</h2>
+      <p>UNIFY reconciled Phase 9 Plan 09-01 as complete: the approved batching scope shipped as <code>watch_batch</code> plus a pure <code>runWatchBatch</code> core, with all acceptance criteria passing and post-review hardening recorded as auto-fixes [S1][S3]. Post-unify modules recorded WALT and CODI history rows, and no blocker remains for the GitHub Flow merge gate [S3][E3].</p>
+    </section>
+    <section aria-labelledby="review-focus">
+      <h2 id="review-focus">Review Focus</h2>
+      <p>Use this packet to inspect plan-vs-actual reconciliation before merge: AC results, deviations, module reports, validation evidence, and remaining concerns. UNIFY has not yet merged PR #11 at the time represented here [S2][E3].</p>
+    </section>
+    <section aria-labelledby="source-map" class="source-map">
+      <h2 id="source-map">Source Map</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Source</th><th>Evidence Used</th></tr></thead>
+        <tbody>
+          <tr><td>S1</td><td><code>.paul/phases/09-batching/09-01-PLAN.md</code></td><td>Approved goal, ACs, tasks, boundaries, output target.</td></tr>
+          <tr><td>S2</td><td><code>.paul/STATE.md</code> lines 10-84</td><td>UNIFY in-progress state, PR status, option-a decision, next action.</td></tr>
+          <tr><td>S3</td><td><code>.paul/phases/09-batching/09-01-SUMMARY.md</code></td><td>Reconciliation, AC results, deviations, module reports, validation.</td></tr>
+          <tr><td>S4</td><td><code>.paul/ROADMAP.md</code> lines 1-43</td><td>Current milestone and Phase 9 status.</td></tr>
+          <tr><td>E1</td><td><code>git diff --stat main...HEAD</code> / <code>git diff --name-status main...HEAD</code></td><td>Changed-file evidence from APPLY.</td></tr>
+          <tr><td>E2</td><td>Parent-run verification commands</td><td><code>npm run typecheck</code>, <code>npm run build</code>, <code>npm test</code>, <code>npm audit</code>.</td></tr>
+          <tr><td>E3</td><td><code>gh pr view 11 --json url,state,mergeStateStatus,statusCheckRollup</code></td><td>PR URL/state, merge state, Socket check status.</td></tr>
+        </tbody>
+      </table>
+      <p>Absent optional source: <code>docs/PALS-HTML-PRESENTATION-PACKETS-CONTRACT.md</code> not available — installed contract file was not found under expected PALS skill paths.</p>
+    </section>
+    <section aria-labelledby="key-decisions">
+      <h2 id="key-decisions">Key Decisions</h2>
+      <table>
+        <thead><tr><th>Decision</th><th>UNIFY Result</th><th>Citation</th></tr></thead>
+        <tbody>
+          <tr><td>Batch surface</td><td>Option-a shipped: new <code>watch_batch</code> tool over pure <code>runWatchBatch</code>.</td><td>[S2 line 55][S3 Decisions Made]</td></tr>
+          <tr><td>Tier-3 batch</td><td>Deferred to single-video watch follow-up calls; no subagent fan-out in v0.1.</td><td>[S3 Acceptance Criteria / Decisions / Deferred Items]</td></tr>
+          <tr><td>Boundedness hardening</td><td>UNIFY records max 8 items and 24k aggregate text cap as accepted auto-fixes.</td><td>[S3 Deviations / Auto-fixed Issues]</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section aria-labelledby="risks-constraints">
+      <h2 id="risks-constraints">Risks &amp; Constraints</h2>
+      <div class="callout warning"><p><strong>Carry:</strong> no dedicated CI workflow; PR checks are Socket-only. This is recorded as a DAVE warning/carry, not a UNIFY blocker [S3 Module Execution Reports][E3].</p></div>
+      <ul>
+        <li>Live pi runtime/tool-call behavior and real ffmpeg/model sampling were not exercised during APPLY [S3 Next Phase Readiness].</li>
+        <li><code>.codegraph/</code> remains an untracked local cache [S3 Next Phase Readiness].</li>
+        <li>UNIFY merge gate and milestone completion routing are still pending at packet generation time [S2][workflow].</li>
+      </ul>
+    </section>
+    <section aria-labelledby="criteria-or-tasks">
+      <h2 id="criteria-or-tasks">Acceptance Criteria / Reconciliation Evidence</h2>
+      <table>
+        <thead><tr><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>AC-1 fan-out + isolation</td><td>PASS</td><td>Sync and async per-item errors are isolated; tests cover ordering and failures [S3 AC Results].</td></tr>
+          <tr><td>AC-2 text aggregation + tier-3 deferral</td><td>PASS</td><td>Text-only aggregate, 24k cap, tier-3 sentinel/deferral, no images in batch output [S3 AC Results].</td></tr>
+          <tr><td>AC-3 tool wiring + gates</td><td>PASS</td><td><code>watch_batch</code> registered; exports added; frozen core untouched; verification clean [S3 AC Results].</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section aria-labelledby="evidence" class="evidence">
+      <h2 id="evidence">Evidence</h2>
+      <pre>Changed files:
+A src/watch/batch.ts
+M src/watch/extension.ts
+M src/watch/index.ts
+A test/watch/batch.test.ts
+
+Commits:
+929d2ab fix(09-01): harden watch batch failure paths
+cc2a407 fix(09-01): clarify tier-3 batch follow-up
+2985953 fix(09-01): cap watch batch text output
+3e074fb fix(09-01): bound watch batch fan-out
+ba5b1a0 feat(09-01): register watch batch tool
+c9e6347 feat(09-01): add pure watch batch core</pre>
+      <p>Sources: git diff/name-status and git log evidence [E1], SUMMARY task commits [S3].</p>
+    </section>
+    <section aria-labelledby="validation">
+      <h2 id="validation">Validation</h2>
+      <table>
+        <thead><tr><th>Check</th><th>Result</th><th>Citation</th></tr></thead>
+        <tbody>
+          <tr><td><code>npm run typecheck</code></td><td>Pass</td><td>[S3 Validation]</td></tr>
+          <tr><td><code>npm run build</code></td><td>Pass</td><td>[S3 Validation]</td></tr>
+          <tr><td><code>npm test</code></td><td>Pass — 11 files, 125 tests</td><td>[S3 Validation]</td></tr>
+          <tr><td><code>npm audit</code></td><td>Pass — 0 vulnerabilities</td><td>[S3 Validation]</td></tr>
+          <tr><td>Final code review</td><td>Pass — no actionable findings</td><td>[S3 Validation]</td></tr>
+          <tr><td>PR #11 Socket checks</td><td>Pass</td><td>[E3]</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section aria-labelledby="open-questions">
+      <h2 id="open-questions">Open Questions</h2>
+      <ul>
+        <li>Merge gate is pending after this packet; if merge succeeds, phase completion and milestone completion routing follow [workflow][S2].</li>
+        <li>Future work candidates remain: dedicated CI workflow, tier-3 subagent fan-out, optional <code>/watch-batch</code> command, file-based config/tier-order override, and optional TypeBox peer-dependency cleanup [S3 Deferred Items].</li>
+      </ul>
+    </section>
+  </main>
+  <footer>
+    <p><strong>Authority:</strong> This packet is derived from cited sources. If packet content conflicts with <code>.paul/*</code>, PLAN/SUMMARY, module reports, git/PR/CI state, or parent-run command output, the cited authoritative source wins.</p>
+    <p class="muted">Stored under <code>.paul/presentation-packets/09-batching/09-01-unify.html</code>; not hot-path lifecycle truth.</p>
+  </footer>
+</body>
+</html>

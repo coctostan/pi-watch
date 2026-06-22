@@ -11,10 +11,10 @@ See: .paul/PROJECT.md (updated 2026-06-20 after Phase 8)
 
 Milestone: v0.1 Initial Release
 Phase: 09-batching
-Plan: Not started
-Status: Ready to plan — Phase 8 complete (08-01 merged; PR #10 → squash 0c26401; suite 117/117; main synced; branch deleted). Transitioned to Phase 9.
-Last activity: 2026-06-20 — Phase 8 complete: 08-01 merged, main synced, feature branch deleted; PROJECT/STATE/ROADMAP advanced to Phase 9.
-Next action: /paul:plan for Phase 9 (batching)
+Plan: 09-01 (UNIFY in progress) — .paul/phases/09-batching/09-01-PLAN.md
+Status: Unifying — SUMMARY drafted at .paul/phases/09-batching/09-01-SUMMARY.md; APPLY shipped `runWatchBatch` + `watch_batch`, verification green (typecheck/build clean, npm test 125/125, npm audit 0 vulns), PR #11 clean with Socket checks passing. Post-unify dispatch and merge gate pending.
+Last activity: 2026-06-22 — /paul:unify 09-01 started: reconciliation complete and SUMMARY drafted; awaiting post-unify dispatch + GitHub Flow merge gate.
+Next action: continue /paul:unify .paul/phases/09-batching/09-01-PLAN.md
 
 Progress:
 - Milestone: [████████░░] ~89% (8 of ~9 phases complete)
@@ -26,13 +26,14 @@ Progress:
 - Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; all 3 tiers; 93/93 green)
 - Phase 7: ✅ complete (07-01 config surface; suite 105/105; PR #9 merged 7745f07)
 - Phase 8: ✅ complete (08-01 /watch command; suite 117/117; PR #10 merged 0c26401)
+- Phase 9: 🔵 APPLY complete (09-01 batching; PR #11 open; awaiting UNIFY/merge gate)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 8 complete + merged (PR #10 → 0c26401); Phase 9 not started — ready to /paul:plan]
+  ✓        ✓        ◐     [Phase 9 UNIFY in progress; SUMMARY drafted; merge gate pending]
 ```
 
 ## Accumulated Context
@@ -51,6 +52,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (Phase 5) Tier 3 hands sampled frames to the orchestrator as pi tool-result ImageContent on a shared timeline; tier-runner.ts is pure/pi-free (local content union), extension.ts is the effect boundary. `watch` registered synchronously with mandatory promptSnippet; shipped via `pi.extensions` manifest.
 - (Phase 7) Tool config = pure `resolveWatchConfig` over env + explicit overrides (precedence overrides > env > defaults), composed at the effect boundary; tier-2 fetch carries a configurable AbortSignal timeout (abort → null escalate).
 - (Phase 8) The `/watch` command is a thin UX wrapper: pure parse/prompt/run core + injected effects (`ctx.ui.notify`, `pi.sendUserMessage`), `pi.registerCommand` synchronous alongside the tool. Decision (option-a): it DELEGATES to the agent rather than running the pipeline in the handler — the only path that preserves tier 3 (frames → orchestrator).
+- (Phase 9 checkpoint:decision) Batch surface = option-a: add a new `watch_batch` tool over a pure `runWatchBatch` core; tiers 1/2 aggregate into one bounded text result, tier-3 batch is deferred to single-video watch follow-up calls (no subagent fan-out in v0.1).
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -61,22 +63,22 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-20 — completed the Phase 8 PLAN→APPLY→UNIFY loop for 08-01 and the phase transition; PR #10 merged, main synced, branch deleted.
-Stopped at: Phase 8 complete + merged; transitioned to Phase 9 (batching), ready to plan.
-Next action: /paul:plan for Phase 9 (batching)
-Resume file: .paul/ROADMAP.md
-wip_result: n/a (loop closed; only untracked .codegraph/ cache)
+Last session: 2026-06-22 — /paul:unify 09-01 in progress. SUMMARY drafted; post-unify dispatch and GitHub Flow merge gate pending.
+Stopped at: UNIFY in progress; PLAN ✓ / APPLY ✓ / UNIFY ◐. Branch `feature/09-batching` pushed; PR #11 open and clean; Socket checks passing.
+Next action: continue /paul:unify .paul/phases/09-batching/09-01-PLAN.md
+Resume file: .paul/phases/09-batching/09-01-SUMMARY.md
+wip_result: unify-in-progress (SUMMARY drafted; commits: c9e6347, ba5b1a0, 3e074fb, 2985953, cc2a407, 929d2ab; verification: typecheck/build clean, npm test 125/125, npm audit 0 vulns; PR #11 Socket checks pass)
 Resume context:
 - Phases 1–8 complete + merged. All three tiers real (transcript / OpenAI-compat video / frames-into-context) AND config-driven (`src/config/resolveWatchConfig`). The `watch` tool primitive AND the `/watch` command (UX wrapper, delegates to the agent) are both shipped — the tool+command pairing the project was built around is done.
 - Phase 9 = batching (DESIGN §7 step 6): `Promise.all` over tiers 1/2 first; subagent fan-out for tier-3 batch only if/when needed. The sampler, router, all three tiers, config surface, tool, and command are all in place to batch over.
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
 - Carries: (1) installed `watch`/`/watch` must be enabled in the active loadout or a setActiveTools governor strips it (FINDINGS #4); (2) DAVE — still no .github/workflows/ci.yml (merge gate is Socket-only) — consider a dedicated CI plan; (3) DOCS — `typebox` could move to peerDependencies; (4) deferred: file-based config + tier-order override (Phase 7), `/watch` budget/resolution flags + autocomplete (Phase 8).
-- State: on main (PR #10 merged → 0c26401); suite 117/117 green; build+typecheck clean; 0 vulns; zero new deps. src/contract/*, src/sampler/*, src/router/*, src/watch/*, src/config/* are stable — import, don't modify casually.
+- State: on feature/09-batching with PR #11 open; APPLY verification green (typecheck+build clean, npm test 125/125, npm audit 0 vulns, Socket checks passing). src/contract/*, src/sampler/*, src/router/*, src/watch/tier-runner.ts, src/watch/tier2.ts, src/watch/command.ts, and src/config/* remain stable — import, don't modify casually.
 
 ### Git State
-Last commit: 0c26401 (Phase 8: /watch command — UX wrapper over the watch tool (#10), on main)
-Branch: main (synced 0/0 with origin/main); feature/08-watch-command merged + deleted
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401)
+Last commit: 929d2ab (fix(09-01): harden watch batch failure paths), on feature/09-batching
+Branch: feature/09-batching (tracks origin/feature/09-batching); PR #11 open → https://github.com/coctostan/pi-watch/pull/11; Socket Security checks passing; mergeStateStatus CLEAN
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401); active PR #11 (09-01)
 
 ---
 *STATE.md — Updated after every significant action*

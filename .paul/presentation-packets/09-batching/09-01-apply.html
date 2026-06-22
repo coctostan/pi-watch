@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>09-01 APPLY Review Brief</title>
+  <style>
+    :root { color-scheme: light; --bg:#ffffff; --fg:#17202a; --muted:#5f6b7a; --border:#d8dee9; --panel:#f7f9fc; --accent:#235a97; --warn:#8a5a00; --block:#a32020; }
+    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header, main, footer { max-width:980px; margin:0 auto; padding:1.25rem; }
+    header { border-bottom:2px solid var(--border); }
+    h1,h2,h3 { line-height:1.2; }
+    .meta,.source-map,.evidence,.callout { border:1px solid var(--border); border-radius:.5rem; background:var(--panel); padding:1rem; margin:1rem 0; }
+    .muted { color:var(--muted); }
+    .warning { border-color:var(--warn); }
+    table { border-collapse:collapse; width:100%; margin:1rem 0; }
+    th,td { border:1px solid var(--border); padding:.5rem; text-align:left; vertical-align:top; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#f2f4f8; border:1px solid var(--border); border-radius:.5rem; padding:.75rem; }
+    code { background:#eef2f7; padding:.1rem .25rem; border-radius:.25rem; }
+    @media print { body{font-size:12px;} header,main,footer{max-width:none;} .no-print{display:none;} }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="muted">PALS HTML Presentation Packet</p>
+    <h1>09-01 APPLY Review Brief</h1>
+    <div class="meta" aria-label="Packet metadata">
+      <dl>
+        <dt>Packet ID</dt><dd>09-01-apply</dd>
+        <dt>Packet Type</dt><dd>APPLY</dd>
+        <dt>Audience Mode</dt><dd>reviewer brief</dd>
+        <dt>Generated</dt><dd>2026-06-22</dd>
+        <dt>Lifecycle Moment</dt><dd>After APPLY completion, before UNIFY</dd>
+        <dt>Status</dt><dd>APPLY complete; PR #11 open and clean; UNIFY pending [S2]</dd>
+        <dt>Authority Note</dt><dd>Derived review artifact only. Cited source artifacts and command outputs remain authoritative.</dd>
+      </dl>
+    </div>
+  </header>
+
+  <main>
+    <section aria-labelledby="summary">
+      <h2 id="summary">Summary</h2>
+      <p>Phase 9 Plan 09-01 applied the approved option-a batch surface: a new <code>watch_batch</code> wrapper over a pure <code>runWatchBatch</code> core. The implementation fans out across video/question items, aggregates tier-1/2 text answers, and defers tier-3 frame-heavy items to single-video watch follow-up calls rather than inlining many videos&apos; frames [S1][S2]. The branch is pushed, PR #11 is open, merge state is CLEAN, and Socket checks are passing [E3].</p>
+    </section>
+
+    <section aria-labelledby="review-focus">
+      <h2 id="review-focus">Review Focus</h2>
+      <p>Review the additive batch implementation in <code>src/watch/batch.ts</code>, <code>src/watch/extension.ts</code>, <code>src/watch/index.ts</code>, and <code>test/watch/batch.test.ts</code>. Pay special attention to bounded fan-out, bounded text aggregation, sync/async per-item error isolation, tier-3 deferral behavior, and preservation of frozen single-video watch surfaces [S1][E1].</p>
+    </section>
+
+    <section aria-labelledby="source-map" class="source-map">
+      <h2 id="source-map">Source Map</h2>
+      <p class="muted">Every material claim in this packet cites one of these sources.</p>
+      <table>
+        <thead><tr><th>ID</th><th>Source</th><th>Evidence Used</th></tr></thead>
+        <tbody>
+          <tr><td>S1</td><td><code>.paul/phases/09-batching/09-01-PLAN.md</code> lines 1-332</td><td>Plan objective, files, ACs, tasks, boundaries, verification.</td></tr>
+          <tr><td>S2</td><td><code>.paul/STATE.md</code> lines 10-84</td><td>Current lifecycle status, option-a decision, APPLY result, PR status, next action.</td></tr>
+          <tr><td>E1</td><td><code>git diff --stat main...HEAD</code> / <code>git diff --name-status main...HEAD</code></td><td>Changed-file inventory and diff size.</td></tr>
+          <tr><td>E2</td><td>Parent-run verification commands during APPLY</td><td><code>npm run typecheck</code>, <code>npm run build</code>, <code>npm test</code>, <code>npm audit</code>.</td></tr>
+          <tr><td>E3</td><td><code>gh pr view 11 --json url,state,mergeStateStatus,statusCheckRollup</code></td><td>PR URL/state, merge state, Socket check status.</td></tr>
+          <tr><td>E4</td><td>Codex review output against <code>main</code></td><td>Final review found no actionable findings after fixes.</td></tr>
+        </tbody>
+      </table>
+      <p>Absent optional source: <code>docs/PALS-HTML-PRESENTATION-PACKETS-CONTRACT.md</code> not available — installed contract file was not found under the expected PALS skill paths. This packet follows the loaded template static-HTML rules [template loaded from installed PALS skill].</p>
+    </section>
+
+    <section aria-labelledby="key-decisions">
+      <h2 id="key-decisions">Key Decisions</h2>
+      <table>
+        <thead><tr><th>Decision</th><th>Result</th><th>Citation</th></tr></thead>
+        <tbody>
+          <tr><td>Batch surface</td><td>Option-a selected: add a new <code>watch_batch</code> tool over a pure <code>runWatchBatch</code> core.</td><td>[S1 lines 140-184][S2 line 55]</td></tr>
+          <tr><td>Tier-3 batch handling</td><td>Do not inline many videos&apos; frames; defer to single-video watch follow-up calls.</td><td>[S1 lines 17-20, 296-299][S2 lines 15, 55]</td></tr>
+          <tr><td>Scope preservation</td><td>Frozen sampler/router/config/contract/tier-runner/tier2/command surfaces remain import-only.</td><td>[S1 lines 286-294][S2 line 76]</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="risks-constraints">
+      <h2 id="risks-constraints">Risks &amp; Constraints</h2>
+      <div class="callout warning">
+        <p><strong>Known carry:</strong> there is still no project CI workflow; the GitHub Flow merge gate is Socket-only. This was already identified as a DAVE carry, not an APPLY blocker [S1 lines 82-84][S2 line 75].</p>
+      </div>
+      <ul>
+        <li>No subagent fan-out for tier-3 batch in v0.1 [S1 lines 296-299].</li>
+        <li>No new dependencies; native Promise/allSettled behavior is used [S1 lines 95-97, 301].</li>
+        <li>No <code>/watch-batch</code> slash command in this phase [S1 lines 299-300].</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="criteria-or-tasks">
+      <h2 id="criteria-or-tasks">Acceptance Criteria / Task Evidence</h2>
+      <table>
+        <thead><tr><th>Task / AC</th><th>APPLY Result</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Task 1 / checkpoint</td><td>Resolved: option-a.</td><td>STATE records the Phase 9 checkpoint decision [S2 line 55].</td></tr>
+          <tr><td>Task 2 / AC-1, AC-2</td><td>Pure batch core and deterministic tests implemented. Later hardening added max items, text cap, sync throw isolation, and corrected tier-3 follow-up wording.</td><td>Commits <code>c9e6347</code>, <code>3e074fb</code>, <code>2985953</code>, <code>cc2a407</code>, <code>929d2ab</code> [S2 lines 16, 70][E1].</td></tr>
+          <tr><td>Task 3 / AC-3</td><td><code>watch_batch</code> registered at the extension boundary and batch exports added.</td><td>Commit <code>ba5b1a0</code>; changed files include <code>src/watch/extension.ts</code> and <code>src/watch/index.ts</code> [S2 line 70][E1].</td></tr>
+          <tr><td>Changed files</td><td>4 source/test files changed: two added, two modified.</td><td><pre>src/watch/batch.ts       | 197 +
+src/watch/extension.ts   | 105 +
+src/watch/index.ts       |  11 +
+test/watch/batch.test.ts | 213 +
+4 files changed, 526 insertions(+)</pre>[E1]</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="evidence" class="evidence">
+      <h2 id="evidence">Evidence</h2>
+      <h3>Commit Evidence</h3>
+      <pre>929d2ab fix(09-01): harden watch batch failure paths
+cc2a407 fix(09-01): clarify tier-3 batch follow-up
+2985953 fix(09-01): cap watch batch text output
+3e074fb fix(09-01): bound watch batch fan-out
+ba5b1a0 feat(09-01): register watch batch tool
+c9e6347 feat(09-01): add pure watch batch core</pre>
+      <p>Source: <code>git log --oneline main..HEAD</code> [E1].</p>
+      <h3>Review Evidence</h3>
+      <p>Final code review against <code>main</code> returned no actionable findings. Residual risk noted by review: no live pi runtime/tool-call session or real ffmpeg/model sampling was exercised [E4].</p>
+    </section>
+
+    <section aria-labelledby="validation">
+      <h2 id="validation">Validation</h2>
+      <table>
+        <thead><tr><th>Check</th><th>Result</th><th>Citation</th></tr></thead>
+        <tbody>
+          <tr><td><code>npm run typecheck</code></td><td>Pass</td><td>[S2 lines 15, 70, 76][E2]</td></tr>
+          <tr><td><code>npm run build</code></td><td>Pass</td><td>[S2 lines 15, 70, 76][E2]</td></tr>
+          <tr><td><code>npm test</code></td><td>Pass: 125/125</td><td>[S2 lines 15, 70, 76][E2]</td></tr>
+          <tr><td><code>npm audit</code></td><td>Pass: 0 vulnerabilities</td><td>[S2 lines 15, 70, 76][E2]</td></tr>
+          <tr><td>Socket Security checks</td><td>Pass: Project Report and Pull Request Alerts succeeded.</td><td>[S2 line 80][E3]</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="open-questions">
+      <h2 id="open-questions">Open Questions</h2>
+      <ul>
+        <li>UNIFY is pending and owns final reconciliation, SUMMARY creation, and GitHub Flow merge gate [S2 lines 17, 31-37].</li>
+        <li>Live pi runtime/tool-call behavior and real ffmpeg/model sampling were not exercised during APPLY; the shipped evidence is unit/build/static-review based [E4].</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>Authority:</strong> This packet is derived from cited sources. If packet content conflicts with <code>.paul/*</code>, PLAN/SUMMARY, module reports, git/PR/CI state, or parent-run command output, the cited authoritative source wins.</p>
+    <p class="muted">Stored under <code>.paul/presentation-packets/09-batching/09-01-apply.html</code>; not hot-path lifecycle truth and not subject to STATE/PROJECT/ROADMAP/MILESTONES byte budgets.</p>
+  </footer>
+</body>
+</html>
