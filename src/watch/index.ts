@@ -31,6 +31,7 @@ export {
 
 export {
 	runWatchBatch,
+	WATCH_BATCH_MAX_ITEMS,
 	type BatchItem,
 	type BatchItemResult,
 	type BatchResult,

@@ -17,6 +17,9 @@
 import type { Tier } from "../router/index.js";
 import type { TierResult, WatchContentPart, WatchTextPart } from "./tier-runner.js";
 
+/** Conservative cap for local ffmpeg/model fan-out in one batch call. */
+export const WATCH_BATCH_MAX_ITEMS = 8;
+
 /** One video/question pair in a batch request. */
 export interface BatchItem {
 	ref: string;
@@ -107,6 +110,11 @@ export async function runWatchBatch(
 	items: BatchItem[],
 	deps: { processItem: WatchItemProcessor },
 ): Promise<BatchResult> {
+	if (items.length > WATCH_BATCH_MAX_ITEMS) {
+		throw new Error(
+			`watch_batch accepts at most ${WATCH_BATCH_MAX_ITEMS} videos per call; received ${items.length}.`,
+		);
+	}
 	const settled = await Promise.allSettled(
 		items.map((item) => deps.processItem(item)),
 	);

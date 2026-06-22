@@ -36,7 +36,11 @@ import {
 } from "./tier-runner.js";
 import { createTier2Runner } from "./tier2.js";
 import { runWatchCommand } from "./command.js";
-import { runWatchBatch, type WatchItemProcessor } from "./batch.js";
+import {
+	runWatchBatch,
+	WATCH_BATCH_MAX_ITEMS,
+	type WatchItemProcessor,
+} from "./batch.js";
 
 /**
  * `watch` tool parameters (TypeBox → static type + runtime schema).
@@ -84,6 +88,7 @@ export const WATCH_BATCH_PARAMS = Type.Object({
 		}),
 		{
 			minItems: 1,
+			maxItems: WATCH_BATCH_MAX_ITEMS,
 			description: "Video/question pairs to watch in parallel",
 		},
 	),
@@ -215,6 +220,19 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		parameters: WATCH_BATCH_PARAMS,
 		async execute(_toolCallId, params: WatchBatchInput) {
 			try {
+				const batchRunners: Record<Tier, TierRunner> = {
+					...runners,
+					3: async ({ set }) => ({
+						tier: 3,
+						content: [
+							{
+								type: "text",
+								text: "Tier 3 deferred for watch_batch; run /watch individually for frames.",
+							},
+						],
+						details: { tier: 3, frameCount: set.frames.length, deferred: true },
+					}),
+				};
 				const processItem: WatchItemProcessor = async ({ ref, question }) => {
 					const set = await sample({
 						ref,
@@ -223,7 +241,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					});
 					const ctx = routeContextFromSet(set);
 					const decision = route({ question, context: ctx });
-					return walkTierChain({ set, decision, question, runners });
+					return walkTierChain({ set, decision, question, runners: batchRunners });
 				};
 
 				const result = await runWatchBatch(params.items, { processItem });
