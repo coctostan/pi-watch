@@ -181,6 +181,41 @@ The test builds a one-frame red `WatchedFrameSet`, posts the OpenAI-compatible `
 
 Local `mlx_vlm.server` does not need `WATCH_TIER2_API_KEY`. Hosted OpenAI-compatible endpoints may require it.
 
+## Reading tier-2 failures
+
+Tier 2 never blocks an answer. When it cannot answer, `watch` **silently escalates to tier 3** (frames-into-context) and still returns a result — so a watch can quietly fall back to frames without any obvious error. To make that legible, the tool now records a structured `details.tier2` diagnostic whenever tier 2 was attempted but did not answer.
+
+The diagnostic appears on the `watch` tool result's `details` (and on each `watch_batch` item's `details`). It is present only when tier 3 (or tier 1) ended up answering; a successful tier-2 answer records **no** `details.tier2`.
+
+Shape:
+
+```jsonc
+"details": {
+  "tier": 3,                // the tier that actually answered
+  "tier2": { "reason": "http-error", "httpStatus": 500 }
+}
+```
+
+`reason` is one of:
+
+| `reason` | Meaning | Network call? |
+|----------|---------|---------------|
+| `unconfigured` | `WATCH_TIER2_BASE_URL` and/or `WATCH_TIER2_MODEL` are unset, so tier 2 is disabled. | No — emitted before any request. |
+| `http-error` | The endpoint replied with a non-2xx status. The numeric status is in `httpStatus` (e.g. `500`). | Yes. |
+| `empty-answer` | The endpoint replied 2xx but the answer was empty, garbled, or unparseable. | Yes. |
+| `timeout` | The request exceeded `WATCH_TIER2_TIMEOUT_MS` and was aborted. | Yes (aborted). |
+| `network-error` | The endpoint could not be reached (connection refused, DNS, etc.). A short, non-secret `message` is included. | Attempted. |
+
+Mapping to the Troubleshooting bullets below:
+
+- `unconfigured` → "unset env": export `WATCH_TIER2_BASE_URL` and `WATCH_TIER2_MODEL` (see Configure pi-watch).
+- `http-error` → server-side failure: check the `mlx_vlm.server` logs for the reported status.
+- `empty-answer` → "Empty or malformed response": confirm the request shape (image_url blocks, not a raw video).
+- `timeout` → "Slow first startup": the first run may be loading multi-GB weights; raise `WATCH_TIER2_TIMEOUT_MS` or warm the model first.
+- `network-error` → "Port already in use" / server not running: confirm the server is up and `WATCH_TIER2_BASE_URL` points at the right host/port (including `/v1`).
+
+Diagnostics are deliberately **secret-free**: a `details.tier2` value never contains the api key, the `Authorization` header, or the request body — only the `reason`, the numeric `httpStatus` (for `http-error`), and a short error `message` (for `network-error`).
+
 ## Troubleshooting
 
 - Python or wheel resolution errors: recreate the environment with `uv venv --python 3.12 ...` or `uv venv --python 3.11 ...`; do not use Python 3.14.
