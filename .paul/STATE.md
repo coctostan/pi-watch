@@ -71,9 +71,9 @@ Resume context:
 - Carries for future milestone: installed `watch`/`/watch` must be enabled in active loadout; add dedicated CI workflow; consider TypeBox peer-dep cleanup; deferred file-based config + tier-order override, `/watch` budget/resolution flags + autocomplete, `/watch-batch` command, and tier-3 subagent fan-out.
 
 ### Git State
-Last commit: pending UNIFY metadata commit on feature/10-standup-model (implementation commit fc56c21)
-Branch: feature/10-standup-model (base main synced with origin/main); PR #12 open: https://github.com/coctostan/pi-watch/pull/12; checks passing: Socket Security Project Report + Pull Request Alerts
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270); PR #12 pending merge
+Last commit: cdf3db2 (docs(10-01): document local tier-2 model setup), merged via PR #12
+Branch: main synced with origin/main; PR #12 merged: https://github.com/coctostan/pi-watch/pull/12; checks passed: Socket Security Project Report + Pull Request Alerts
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270), PR #12 (10-01 → cdf3db2)
 
 ---
 *STATE.md — Updated after every significant action*
