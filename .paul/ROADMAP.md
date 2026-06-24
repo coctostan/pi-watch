@@ -4,11 +4,24 @@
 A pi extension that lets the agent watch videos — answering questions by picking the cheapest path that works (transcript → native video model → frames-into-context), local-first and model-agnostic.
 
 ## Current Milestone
-**v0.1 Initial Release** (v0.1.0)
-Status: Complete
-Phases: 9 of 9 complete (100%) — v0.1 initial release scope is complete: tool activation proven, sampler contract/implementation, router, watch tool, tier adapters, config surface, `/watch` command, and batching.
+**v0.2 — Tier 2, For Real** (v0.2.0)
+Status: 🚧 In Progress
+Phases: 1 of 4 complete (25%)
+Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against it live, and make tier-2 failures visible — so `/watch` answers from the real model and degrades legibly.
 
 ## Phases
+
+| Phase | Name | Plans | Status | Completed |
+|-------|------|-------|--------|-----------|
+| 10 | Stand up the model | 10-01 ✅ | ✅ Complete | 2026-06-24 |
+| 11 | Tier-2 live wire-shape proof | TBD | Ready to plan | - |
+| 12 | Tier-2 failure diagnostics | TBD | Not started | - |
+| 13 | Tier-2 config UX | TBD | Not started | - |
+
+## Completed Milestones
+
+### v0.1 Initial Release (v0.1.0) — Complete 2026-06-22
+9 of 9 phases (100%): tool activation proven, sampler contract/implementation, router, watch tool, tier adapters, config surface, `/watch` command, and batching.
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
@@ -22,9 +35,18 @@ Phases: 9 of 9 complete (100%) — v0.1 initial release scope is complete: tool 
 | 8 | /watch command | 08-01 ✅ | ✅ Complete | 2026-06-20 |
 | 9 | Batching | 09-01 ✅ | ✅ Complete | 2026-06-22 |
 
-## Phase Details
+## Phase Details (v0.2 — current)
 
-Phases will be finalized during `/paul:plan`. The proposed order below is **risk-first** (prove the un-de-risked tool-activation assumption before building for it), then follows the DESIGN.md §7 build order. See `.paul/PRD.md` → Recommended Direction / Risks / Testing Strategy for rationale.
+Phases will be finalized during `/paul:plan`. v0.2 makes the local native-video tier (Qwen3-VL via `mlx_vlm.server`) actually answer through `/watch`, and fail legibly. See `.paul/MILESTONES.md` (if present) and the strategic assessment `.paul/assessments/2026-06-22-after-v0.1.md` for rationale.
+
+10. **Stand up the model** — ✅ Complete 2026-06-24. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; `docs/TIER2-SETUP.md` records uv-pinned setup, server command, smoke test, and WATCH_TIER2_* exports.
+11. **Tier-2 live wire-shape proof** — an opt-in, network-gated integration test that sends `buildTier2Request`'s real output to the running server and confirms `parseTier2Answer` reads a real answer. Closes the "never touched a real endpoint" gap; fix any wire-shape mismatches.
+12. **Tier-2 failure diagnostics** — replace the silent `catch { return null }` / `!res.ok → null` with surfaced diagnostics (unconfigured / bad status / parse-fail / timeout) flowing into tool `details`, without changing escalate-to-tier-3 behavior.
+13. **Tier-2 config UX** — a sensible local default (auto-point at localhost `mlx_vlm`) and/or a "tier 2 unconfigured — set X to enable it" message; may fold into Phase 12.
+
+## Phase Details (v0.1 — completed)
+
+The proposed order below was **risk-first** (prove the un-de-risked tool-activation assumption before building for it), then followed the DESIGN.md §7 build order. See `.paul/PRD.md` → Recommended Direction / Risks / Testing Strategy for rationale.
 
 1. **Tool-activation spike** — prove a `pi -e ext.ts`-registered `watch` tool actually runs (TUI/print mode) before building anything for it. ⚠️ only un-de-risked load-bearing assumption.
 2. **Sampler data contract** — the in-memory "watched frame set" type.
@@ -39,4 +61,4 @@ Phases will be finalized during `/paul:plan`. The proposed order below is **risk
 **Early architectural decision (resolve in/before phase 1):** standalone vs interop with pi-web-access / s2p2-agent (already does Gemini video) — see PRD Open Questions.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 created: 2026-06-22 · Phase 10 completed: 2026-06-24*

@@ -2,38 +2,34 @@
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-06-20 after Phase 8)
+See: .paul/PROJECT.md (updated 2026-06-24 after Phase 10)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 8 (`/watch` command) complete and merged (PR #10 → 0c26401) — the UX wrapper over the `watch` tool; the tool+command pairing is done. Next: Phase 9 (batching). Phases 1–8 complete and merged to main.
+**Current focus:** v0.2 — Tier 2, For Real. The local Qwen3-VL endpoint is stood up; next prove the live tier-2 wire shape through the actual watch pipeline in Phase 11.
 
 ## Current Position
 
-Milestone: v0.1 Initial Release
-Phase: 09-batching (complete)
-Plan: 09-01 (UNIFY complete; PR #11 merged) — .paul/phases/09-batching/09-01-SUMMARY.md
-Status: Milestone complete — v0.1 Initial Release finished. Phase 9 batching shipped (`watch_batch` + pure `runWatchBatch`), SUMMARY finalized, PR #11 squash-merged to main as 6bf2270, Socket checks passed, local main synced.
-Last activity: 2026-06-22 — Phase 9 and v0.1 milestone completed: PR #11 merged (6bf2270); PROJECT/STATE/ROADMAP updated for v0.1 completion.
-Next action: choose next milestone action: [1] Start next milestone | [2] Review accomplishments | [3] Pause here
+Milestone: v0.2 — Tier 2, For Real
+Phase: 11 of 13 (Tier-2 live wire-shape proof)
+Plan: Not started
+Status: Phase 10 complete. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; smoke POST returned HTTP 200 with non-empty answer (`red`); `docs/TIER2-SETUP.md` captures the reproducible runbook and WATCH_TIER2_* values. Ready to plan Phase 11.
+Last activity: 2026-06-24 — Phase 10 unified: 10-01 SUMMARY created, quality/CODI history updated, and transition routed to Phase 11 planning. Server intentionally left running for Phase 11.
+Next action: /paul:plan for Phase 11
 
 Progress:
-- Milestone: [██████████] 100% (9 of 9 phases complete)
-- Phase 1: ✅ complete (PR #1 merged)
-- Phase 2: ✅ complete (02-01; PR #2 merged)
-- Phase 3: ✅ complete (03-01 + 03-02; PR #4 merged 2f9f669)
-- Phase 4: ✅ complete (04-01 Router; PR #5 merged f9c558f; 64/64 green)
-- Phase 5: ✅ complete (05-01; PR #6 merged d355a91; 73/73 green)
-- Phase 6: ✅ complete (06-01 + 06-02; PR #7 + PR #8 merged 0bd585a; 93/93 green)
-- Phase 7: ✅ complete (07-01 config surface; suite 105/105; PR #9 merged 7745f07)
-- Phase 8: ✅ complete (08-01 /watch command; suite 117/117; PR #10 merged 0c26401)
-- Phase 9: ✅ complete (09-01 batching; suite 125/125; PR #11 merged 6bf2270)
+- Milestone v0.2: [██░░░░░░░░] 25% (1 of 4 phases complete)
+- Phase 10: Stand up the model — ✅ complete (10-01)
+- Phase 11: Tier-2 live wire-shape proof — ready to plan
+- Phase 12: Tier-2 failure diagnostics — not started
+- Phase 13: Tier-2 config UX — not started
+- v0.1 Initial Release: ✅ complete (9 of 9 phases; PRs #1–#11 merged; final 6bf2270)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 9 complete; v0.1 milestone complete]
+  ○        ○        ○     [Phase 11 ready to plan]
 ```
 
 ## Accumulated Context
@@ -53,6 +49,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (Phase 7) Tool config = pure `resolveWatchConfig` over env + explicit overrides (precedence overrides > env > defaults), composed at the effect boundary; tier-2 fetch carries a configurable AbortSignal timeout (abort → null escalate).
 - (Phase 8) The `/watch` command is a thin UX wrapper: pure parse/prompt/run core + injected effects (`ctx.ui.notify`, `pi.sendUserMessage`), `pi.registerCommand` synchronous alongside the tool. Decision (option-a): it DELEGATES to the agent rather than running the pipeline in the handler — the only path that preserves tier 3 (frames → orchestrator).
 - (Phase 9 checkpoint:decision) Batch surface = option-a: add a new `watch_batch` tool over a pure `runWatchBatch` core; tiers 1/2 aggregate into one bounded text result, tier-3 batch is deferred to single-video watch follow-up calls (no subagent fan-out in v0.1).
+- (Phase 10 checkpoint:decision) Local tier-2 default = `mlx-community/Qwen3-VL-8B-Instruct-4bit` first: verified reachable, ~5.38 GiB weights vs ~17.01 GiB for 30B-A3B, fastest low-risk path to a running endpoint; model remains swappable by config.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -63,20 +60,20 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-22 — Phase 9 UNIFY and v0.1 milestone completion. SUMMARY finalized; post-unify WALT/CODI history rows written; PR #11 merged to main as 6bf2270; PROJECT/STATE/ROADMAP updated for milestone completion.
-Stopped at: v0.1 milestone complete; all 9 phases done; local main synced. Awaiting next milestone/review/pause choice.
-Next action: [1] Start next milestone | [2] Review accomplishments | [3] Pause here
-Resume file: .paul/phases/09-batching/09-01-SUMMARY.md
-wip_result: unified (PR #11 merged 6bf2270; verification: typecheck/build clean, npm test 125/125, npm audit 0 vulns, Socket checks passed)
+Last session: 2026-06-24 — Phase 10 completed. Chose Qwen3-VL 8B 4-bit, provisioned uv-pinned Python 3.12 env outside the repo, started local mlx_vlm.server on port 8080, smoke-tested OpenAI image_url chat-completions wire shape, wrote docs/TIER2-SETUP.md, and unified 10-01.
+Stopped at: Phase 10 complete; Phase 11 (Tier-2 live wire-shape proof) ready to plan. Local server left running for Phase 11.
+Next action: /paul:plan for Phase 11
+Resume file: .paul/ROADMAP.md
+wip_result: phase-complete (10-01 summary: .paul/phases/10-standup-model/10-01-SUMMARY.md; implementation commit fc56c21; PR #12 checks passing: Socket Security report + alerts)
 Resume context:
 - v0.1 is complete: sampler contract, sampler implementation, router, `watch` tool primitive, tier adapters, config surface, `/watch` command, and `watch_batch` batching all shipped.
 - We own sampling; tier-2 backends are thin OpenAI-compatible adapters (baseURL + model id), never code forks (AGENTS.md). Cloud (Gemini) optional, never required.
 - Carries for future milestone: installed `watch`/`/watch` must be enabled in active loadout; add dedicated CI workflow; consider TypeBox peer-dep cleanup; deferred file-based config + tier-order override, `/watch` budget/resolution flags + autocomplete, `/watch-batch` command, and tier-3 subagent fan-out.
 
 ### Git State
-Last commit: 6bf2270 (feat(09-01): add watch batching), on main
-Branch: main (synced with origin/main); PR #11 merged → https://github.com/coctostan/pi-watch/pull/11; Socket checks passed
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 5dbf603), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270)
+Last commit: pending UNIFY metadata commit on feature/10-standup-model (implementation commit fc56c21)
+Branch: feature/10-standup-model (base main synced with origin/main); PR #12 open: https://github.com/coctostan/pi-watch/pull/12; checks passing: Socket Security Project Report + Pull Request Alerts
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270); PR #12 pending merge
 
 ---
 *STATE.md — Updated after every significant action*
