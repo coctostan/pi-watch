@@ -14,8 +14,8 @@ Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against i
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 10 | Stand up the model | 10-01 ✅ | ✅ Complete | 2026-06-24 |
-| 11 | Tier-2 live wire-shape proof | TBD | Ready to plan | - |
-| 12 | Tier-2 failure diagnostics | TBD | Not started | - |
+| 11 | Tier-2 live wire-shape proof | 11-01 ✅ | ✅ Complete | 2026-06-24 |
+| 12 | Tier-2 failure diagnostics | TBD | Ready to plan | - |
 | 13 | Tier-2 config UX | TBD | Not started | - |
 
 ## Completed Milestones
@@ -40,8 +40,8 @@ Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against i
 Phases will be finalized during `/paul:plan`. v0.2 makes the local native-video tier (Qwen3-VL via `mlx_vlm.server`) actually answer through `/watch`, and fail legibly. See `.paul/MILESTONES.md` (if present) and the strategic assessment `.paul/assessments/2026-06-22-after-v0.1.md` for rationale.
 
 10. **Stand up the model** — ✅ Complete 2026-06-24. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; `docs/TIER2-SETUP.md` records uv-pinned setup, server command, smoke test, and WATCH_TIER2_* exports.
-11. **Tier-2 live wire-shape proof** — an opt-in, network-gated integration test that sends `buildTier2Request`'s real output to the running server and confirms `parseTier2Answer` reads a real answer. Closes the "never touched a real endpoint" gap; fix any wire-shape mismatches.
-12. **Tier-2 failure diagnostics** — replace the silent `catch { return null }` / `!res.ok → null` with surfaced diagnostics (unconfigured / bad status / parse-fail / timeout) flowing into tool `details`, without changing escalate-to-tier-3 behavior.
+11. **Tier-2 live wire-shape proof** — ✅ Complete 2026-06-24. Added an opt-in, default-skipped Vitest proof that sends `buildTier2Request` output to local `mlx_vlm.server` and confirms `parseTier2Answer` reads a real answer; no production adapter mismatch or per-model branch was needed.
+12. **Tier-2 failure diagnostics** — Ready to plan. Replace the silent `catch { return null }` / `!res.ok → null` with surfaced diagnostics (unconfigured / bad status / parse-fail / timeout) flowing into tool `details`, without changing escalate-to-tier-3 behavior.
 13. **Tier-2 config UX** — a sensible local default (auto-point at localhost `mlx_vlm`) and/or a "tier 2 unconfigured — set X to enable it" message; may fold into Phase 12.
 
 ## Phase Details (v0.1 — completed)
@@ -61,4 +61,4 @@ The proposed order below was **risk-first** (prove the un-de-risked tool-activat
 **Early architectural decision (resolve in/before phase 1):** standalone vs interop with pi-web-access / s2p2-agent (already does Gemini video) — see PRD Open Questions.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 created: 2026-06-22 · Phase 10 completed: 2026-06-24*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 created: 2026-06-22 · Phase 10 completed: 2026-06-24 · Phase 11 completed: 2026-06-24*
