@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.2 — Tier 2, For Real** (v0.2.0)
 Status: 🚧 In Progress
-Phases: 1 of 4 complete (25%)
+Phases: 2 of 4 complete (50%)
 Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against it live, and make tier-2 failures visible — so `/watch` answers from the real model and degrades legibly.
 
 ## Phases
@@ -15,7 +15,7 @@ Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against i
 |-------|------|-------|--------|-----------|
 | 10 | Stand up the model | 10-01 ✅ | ✅ Complete | 2026-06-24 |
 | 11 | Tier-2 live wire-shape proof | 11-01 ✅ | ✅ Complete | 2026-06-24 |
-| 12 | Tier-2 failure diagnostics | TBD | Ready to plan | - |
+| 12 | Tier-2 failure diagnostics | 12-01 ✅ | 🔄 Merge gate (PR #14) | - |
 | 13 | Tier-2 config UX | TBD | Not started | - |
 
 ## Completed Milestones
@@ -41,7 +41,7 @@ Phases will be finalized during `/paul:plan`. v0.2 makes the local native-video 
 
 10. **Stand up the model** — ✅ Complete 2026-06-24. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; `docs/TIER2-SETUP.md` records uv-pinned setup, server command, smoke test, and WATCH_TIER2_* exports.
 11. **Tier-2 live wire-shape proof** — ✅ Complete 2026-06-24. Added an opt-in, default-skipped Vitest proof that sends `buildTier2Request` output to local `mlx_vlm.server` and confirms `parseTier2Answer` reads a real answer; no production adapter mismatch or per-model branch was needed.
-12. **Tier-2 failure diagnostics** — Ready to plan. Replace the silent `catch { return null }` / `!res.ok → null` with surfaced diagnostics (unconfigured / bad status / parse-fail / timeout) flowing into tool `details`, without changing escalate-to-tier-3 behavior.
+12. **Tier-2 failure diagnostics** — UNIFY complete 2026-06-24 (PR #14 merge gate pending). Replaced the silent `catch { return null }` / `!res.ok → null` with a structured `Tier2Diagnostic` (unconfigured / http-error+status / empty-answer / timeout / network-error) surfaced as `details.tier2` on `watch` + `watch_batch`, via an option-a onDiagnostic boundary collector that left the null→tier-3 escalation contract and `tier-runner.ts` byte-for-byte unchanged.
 13. **Tier-2 config UX** — a sensible local default (auto-point at localhost `mlx_vlm`) and/or a "tier 2 unconfigured — set X to enable it" message; may fold into Phase 12.
 
 ## Phase Details (v0.1 — completed)
