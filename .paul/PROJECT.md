@@ -9,9 +9,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.1.0 |
-| Status | v0.1 complete — all planned initial-release phases are done: sampler contract, sampler implementation, router, watch tool primitive, tier adapters, config surface, `/watch` command, and batching. |
-| Last Updated | 2026-06-22 |
+| Version | 0.2.0 in progress |
+| Status | v0.2 in progress — Phase 10 complete: local Qwen3-VL tier-2 endpoint stood up, smoke-tested through the OpenAI-compatible image_url chat-completions shape, and documented in `docs/TIER2-SETUP.md`. Next: Phase 11 live wire-shape proof through the actual watch pipeline. |
+| Last Updated | 2026-06-24 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -23,13 +23,14 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 7 (2026-06-19):** The **config surface** is shipped (`src/config/`). A pure `resolveWatchConfig(env, overrides?)` resolves one typed `WatchConfig` (tier-2 endpoint, frame budget, resolution, fetch timeout) with precedence **explicit overrides > env > defaults**, replacing the raw `WATCH_TIER2_*` env bridge. The extension boundary resolves it once and builds a config-driven tier-2 runner; per-call `WATCH_PARAMS` (budget/resolution) layer over config defaults. The tier-2 `fetch` is now bounded by a configurable `AbortSignal` timeout that escalates (null) to tier 3 on abort (closing the Phase-6 PETE carry). Suite 105/105; zero new deps; PR #9 merged (7745f07).
 - **Phase 8 (2026-06-20):** The **`/watch` command** is shipped (`src/watch/command.ts` + `extension.ts`) — the UX wrapper over the `watch` tool primitive (DESIGN §7 step 5), completing the tool+command pairing the project was built around. A pure parse/prompt/run core (`parseWatchCommand`, `buildWatchPrompt`, `runWatchCommand`) with effects (`ctx.ui.notify`, `pi.sendUserMessage`) injected at the boundary; `pi.registerCommand("watch", …)` is registered synchronously alongside the tool (activation recipe). Load-bearing decision (option-a): the command **delegates to the agent** rather than running the pipeline in a void-returning handler — the only path that preserves tier 3 (frames-into-context must reach the orchestrator, DESIGN §5 #1). Additive only; frozen core untouched; suite 117/117; 0 new deps. Budget/resolution flags + autocomplete deferred.
 - **Phase 9 (2026-06-22):** **Batching** shipped as the final v0.1 piece. A new `watch_batch` tool wraps the existing sample → route → tier-walk pipeline over multiple video/question items, backed by a pure `runWatchBatch` core (`src/watch/batch.ts`). Tier 1/2 text results aggregate into a bounded text response (8-item cap, 24k text cap), per-item sync/async failures are isolated, and tier-3 frame-heavy batch items defer to single-video watch follow-up calls instead of inlining many videos' `ImageContent`. Suite now 125/125; PR #11 merged.
+- **Phase 10 (2026-06-24):** The local tier-2 model is stood up for real. A uv-pinned Python 3.12 environment outside the repo runs `mlx_vlm==0.6.3`; `mlx_vlm.server` is serving `mlx-community/Qwen3-VL-8B-Instruct-4bit` on port 8080; a smoke POST to `/v1/chat/completions` using base64 `image_url` content returned `HTTP 200` with `CONTENT red`. `docs/TIER2-SETUP.md` captures exact setup, server command, smoke test, troubleshooting, and `WATCH_TIER2_BASE_URL=http://localhost:8080/v1` / `WATCH_TIER2_MODEL=mlx-community/Qwen3-VL-8B-Instruct-4bit`.
 
 ## Scope Snapshot
 ### Active
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 
-### Planned
-- Post-v0.1: release/milestone wrap-up, dedicated CI workflow, and deferred enhancements (tier-3 batch fan-out, richer command/config surfaces).
+### Planned / In progress
+- v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof next → Phase 12 diagnostics → Phase 13 release wrap.
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -76,6 +77,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 8) Defer `/watch` budget/resolution flags + autocomplete | Under agent-delegation the router/config pick budget/resolution from question intent; flags add no v0.1 value | 2026-06-20 | Deferred |
 | (Phase 9) Batch surface = new `watch_batch` tool over pure `runWatchBatch`; do not extend existing `watch` | Keeps the proven single-video primitive stable; batch is a wrapper over the existing pipeline | 2026-06-22 | ✓ Validated (Phase 9) |
 | (Phase 9) Tier-3 batch is deferred to single-video watch follow-up calls | Frames-for-many-videos needs subagent fan-out and can blow context; v0.1 stays bounded/text-oriented | 2026-06-22 | Deferred enhancement |
+| (Phase 10) Start local tier-2 with `mlx-community/Qwen3-VL-8B-Instruct-4bit` | Small/fast, spike-proven baseline; verified reachable; ~5.38 GiB weights versus ~17.01 GiB for 30B-A3B; fastest low-risk way to get a live local endpoint on 48 GB Apple Silicon | 2026-06-24 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -85,4 +87,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-22 after Phase 9 / v0.1 completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-24 after Phase 10*
