@@ -162,6 +162,25 @@ export WATCH_TIER2_MODEL="mlx-community/Qwen3-VL-8B-Instruct-4bit"
 
 Leave `WATCH_TIER2_API_KEY` unset for the local server.
 
+## Run the opt-in live adapter proof
+
+The repository includes a live Vitest proof that sends the actual `buildTier2Request` output to the running tier-2 endpoint and parses the real response with `parseTier2Answer`.
+
+Default `npm test` skips this proof. It does not require `mlx_vlm.server` or network access unless explicitly enabled.
+
+With the server running, execute:
+
+```sh
+WATCH_TIER2_LIVE=1 \
+WATCH_TIER2_BASE_URL="http://localhost:8080/v1" \
+WATCH_TIER2_MODEL="mlx-community/Qwen3-VL-8B-Instruct-4bit" \
+npm test -- test/watch/tier2.live.test.ts
+```
+
+The test builds a one-frame red `WatchedFrameSet`, posts the OpenAI-compatible `content[]` shape to `/chat/completions`, and expects a non-empty answer mentioning `red`.
+
+Local `mlx_vlm.server` does not need `WATCH_TIER2_API_KEY`. Hosted OpenAI-compatible endpoints may require it.
+
 ## Troubleshooting
 
 - Python or wheel resolution errors: recreate the environment with `uv venv --python 3.12 ...` or `uv venv --python 3.11 ...`; do not use Python 3.14.
