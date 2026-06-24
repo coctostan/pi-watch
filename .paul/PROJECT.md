@@ -10,7 +10,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.2.0 in progress |
-| Status | v0.2 in progress — Phase 10 complete: local Qwen3-VL tier-2 endpoint stood up, smoke-tested through the OpenAI-compatible image_url chat-completions shape, and documented in `docs/TIER2-SETUP.md`. Next: Phase 11 live wire-shape proof through the actual watch pipeline. |
+| Status | v0.2 in progress — Phase 12 complete: tier-2 failures are now legible. Phase 11 proved the live tier-2 wire shape against the local Qwen3-VL endpoint (no adapter change needed); Phase 12 replaced the silent null-escalation with a structured `Tier2Diagnostic` surfaced as `details.tier2` on `watch`/`watch_batch`. Next: Phase 13 — tier-2 config UX (sensible local default / "tier 2 unconfigured" guidance). |
 | Last Updated | 2026-06-24 |
 
 **Current system summary:**
@@ -24,13 +24,15 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 8 (2026-06-20):** The **`/watch` command** is shipped (`src/watch/command.ts` + `extension.ts`) — the UX wrapper over the `watch` tool primitive (DESIGN §7 step 5), completing the tool+command pairing the project was built around. A pure parse/prompt/run core (`parseWatchCommand`, `buildWatchPrompt`, `runWatchCommand`) with effects (`ctx.ui.notify`, `pi.sendUserMessage`) injected at the boundary; `pi.registerCommand("watch", …)` is registered synchronously alongside the tool (activation recipe). Load-bearing decision (option-a): the command **delegates to the agent** rather than running the pipeline in a void-returning handler — the only path that preserves tier 3 (frames-into-context must reach the orchestrator, DESIGN §5 #1). Additive only; frozen core untouched; suite 117/117; 0 new deps. Budget/resolution flags + autocomplete deferred.
 - **Phase 9 (2026-06-22):** **Batching** shipped as the final v0.1 piece. A new `watch_batch` tool wraps the existing sample → route → tier-walk pipeline over multiple video/question items, backed by a pure `runWatchBatch` core (`src/watch/batch.ts`). Tier 1/2 text results aggregate into a bounded text response (8-item cap, 24k text cap), per-item sync/async failures are isolated, and tier-3 frame-heavy batch items defer to single-video watch follow-up calls instead of inlining many videos' `ImageContent`. Suite now 125/125; PR #11 merged.
 - **Phase 10 (2026-06-24):** The local tier-2 model is stood up for real. A uv-pinned Python 3.12 environment outside the repo runs `mlx_vlm==0.6.3`; `mlx_vlm.server` is serving `mlx-community/Qwen3-VL-8B-Instruct-4bit` on port 8080; a smoke POST to `/v1/chat/completions` using base64 `image_url` content returned `HTTP 200` with `CONTENT red`. `docs/TIER2-SETUP.md` captures exact setup, server command, smoke test, troubleshooting, and `WATCH_TIER2_BASE_URL=http://localhost:8080/v1` / `WATCH_TIER2_MODEL=mlx-community/Qwen3-VL-8B-Instruct-4bit`.
+- **Phase 11 (2026-06-24):** The production tier-2 request/response seam touched a real endpoint. An **opt-in** Vitest proof (`test/watch/tier2.live.test.ts`, gated by `WATCH_TIER2_LIVE=1`, skipped by default for CI/offline) sends `buildTier2Request` output to the local `mlx_vlm.server` and parses the real response with `parseTier2Answer`. Outcome: the existing OpenAI-compatible wire shape works as-is — **no production adapter change was needed** — confirming the model-agnostic seam. The silent null-escalation debt was explicitly deferred to Phase 12.
+- **Phase 12 (2026-06-24):** Tier-2 failures are now **legible**. The single silent `null` that `createTier2Runner` returned for every failure mode is replaced by a structured `Tier2Diagnostic` (`unconfigured` / `http-error`+status / `empty-answer` / `timeout` / `network-error`) surfaced as `details.tier2` on `watch` and `watch_batch` tool results. Chosen mechanism (checkpoint decision): **option-a — an `onDiagnostic` boundary collector** built fresh per call / per batch item, merged into `details` by a pure helper. The null→tier-3 escalation contract, the model-agnostic adapter, and `tier-runner.ts` are **byte-for-byte unchanged**; diagnostics are secret-free (never the api key, Authorization header, or request body). `docs/TIER2-SETUP.md` gained a "Reading tier-2 failures" runbook section.
 
 ## Scope Snapshot
 ### Active
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 
 ### Planned / In progress
-- v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof next → Phase 12 diagnostics → Phase 13 release wrap.
+- v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX (next).
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -78,6 +80,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 9) Batch surface = new `watch_batch` tool over pure `runWatchBatch`; do not extend existing `watch` | Keeps the proven single-video primitive stable; batch is a wrapper over the existing pipeline | 2026-06-22 | ✓ Validated (Phase 9) |
 | (Phase 9) Tier-3 batch is deferred to single-video watch follow-up calls | Frames-for-many-videos needs subagent fan-out and can blow context; v0.1 stays bounded/text-oriented | 2026-06-22 | Deferred enhancement |
 | (Phase 10) Start local tier-2 with `mlx-community/Qwen3-VL-8B-Instruct-4bit` | Small/fast, spike-proven baseline; verified reachable; ~5.38 GiB weights versus ~17.01 GiB for 30B-A3B; fastest low-risk way to get a live local endpoint on 48 GB Apple Silicon | 2026-06-24 | Active |
+| (Phase 11) Keep live tier-2 verification opt-in (`WATCH_TIER2_LIVE=1`, default-skipped); use the production `buildTier2Request`/`parseTier2Answer` path, not a model-specific branch | A local model server is machine-specific and unsuitable for default CI/offline runs; the real endpoint accepted the existing wire shape unchanged | 2026-06-24 | Active |
+| (Phase 12) Surface tier-2 failure reasons via an optional `onDiagnostic` side channel (option-a), not by widening the `null === escalate` tier-walk contract | Smallest blast radius — keeps `tier-runner.ts` and its escalation tests byte-for-byte unchanged; the diagnostic is a boundary/observability concern, and option-b's generality isn't used yet (tiers 1/3 don't fail interestingly) | 2026-06-24 | ✓ Validated (Phase 12) |
+| (Phase 12) Record `details.tier2` only when the final tier ≠ 2; build a fresh tier-2 runner + collector per call / per batch item | A successful tier-2 answer is not a failure; per-call construction is free (config-only closure) and gives correct per-item attribution where one shared runner previously served N parallel batch items | 2026-06-24 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -87,4 +92,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-24 after Phase 10*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-24 after Phase 12*
