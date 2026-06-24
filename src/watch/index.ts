@@ -48,6 +48,8 @@ export {
 	parseTier2Answer,
 	resolveTier2ConfigFromEnv,
 	type Tier2Config,
+	type Tier2Diagnostic,
+	type Tier2FailureReason,
 } from "./tier2.js";
 
 export {

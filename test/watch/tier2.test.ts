@@ -9,6 +9,7 @@ import {
 	resolveTier2ConfigFromEnv,
 	type TierRunner,
 	type Tier2Config,
+	type Tier2Diagnostic,
 } from "../../src/watch/index.js";
 import type { RoutingDecision } from "../../src/router/index.js";
 import type { WatchedFrame, WatchedFrameSet } from "../../src/contract/index.js";
@@ -361,5 +362,166 @@ describe("walkTierChain — tier-2 integration", () => {
 			runners,
 		});
 		expect(result.tier).toBe(3);
+	});
+});
+
+// ── onDiagnostic side channel (AC-1 / AC-2 / AC-4) ──────────────────────────────
+//
+// Phase 12: the runner emits a structured, secret-free Tier2Diagnostic right
+// before each `return null`, WITHOUT changing the null-escalation contract or
+// the success path. Each test captures via an injected onDiagnostic collector
+// and asserts both the diagnostic AND that escalation/return is unchanged.
+
+describe("createTier2Runner — onDiagnostic per failure reason (AC-1/AC-2)", () => {
+	function collector(): {
+		diagnostics: Tier2Diagnostic[];
+		onDiagnostic: (d: Tier2Diagnostic) => void;
+	} {
+		const diagnostics: Tier2Diagnostic[] = [];
+		return { diagnostics, onDiagnostic: (d) => diagnostics.push(d) };
+	}
+
+	it("emits reason 'unconfigured' and makes NO network call (AC-1/AC-2)", async () => {
+		const { impl, calls } = fakeFetch({});
+		const { diagnostics, onDiagnostic } = collector();
+		const runner = createTier2Runner({ config: null, fetchImpl: impl, onDiagnostic });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(calls).toHaveLength(0);
+		expect(diagnostics).toEqual([{ tier: 2, reason: "unconfigured" }]);
+	});
+
+	it("emits reason 'http-error' with the numeric httpStatus (AC-1/AC-2)", async () => {
+		const { impl, calls } = fakeFetch({ ok: false, status: 500 });
+		const { diagnostics, onDiagnostic } = collector();
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl, onDiagnostic });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(calls).toHaveLength(1);
+		expect(diagnostics).toEqual([{ tier: 2, reason: "http-error", httpStatus: 500 }]);
+	});
+
+	it("emits reason 'empty-answer' on an empty/garbled response (AC-1/AC-2)", async () => {
+		const { impl } = fakeFetch({ json: { choices: [{ message: { content: "" } }] } });
+		const { diagnostics, onDiagnostic } = collector();
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl, onDiagnostic });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(diagnostics).toEqual([{ tier: 2, reason: "empty-answer" }]);
+	});
+
+	it("emits reason 'timeout' on an abort/timeout rejection (AC-1/AC-2)", async () => {
+		const impl = (async (_url: unknown, init?: unknown) => {
+			if ((init as RequestInit | undefined)?.signal) {
+				throw new DOMException("The operation was aborted", "AbortError");
+			}
+			return { ok: true, status: 200, json: async () => ({}) };
+		}) as unknown as typeof fetch;
+		const { diagnostics, onDiagnostic } = collector();
+		const runner = createTier2Runner({
+			config: CONFIG,
+			fetchImpl: impl,
+			timeoutMs: 1,
+			onDiagnostic,
+		});
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(diagnostics).toEqual([{ tier: 2, reason: "timeout" }]);
+	});
+
+	it("emits reason 'network-error' with a short message on a fetch rejection (AC-1/AC-2)", async () => {
+		const { impl } = fakeFetch({ throws: true });
+		const { diagnostics, onDiagnostic } = collector();
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl, onDiagnostic });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result).toBeNull();
+		expect(diagnostics).toHaveLength(1);
+		expect(diagnostics[0]).toMatchObject({ tier: 2, reason: "network-error" });
+		expect(typeof diagnostics[0]!.message).toBe("string");
+		expect(diagnostics[0]!.message).toContain("network down");
+	});
+
+	it("emits NO diagnostic on a successful tier-2 answer (AC-4)", async () => {
+		const { impl } = fakeFetch({
+			json: { choices: [{ message: { content: "an answer" } }] },
+		});
+		const { diagnostics, onDiagnostic } = collector();
+		const runner = createTier2Runner({ config: CONFIG, fetchImpl: impl, onDiagnostic });
+		const result = await runner({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+		});
+		expect(result?.tier).toBe(2);
+		expect(diagnostics).toEqual([]);
+	});
+
+	it("never leaks the api key or Authorization header into a diagnostic (SETH/AC-1)", async () => {
+		const SECRET = "sk-super-secret-key";
+		// An http-error AND a network-error path, both with an apiKey configured.
+		for (const opts of [{ ok: false, status: 401 }, { throws: true }]) {
+			const { impl } = fakeFetch(opts);
+			const { diagnostics, onDiagnostic } = collector();
+			const runner = createTier2Runner({
+				config: { ...CONFIG, apiKey: SECRET },
+				fetchImpl: impl,
+				onDiagnostic,
+			});
+			await runner({ set: makeSet(), decision: decision([2, 3]), question: "q" });
+			const serialized = JSON.stringify(diagnostics);
+			expect(serialized).not.toContain(SECRET);
+			expect(serialized.toLowerCase()).not.toContain("authorization");
+		}
+	});
+
+	it("still escalates to tier 3 through walkTierChain while emitting a diagnostic (AC-2)", async () => {
+		const { impl } = fakeFetch({ ok: false, status: 503 });
+		const { diagnostics, onDiagnostic } = collector();
+		const runners: Record<1 | 2 | 3, TierRunner> = {
+			...defaultRunners,
+			2: createTier2Runner({ config: CONFIG, fetchImpl: impl, onDiagnostic }),
+		};
+		const result = await walkTierChain({
+			set: makeSet(),
+			decision: decision([2, 3]),
+			question: "q",
+			runners,
+		});
+		expect(result.tier).toBe(3);
+		expect(diagnostics).toEqual([{ tier: 2, reason: "http-error", httpStatus: 503 }]);
+	});
+
+	it("a throwing onDiagnostic never breaks escalation (AC-2)", async () => {
+		const { impl } = fakeFetch({ ok: false, status: 500 });
+		const runner = createTier2Runner({
+			config: CONFIG,
+			fetchImpl: impl,
+			onDiagnostic: () => {
+				throw new Error("collector blew up");
+			},
+		});
+		await expect(
+			runner({ set: makeSet(), decision: decision([2, 3]), question: "q" }),
+		).resolves.toBeNull();
 	});
 });
