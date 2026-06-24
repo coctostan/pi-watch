@@ -62,10 +62,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-24 — Phase 12 complete (APPLY + UNIFY + merge PR #14), transitioned to Phase 13.
-Stopped at: Phase 12 done and merged; Phase 13 ready to plan.
+Last session: 2026-06-24 — Phase 12 complete (APPLY + UNIFY + merge PR #14), transitioned to Phase 13; session paused before planning.
+Stopped at: Phase 13 ready to plan; no plan started. main synced, clean tree.
 Next action: /paul:plan for Phase 13
-Resume file: .paul/ROADMAP.md
+wip_result: skipped (no uncommitted lifecycle changes)
+Resume file: .paul/HANDOFF-2026-06-24-phase-13-plan-ready.md
 Resume context:
 - Phase 12 shipped structured tier-2 failure diagnostics: `createTier2Runner` now emits a `Tier2Diagnostic` (`unconfigured` / `http-error`+status / `empty-answer` / `timeout` / `network-error`) via an optional `onDiagnostic` side channel; the extension surfaces it as `details.tier2` on watch + watch_batch when tier 3 (or 1) answers. null→tier-3 escalation and the model-agnostic adapter are unchanged.
 - Phase 13 (v0.2 finale) builds tier-2 config UX over the new `unconfigured` reason: a sensible local default (auto-point at localhost mlx_vlm) and/or a "tier 2 unconfigured — set WATCH_TIER2_BASE_URL/WATCH_TIER2_MODEL to enable it" message. ROADMAP notes it "may fold into Phase 12" — but Phase 12 deliberately stayed diagnostics-only, so the config UX remains Phase 13 scope.
