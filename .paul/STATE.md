@@ -12,8 +12,8 @@ See: .paul/PROJECT.md (updated 2026-06-24 after Phase 10)
 Milestone: v0.2 — Tier 2, For Real
 Phase: 12 of 13 (Tier-2 failure diagnostics)
 Plan: Not started
-Status: Phase 11 complete. Added opt-in live tier-2 Vitest proof, verified `buildTier2Request`/`parseTier2Answer` against local Qwen3-VL via `mlx_vlm.server`, documented the `WATCH_TIER2_LIVE=1` command, and opened PR #13 for merge. Ready to plan Phase 12 diagnostics after merge gate completes.
-Last activity: 2026-06-24 — Phase 11 unified: 11-01 SUMMARY created, quality/CODI history updated, and transition routed toward Phase 12 planning.
+Status: Phase 11 complete and merged via PR #13. Added opt-in live tier-2 Vitest proof, verified `buildTier2Request`/`parseTier2Answer` against local Qwen3-VL via `mlx_vlm.server`, documented the `WATCH_TIER2_LIVE=1` command, and routed to Phase 12 diagnostics planning.
+Last activity: 2026-06-24 — Phase 11 unified and merged: 11-01 SUMMARY created, quality/CODI history updated, PR #13 merged, and transition routed to Phase 12 planning.
 Next action: /paul:plan for Phase 12
 
 Progress:
@@ -61,20 +61,20 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-24 — Phase 11 UNIFY completed and transition routed toward Phase 12 planning.
-Stopped at: Phase 12 (Tier-2 failure diagnostics) ready to plan after PR #13 merge gate completes.
+Last session: 2026-06-24 — Phase 11 UNIFY completed, PR #13 merged, and transition routed to Phase 12 planning.
+Stopped at: Phase 12 (Tier-2 failure diagnostics) ready to plan; no active PLAN yet.
 Next action: /paul:plan for Phase 12
 Resume file: .paul/phases/11-tier2-live-proof/11-01-SUMMARY.md
-wip_result: pushed — feature branch `feature/11-tier2-live-proof` pushed and PR #13 opened.
+wip_result: merged — PR #13 merged into `main` (squash commit 8e74f45); local `main` synced with `origin/main`.
 Resume context:
 - Phase 11 is complete: `test/watch/tier2.live.test.ts` proves the real tier-2 wire shape against local Qwen3-VL when `WATCH_TIER2_LIVE=1` and skips by default.
 - The live proof passed against `http://localhost:8080/v1` with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; no production adapter changes were needed.
 - `docs/TIER2-SETUP.md` documents the opt-in command and default-skip behavior; Phase 12 should focus on surfacing diagnostics for unconfigured/bad-status/parse-fail/timeout tier-2 failures.
 
 ### Git State
-Last commit: c8538f1 (docs(11-01): document live tier-2 proof), on feature/11-tier2-live-proof after APPLY task commits 432b843 + c8538f1
-Branch: feature/11-tier2-live-proof pushed to origin; PR #13 open: https://github.com/coctostan/pi-watch/pull/13; mergeStateStatus=CLEAN; status checks not yet reported (`statusCheckRollup=[]`).
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270), PR #12 (10-01 → cdf3db2)
+Last commit: 8e74f45 (test: prove live tier-2 wire shape), on main after PR #13 merge
+Branch: main synced with origin/main; PR #13 merged: https://github.com/coctostan/pi-watch/pull/13; checks passed: Socket Security Project Report + Pull Request Alerts
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270), PR #12 (10-01 → cdf3db2), PR #13 (11-01 → 8e74f45)
 
 ---
 *STATE.md — Updated after every significant action*
