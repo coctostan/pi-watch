@@ -5,22 +5,22 @@
 See: .paul/PROJECT.md (updated 2026-06-24 after Phase 10)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.2 — Tier 2, For Real. Phase 11 PLAN is created to prove the live tier-2 wire shape through the actual adapter path against the local Qwen3-VL endpoint.
+**Current focus:** v0.2 — Tier 2, For Real. Phase 12 PLAN (12-01) is created to surface structured tier-2 failure diagnostics into the watch tool `details` while preserving the null→tier-3 escalation behavior.
 
 ## Current Position
 
 Milestone: v0.2 — Tier 2, For Real
 Phase: 12 of 13 (Tier-2 failure diagnostics)
-Plan: Not started
-Status: Phase 11 complete and merged via PR #13. Added opt-in live tier-2 Vitest proof, verified `buildTier2Request`/`parseTier2Answer` against local Qwen3-VL via `mlx_vlm.server`, documented the `WATCH_TIER2_LIVE=1` command, and routed to Phase 12 diagnostics planning.
-Last activity: 2026-06-24 — Phase 11 unified and merged: 11-01 SUMMARY created, quality/CODI history updated, PR #13 merged, and transition routed to Phase 12 planning.
-Next action: /paul:plan for Phase 12
+Plan: 12-01 UNIFY complete (SUMMARY written; merge gate next) — .paul/phases/12-tier2-failure-diagnostics/12-01-SUMMARY.md
+Status: Phase 12 UNIFY complete. SUMMARY reconciled all 4 ACs PASS (option-a boundary collector; structured Tier2Diagnostic → details.tier2; tier-runner.ts byte-for-byte unchanged). Quality ▲ (+14 tests, 125→139). Awaiting github-flow merge gate for PR #14 before phase transition (Phase 12 is the only plan in the phase).
+Last activity: 2026-06-24 — Phase 12 UNIFY: wrote 12-01-SUMMARY.md, appended QUALITY/CODI history rows; next is PR #14 merge gate + phase transition.
+Next action: merge PR #14 (CI-gated), then transition Phase 12 → Phase 13
 
 Progress:
 - Milestone v0.2: [█████░░░░░] 50% (2 of 4 phases complete)
 - Phase 10: Stand up the model — ✅ complete (10-01)
 - Phase 11: Tier-2 live wire-shape proof — ✅ complete (11-01)
-- Phase 12: Tier-2 failure diagnostics — ready to plan
+- Phase 12: Tier-2 failure diagnostics — 🚧 UNIFY complete (12-01; PR #14 merge gate pending)
 - Phase 13: Tier-2 config UX — not started
 - v0.1 Initial Release: ✅ complete (9 of 9 phases; PRs #1–#11 merged; final 6bf2270)
 
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 12 ready to plan]
+  ✓        ✓        ✓     [Phase 12: 12-01 UNIFY complete; PR #14 merge gate next]
 ```
 
 ## Accumulated Context
@@ -61,19 +61,20 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-06-24 — Phase 11 UNIFY completed, PR #13 merged, and transition routed to Phase 12 planning.
-Stopped at: Phase 12 (Tier-2 failure diagnostics) ready to plan; no active PLAN yet.
-Next action: /paul:plan for Phase 12
-Resume file: .paul/phases/11-tier2-live-proof/11-01-SUMMARY.md
-wip_result: merged — PR #13 merged into `main` (squash commit 8e74f45); local `main` synced with `origin/main`.
+Last session: 2026-06-24 — Phase 12 APPLY + UNIFY for 12-01 (checkpoint → option-a; 3 tasks committed; PR #14 opened; SUMMARY written).
+Stopped at: Phase 12 UNIFY complete; awaiting PR #14 github-flow merge gate, then phase transition (12 → 13). All 4 ACs PASS; tier-runner.ts byte-for-byte unchanged.
+Next action: merge PR #14 (CI-gated) and transition Phase 12 → Phase 13
+Resume file: .paul/HANDOFF-2026-06-24-phase-12-apply-ready.md (consumed)
+wip_result: skipped — base-branch in github-flow (`main`); pause artifacts are local/uncommitted (`.paul/STATE.md`, `.paul/ROADMAP.md`, `.paul/phases/12-tier2-failure-diagnostics/`); `.codegraph/` is untracked local-only
 Resume context:
-- Phase 11 is complete: `test/watch/tier2.live.test.ts` proves the real tier-2 wire shape against local Qwen3-VL when `WATCH_TIER2_LIVE=1` and skips by default.
-- The live proof passed against `http://localhost:8080/v1` with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; no production adapter changes were needed.
-- `docs/TIER2-SETUP.md` documents the opt-in command and default-skip behavior; Phase 12 should focus on surfacing diagnostics for unconfigured/bad-status/parse-fail/timeout tier-2 failures.
+- Phase 11 is complete and merged: opt-in live tier-2 proof validates `buildTier2Request` → local `mlx_vlm.server` → `parseTier2Answer` against Qwen3-VL and skips by default without `WATCH_TIER2_LIVE=1`.
+- `docs/TIER2-SETUP.md` documents the live proof command and local API-key guidance; no production tier-2 adapter change was needed.
+- Phase 12 plan (12-01) surfaces structured tier-2 diagnostics (unconfigured / http-error / empty-answer / timeout / network-error) into watch + watch_batch `details`, with the null→tier-3 escalation invariant and model-agnostic adapter held fixed. The blocking checkpoint chooses option-a (onDiagnostic boundary collector, smallest blast radius) vs option-b (typed tier-walk result); option-a leaves tier-runner.ts + its tests unchanged.
+- The pre-existing silent-null debt (deferred from Phase 11) is the explicit target; no new deps, no secrets in diagnostics.
 
 ### Git State
-Last commit: 8e74f45 (test: prove live tier-2 wire shape), on main after PR #13 merge
-Branch: main synced with origin/main; PR #13 merged: https://github.com/coctostan/pi-watch/pull/13; checks passed: Socket Security Project Report + Pull Request Alerts
+Last commit: 99192a5 (docs(12-01): document the tier-2 details.tier2 failure surface), on feature/12-tier2-failure-diagnostics
+Branch: feature/12-tier2-failure-diagnostics pushed to origin; PR #14 OPEN + MERGEABLE: https://github.com/coctostan/pi-watch/pull/14; CI green (Socket Security Project Report + Pull Request Alerts). Created from main (synced). 12-01 task commits: 540bfed, 5f14bed, 99192a5. UNIFY owns the merge gate.
 Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270), PR #12 (10-01 → cdf3db2), PR #13 (11-01 → 8e74f45)
 
 ---

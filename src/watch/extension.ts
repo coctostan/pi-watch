@@ -34,7 +34,7 @@ import {
 	type TierRunner,
 	type WatchContentPart,
 } from "./tier-runner.js";
-import { createTier2Runner } from "./tier2.js";
+import { createTier2Runner, type Tier2Diagnostic } from "./tier2.js";
 import { runWatchCommand } from "./command.js";
 import {
 	runWatchBatch,
@@ -122,6 +122,37 @@ const WATCH_BATCH_DESCRIPTION =
 	"batch fan-out is deferred to individual single-video watch calls.";
 
 /**
+ * Merge a collected tier-2 failure diagnostic into tool-result `details`, but
+ * only when tier 2 did NOT answer. A successful tier-2 result (finalTier === 2)
+ * records no failure diagnostic (AC-3). Pure.
+ */
+export function withTier2Diagnostic(
+	details: Record<string, unknown>,
+	finalTier: Tier,
+	diagnostic: Tier2Diagnostic | undefined,
+): Record<string, unknown> {
+	return finalTier !== 2 && diagnostic
+		? { ...details, tier2: diagnostic }
+		: details;
+}
+
+/**
+ * Batch tier-3 placeholder: frame fan-out for many videos is deferred to
+ * single-video watch calls (DESIGN §5/§9), so the batch tier-3 runner returns a
+ * follow-up note instead of inlining frames. Pure; total (never null).
+ */
+const batchTier3Runner: TierRunner = async ({ set }) => ({
+	tier: 3,
+	content: [
+		{
+			type: "text",
+			text: "Tier 3 deferred for watch_batch; run the single-video watch tool individually for frames.",
+		},
+	],
+	details: { tier: 3, frameCount: set.frames.length, deferred: true },
+});
+
+/**
  * Extension factory: registers the `watch` tool AND the `/watch` command.
  * Synchronous registration (no await before `registerTool`/`registerCommand`)
  * per the Phase-1 activation recipe.
@@ -133,14 +164,18 @@ const WATCH_BATCH_DESCRIPTION =
  * `process.env` synchronously is fine; no await is introduced before registration.
  */
 export default function watchExtension(pi: ExtensionAPI): void {
-	// Resolve the typed config once (the only env read) and build a config-driven
-	// runner table: tiers 1 + 3 from defaults, tier 2 from the resolved endpoint +
-	// fetch timeout. Replaces the adapter's former raw process.env read.
+	// Resolve the typed config once (the only env read). Build a FRESH tier-2
+	// runner per call / batch-item (option-a, Phase 12) so each gets its own
+	// diagnostic collector; tiers 1 + 3 are pure and come from the defaults.
 	const config = resolveWatchConfig(process.env);
-	const runners: Record<Tier, TierRunner> = {
-		...defaultRunners,
-		2: createTier2Runner({ config: config.tier2, timeoutMs: config.fetchTimeoutMs }),
-	};
+	const makeTier2Runner = (
+		onDiagnostic: (diagnostic: Tier2Diagnostic) => void,
+	): TierRunner =>
+		createTier2Runner({
+			config: config.tier2,
+			timeoutMs: config.fetchTimeoutMs,
+			onDiagnostic,
+		});
 
 	// Pin TDetails to a shared record so the success and error branches of
 	// `execute` return a single, consistent details shape (otherwise TS infers
@@ -166,6 +201,15 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				});
 				const ctx = routeContextFromSet(set);
 				const decision = route({ question: params.question, context: ctx });
+
+				// Fresh per-call diagnostic collector + tier-2 runner (option-a).
+				let tier2Diagnostic: Tier2Diagnostic | undefined;
+				const runners: Record<Tier, TierRunner> = {
+					...defaultRunners,
+					2: makeTier2Runner((diagnostic) => {
+						tier2Diagnostic = diagnostic;
+					}),
+				};
 				const result = await walkTierChain({
 					set,
 					decision,
@@ -175,15 +219,19 @@ export default function watchExtension(pi: ExtensionAPI): void {
 
 				return {
 					content: result.content,
-					details: {
-						tier: result.tier,
-						intent: decision.intent,
-						resolution: decision.resolution,
-						tiers: decision.tiers,
-						rationale: decision.rationale,
-						frameCount: set.frames.length,
-						transcriptSource: set.source.transcriptSource,
-					},
+					details: withTier2Diagnostic(
+						{
+							tier: result.tier,
+							intent: decision.intent,
+							resolution: decision.resolution,
+							tiers: decision.tiers,
+							rationale: decision.rationale,
+							frameCount: set.frames.length,
+							transcriptSource: set.source.transcriptSource,
+						},
+						result.tier,
+						tier2Diagnostic,
+					),
 				};
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
@@ -220,19 +268,6 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		parameters: WATCH_BATCH_PARAMS,
 		async execute(_toolCallId, params: WatchBatchInput) {
 			try {
-				const batchRunners: Record<Tier, TierRunner> = {
-					...runners,
-					3: async ({ set }) => ({
-						tier: 3,
-						content: [
-							{
-								type: "text",
-								text: "Tier 3 deferred for watch_batch; run the single-video watch tool individually for frames.",
-							},
-						],
-						details: { tier: 3, frameCount: set.frames.length, deferred: true },
-					}),
-				};
 				const processItem: WatchItemProcessor = async ({ ref, question }) => {
 					const set = await sample({
 						ref,
@@ -241,7 +276,34 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					});
 					const ctx = routeContextFromSet(set);
 					const decision = route({ question, context: ctx });
-					return walkTierChain({ set, decision, question, runners: batchRunners });
+
+					// Fresh per-item diagnostic collector + tier-2 runner (option-a);
+					// tier-3 frame batch stays deferred to single-video watch calls.
+					let tier2Diagnostic: Tier2Diagnostic | undefined;
+					const itemRunners: Record<Tier, TierRunner> = {
+						...defaultRunners,
+						2: makeTier2Runner((diagnostic) => {
+							tier2Diagnostic = diagnostic;
+						}),
+						3: batchTier3Runner,
+					};
+					const result = await walkTierChain({
+						set,
+						decision,
+						question,
+						runners: itemRunners,
+					});
+					if (result.tier !== 2 && tier2Diagnostic) {
+						return {
+							...result,
+							details: withTier2Diagnostic(
+								result.details ?? {},
+								result.tier,
+								tier2Diagnostic,
+							),
+						};
+					}
+					return result;
 				};
 
 				const result = await runWatchBatch(params.items, { processItem });

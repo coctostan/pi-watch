@@ -12,3 +12,4 @@ Per-UNIFY codegraph blast-radius outcome appended by CODI (post-unify). One row 
 | 09-01 | 2026-06-22 | injected | 0 | 3 | 0 | runWatchBatch, WatchItemProcessor, watchExtension | n |
 | 10-01 | 2026-06-24 | skipped-no-symbols | — | — | — | — | n |
 | 11-01 | 2026-06-24 | skipped-no-production-change | — | — | — | buildTier2Request, parseTier2Answer, createTier2Runner | n |
+| 12-01 | 2026-06-24 | injected-degraded | 0 | 1 | 0 | createTier2Runner, walkTierChain, parseTier2Answer | y |

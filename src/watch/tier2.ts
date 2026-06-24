@@ -154,6 +154,40 @@ export function resolveTier2ConfigFromEnv(
 	return apiKey ? { baseURL, model, apiKey } : { baseURL, model };
 }
 
+/** The distinct tier-2 failure modes surfaced as diagnostics (DESIGN.md §4 / Phase 12). */
+export type Tier2FailureReason =
+	| "unconfigured"
+	| "http-error"
+	| "empty-answer"
+	| "timeout"
+	| "network-error";
+
+/**
+ * A structured, secret-free record of WHY tier 2 did not answer on a given call.
+ *
+ * The tier-2 runner still escalates by resolving to `null` (so `walkTierChain`
+ * advances to tier 3); this diagnostic is an optional SIDE CHANNEL emitted via
+ * `createTier2Runner`'s `onDiagnostic` callback so the effect boundary can record
+ * the reason in the tool-result `details`. It NEVER contains the api key, the
+ * Authorization header, or the request body (SETH): only the reason, the numeric
+ * HTTP status (for `http-error`), and a short non-secret message (for
+ * `network-error`).
+ */
+export interface Tier2Diagnostic {
+	tier: 2;
+	reason: Tier2FailureReason;
+	/** Present only for `http-error`: the numeric HTTP status (e.g. 500). */
+	httpStatus?: number;
+	/** Present only for `network-error`: a short, non-secret error message. */
+	message?: string;
+}
+
+/** Reduce an unknown rejection to a short, non-secret message (no api key/body is ever present here). */
+function shortErrorMessage(err: unknown): string {
+	const raw = err instanceof Error ? err.message : String(err);
+	return raw.length > 200 ? `${raw.slice(0, 200)}\u2026` : raw;
+}
+
 /**
  * Create the tier-2 `TierRunner` (DESIGN §4). The returned runner, per call:
  *   1. resolves config (injected `config` when provided — including an explicit
@@ -163,22 +197,42 @@ export function resolveTier2ConfigFromEnv(
  *      by an `AbortSignal` timeout when `timeoutMs` is a positive finite number;
  *   4. returns the parsed answer as a tier-2 `TierResult`, or `null` on any
  *      non-2xx status, network error, empty/garbled answer, OR a timeout/abort.
- *
  * On timeout the call is aborted, `fetch` rejects, and the runner resolves to
  * `null` (so `walkTierChain` escalates to tier 3) — it never throws through the
  * host. The API key is never logged. `fetchImpl` is injectable for deterministic
  * tests (no live model); it defaults to Node's global `fetch`. `AbortSignal.timeout`
  * is Node ≥20 (zero deps).
+ *
+ * Diagnostics (Phase 12): an optional `onDiagnostic` callback is invoked exactly
+ * once, right before each `return null`, with a structured {@link Tier2Diagnostic}
+ * naming the failure reason. This is a pure SIDE CHANNEL: it does NOT change the
+ * escalation contract (`null` still means "escalate"), the success path (which
+ * emits no diagnostic), or the wire shape. The callback is best-effort and never
+ * throws through the runner. No diagnostic carries the api key, Authorization
+ * header, or request body (SETH).
  */
 export function createTier2Runner(deps?: {
 	config?: Tier2Config | null;
 	fetchImpl?: typeof fetch;
 	timeoutMs?: number;
+	onDiagnostic?: (diagnostic: Tier2Diagnostic) => void;
 }): TierRunner {
+	// Emit a diagnostic best-effort; a faulty collector must never break escalation.
+	const emit = (diagnostic: Tier2Diagnostic): void => {
+		try {
+			deps?.onDiagnostic?.(diagnostic);
+		} catch {
+			/* swallow: diagnostics are a side channel, never load-bearing */
+		}
+	};
+
 	return async ({ set, question }) => {
 		const config =
 			deps && "config" in deps ? deps.config : resolveTier2ConfigFromEnv();
-		if (!config) return null;
+		if (!config) {
+			emit({ tier: 2, reason: "unconfigured" });
+			return null;
+		}
 
 		const { url, init } = buildTier2Request(set, question, config);
 		const f = deps?.fetchImpl ?? fetch;
@@ -193,16 +247,30 @@ export function createTier2Runner(deps?: {
 
 		try {
 			const res = await f(url, requestInit);
-			if (!res.ok) return null;
+			if (!res.ok) {
+				emit({ tier: 2, reason: "http-error", httpStatus: res.status });
+				return null;
+			}
 			const json: unknown = await res.json();
 			const answer = parseTier2Answer(json);
-			if (answer === null) return null;
+			if (answer === null) {
+				emit({ tier: 2, reason: "empty-answer" });
+				return null;
+			}
 			return {
 				tier: 2,
 				content: [{ type: "text", text: answer }],
 				details: { tier: 2, model: config.model },
 			};
-		} catch {
+		} catch (err) {
+			// A timeout fires as an AbortError/TimeoutError DOMException; everything
+			// else (fetch/res.json rejection) is a network error. Both still escalate.
+			const name = (err as { name?: unknown })?.name;
+			if (name === "TimeoutError" || name === "AbortError") {
+				emit({ tier: 2, reason: "timeout" });
+			} else {
+				emit({ tier: 2, reason: "network-error", message: shortErrorMessage(err) });
+			}
 			return null;
 		}
 	};
