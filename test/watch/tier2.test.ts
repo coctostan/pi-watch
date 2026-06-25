@@ -7,6 +7,8 @@ import {
 	buildTier2Request,
 	parseTier2Answer,
 	resolveTier2ConfigFromEnv,
+	LOCAL_TIER2_BASE_URL,
+	LOCAL_TIER2_MODEL,
 	type TierRunner,
 	type Tier2Config,
 	type Tier2Diagnostic,
@@ -208,6 +210,39 @@ describe("resolveTier2ConfigFromEnv — env bridge", () => {
 				WATCH_TIER2_MODEL: "qwen",
 			}),
 		).toBeNull();
+	});
+
+	it("opt-in WATCH_TIER2_LOCAL=1 resolves the documented localhost default (AC-4)", () => {
+		expect(resolveTier2ConfigFromEnv({ WATCH_TIER2_LOCAL: "1" })).toEqual({
+			baseURL: LOCAL_TIER2_BASE_URL,
+			model: LOCAL_TIER2_MODEL,
+		});
+	});
+
+	it("stays null (network-free) when the local flag is unset or not exactly '1' (AC-3)", () => {
+		expect(resolveTier2ConfigFromEnv({})).toBeNull();
+		expect(resolveTier2ConfigFromEnv({ WATCH_TIER2_LOCAL: "0" })).toBeNull();
+		expect(resolveTier2ConfigFromEnv({ WATCH_TIER2_LOCAL: "true" })).toBeNull();
+		expect(resolveTier2ConfigFromEnv({ WATCH_TIER2_LOCAL: " 1 " })).toEqual({
+			baseURL: LOCAL_TIER2_BASE_URL,
+			model: LOCAL_TIER2_MODEL,
+		}); // trimmed to "1"
+	});
+
+	it("explicit BASE_URL + MODEL take precedence over the local default (AC-4)", () => {
+		expect(
+			resolveTier2ConfigFromEnv({
+				WATCH_TIER2_LOCAL: "1",
+				WATCH_TIER2_BASE_URL: "http://explicit/v1",
+				WATCH_TIER2_MODEL: "explicit-model",
+			}),
+		).toEqual({ baseURL: "http://explicit/v1", model: "explicit-model" });
+	});
+
+	it("applies an optional apiKey to the local default endpoint", () => {
+		expect(
+			resolveTier2ConfigFromEnv({ WATCH_TIER2_LOCAL: "1", WATCH_TIER2_API_KEY: "k" }),
+		).toEqual({ baseURL: LOCAL_TIER2_BASE_URL, model: LOCAL_TIER2_MODEL, apiKey: "k" });
 	});
 });
 

@@ -133,25 +133,61 @@ export function parseTier2Answer(json: unknown): string | null {
 }
 
 /**
+ * The documented localhost `mlx_vlm.server` endpoint (docs/TIER2-SETUP.md). Used
+ * ONLY as the opt-in local default when `WATCH_TIER2_LOCAL=1` and no explicit
+ * `WATCH_TIER2_BASE_URL`/`WATCH_TIER2_MODEL` are set. Public, secret-free values:
+ * a loopback URL and a public Hugging Face model id (never an api key).
+ */
+export const LOCAL_TIER2_BASE_URL = "http://localhost:8080/v1";
+export const LOCAL_TIER2_MODEL = "mlx-community/Qwen3-VL-8B-Instruct-4bit";
+
+/**
+ * Secret-free guidance shown to a user when tier 2 is unconfigured and another
+ * tier ends up answering (Phase 13). Surfaced on the single-video `watch` result
+ * content by `withUnconfiguredHint` (extension.ts). It names the two env vars and
+ * points at the runbook; it MUST NEVER contain an api key, the `Authorization`
+ * header, or any interpolated env value (SETH).
+ */
+export const TIER2_UNCONFIGURED_HINT =
+	"Tier 2 (native video understanding) is unconfigured \u2014 set " +
+	"WATCH_TIER2_BASE_URL and WATCH_TIER2_MODEL to enable it (or WATCH_TIER2_LOCAL=1 " +
+	"to use a local mlx_vlm server). See docs/TIER2-SETUP.md.";
+
+/**
  * Resolve tier-2 config from environment variables. As of Phase 7 the typed
  * config surface (`src/config`) is the composition point that the extension
  * boundary uses; this function remains the low-level tier-2 env building block it
  * reuses (and the only place that parses `WATCH_TIER2_*`). Pure aside from
  * reading the passed `env` (defaults to `process.env`).
  *
- * Requires BOTH `WATCH_TIER2_BASE_URL` and `WATCH_TIER2_MODEL` (non-empty);
- * `WATCH_TIER2_API_KEY` is optional. Returns `null` when either required value
- * is absent/empty → tier 2 is "unconfigured" and the runner escalates.
+ * Precedence (highest wins):
+ *   1. explicit `WATCH_TIER2_BASE_URL` + `WATCH_TIER2_MODEL` (both non-empty);
+ *   2. else the opt-in local default when `WATCH_TIER2_LOCAL` is exactly `"1"`
+ *      (→ {@link LOCAL_TIER2_BASE_URL} / {@link LOCAL_TIER2_MODEL});
+ *   3. else `null` → tier 2 is "unconfigured" and the runner escalates.
+ *
+ * `WATCH_TIER2_API_KEY` is optional and applies to whichever endpoint resolves.
+ * The DEFAULT path (no explicit vars, flag unset/other) stays network-free: it
+ * returns `null` without ever pointing at localhost (Phase 12 contract).
  */
 export function resolveTier2ConfigFromEnv(
 	env: NodeJS.ProcessEnv = process.env,
 ): Tier2Config | null {
+	const apiKey = env.WATCH_TIER2_API_KEY?.trim();
+	const withApiKey = (base: { baseURL: string; model: string }): Tier2Config =>
+		apiKey ? { ...base, apiKey } : base;
+
 	const baseURL = env.WATCH_TIER2_BASE_URL?.trim();
 	const model = env.WATCH_TIER2_MODEL?.trim();
-	if (!baseURL || !model) return null;
+	if (baseURL && model) return withApiKey({ baseURL, model });
 
-	const apiKey = env.WATCH_TIER2_API_KEY?.trim();
-	return apiKey ? { baseURL, model, apiKey } : { baseURL, model };
+	// Opt-in local default: only when BOTH explicit vars are absent/empty AND the
+	// flag is exactly "1". Any other state keeps the default network-free `null`.
+	if (env.WATCH_TIER2_LOCAL?.trim() === "1") {
+		return withApiKey({ baseURL: LOCAL_TIER2_BASE_URL, model: LOCAL_TIER2_MODEL });
+	}
+
+	return null;
 }
 
 /** The distinct tier-2 failure modes surfaced as diagnostics (DESIGN.md §4 / Phase 12). */

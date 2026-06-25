@@ -34,7 +34,11 @@ import {
 	type TierRunner,
 	type WatchContentPart,
 } from "./tier-runner.js";
-import { createTier2Runner, type Tier2Diagnostic } from "./tier2.js";
+import {
+	createTier2Runner,
+	TIER2_UNCONFIGURED_HINT,
+	type Tier2Diagnostic,
+} from "./tier2.js";
 import { runWatchCommand } from "./command.js";
 import {
 	runWatchBatch,
@@ -137,6 +141,25 @@ export function withTier2Diagnostic(
 }
 
 /**
+ * Append the tier-2 unconfigured guidance to a single-video `watch` result's
+ * content, but ONLY when tier 2 was unconfigured AND another tier answered
+ * (finalTier !== 2). Pure and total: never mutates the input array; returns it
+ * unchanged for every other case (configured tier 2, a tier-2 answer, or a
+ * non-unconfigured failure such as http-error/timeout/network-error) so no
+ * guidance noise appears (AC-1/AC-2). The appended text is the shared, secret-free
+ * {@link TIER2_UNCONFIGURED_HINT}.
+ */
+export function withUnconfiguredHint(
+	content: WatchContentPart[],
+	finalTier: Tier,
+	diagnostic: Tier2Diagnostic | undefined,
+): WatchContentPart[] {
+	return finalTier !== 2 && diagnostic?.reason === "unconfigured"
+		? [...content, { type: "text", text: TIER2_UNCONFIGURED_HINT }]
+		: content;
+}
+
+/**
  * Batch tier-3 placeholder: frame fan-out for many videos is deferred to
  * single-video watch calls (DESIGN §5/§9), so the batch tier-3 runner returns a
  * follow-up note instead of inlining frames. Pure; total (never null).
@@ -218,7 +241,11 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				});
 
 				return {
-					content: result.content,
+					content: withUnconfiguredHint(
+						result.content,
+						result.tier,
+						tier2Diagnostic,
+					),
 					details: withTier2Diagnostic(
 						{
 							tier: result.tier,
