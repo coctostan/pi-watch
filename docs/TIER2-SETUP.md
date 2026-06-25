@@ -11,6 +11,25 @@ export WATCH_TIER2_MODEL="mlx-community/Qwen3-VL-8B-Instruct-4bit"
 
 `WATCH_TIER2_API_KEY` is not needed for the local `mlx_vlm.server`.
 
+## Zero-config local default (opt-in)
+
+If you run the standard local `mlx_vlm.server` on the documented host/port, you can skip the two `export`s above and instead opt in with a single flag:
+
+```sh
+export WATCH_TIER2_LOCAL=1
+```
+
+When `WATCH_TIER2_LOCAL` is exactly `1` **and** neither `WATCH_TIER2_BASE_URL` nor `WATCH_TIER2_MODEL` is set, `pi-watch` auto-points tier 2 at the documented local endpoint:
+
+- `baseURL` = `http://localhost:8080/v1`
+- `model` = `mlx-community/Qwen3-VL-8B-Instruct-4bit`
+
+Precedence and safety:
+
+- **Explicit wins:** if you set `WATCH_TIER2_BASE_URL` + `WATCH_TIER2_MODEL`, those always override the local default (use them for a different port, host, or model).
+- **Default stays network-free:** with the flag unset (or any value other than `1`), tier 2 resolves to *unconfigured* and never contacts localhost — exactly the Phase-12 behavior.
+- **Server must be up:** with the flag on but no server running, tier 2 will report `network-error` (not `unconfigured`) and escalate to tier 3, since `pi-watch` does attempt the local endpoint.
+
 ## Verified setup
 
 Verified on this machine:
@@ -186,6 +205,12 @@ Local `mlx_vlm.server` does not need `WATCH_TIER2_API_KEY`. Hosted OpenAI-compat
 Tier 2 never blocks an answer. When it cannot answer, `watch` **silently escalates to tier 3** (frames-into-context) and still returns a result — so a watch can quietly fall back to frames without any obvious error. To make that legible, the tool now records a structured `details.tier2` diagnostic whenever tier 2 was attempted but did not answer.
 
 The diagnostic appears on the `watch` tool result's `details` (and on each `watch_batch` item's `details`). It is present only when tier 3 (or tier 1) ended up answering; a successful tier-2 answer records **no** `details.tier2`.
+
+**Human-facing hint (single-video `watch`):** when tier 2 was *unconfigured* and another tier answered, the single-video `watch` result also appends a short guidance line to its content:
+
+> Tier 2 (native video understanding) is unconfigured — set `WATCH_TIER2_BASE_URL` and `WATCH_TIER2_MODEL` to enable it (or `WATCH_TIER2_LOCAL=1` to use a local mlx_vlm server). See docs/TIER2-SETUP.md.
+
+This nudge is shown **only** for the `unconfigured` reason (not for `http-error` / `empty-answer` / `timeout` / `network-error`, which mean tier 2 *was* configured) and **only** when tier 2 did not itself answer. `watch_batch` keeps its structured per-item `details.tier2` and does not add this line to its aggregated content.
 
 Shape:
 
