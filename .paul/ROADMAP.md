@@ -5,9 +5,9 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 **v0.2 — Tier 2, For Real** (v0.2.0)
-Status: 🚧 In Progress
-Phases: 3 of 4 complete (75%)
-Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against it live, and make tier-2 failures visible — so `/watch` answers from the real model and degrades legibly.
+Status: ✅ Complete (2026-07-10)
+Phases: 4 of 4 complete (100%)
+Focus: Completed — local Qwen3-VL tier 2 is running, production-wire-shape proven, failure-diagnosable, and equipped with actionable first-run config UX while remaining local-first and model-agnostic.
 
 ## Phases
 
@@ -16,7 +16,7 @@ Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against i
 | 10 | Stand up the model | 10-01 ✅ | ✅ Complete | 2026-06-24 |
 | 11 | Tier-2 live wire-shape proof | 11-01 ✅ | ✅ Complete | 2026-06-24 |
 | 12 | Tier-2 failure diagnostics | 12-01 ✅ | ✅ Complete | 2026-06-24 |
-| 13 | Tier-2 config UX | 13-01 ✅ | 🔄 Merge gate (PR #15) | - |
+| 13 | Tier-2 config UX | 13-01 ✅ | ✅ Complete | 2026-07-10 |
 
 ## Completed Milestones
 
@@ -35,14 +35,14 @@ Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against i
 | 8 | /watch command | 08-01 ✅ | ✅ Complete | 2026-06-20 |
 | 9 | Batching | 09-01 ✅ | ✅ Complete | 2026-06-22 |
 
-## Phase Details (v0.2 — current)
+## Phase Details (v0.2 — completed)
 
 Phases will be finalized during `/paul:plan`. v0.2 makes the local native-video tier (Qwen3-VL via `mlx_vlm.server`) actually answer through `/watch`, and fail legibly. See `.paul/MILESTONES.md` (if present) and the strategic assessment `.paul/assessments/2026-06-22-after-v0.1.md` for rationale.
 
 10. **Stand up the model** — ✅ Complete 2026-06-24. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; `docs/TIER2-SETUP.md` records uv-pinned setup, server command, smoke test, and WATCH_TIER2_* exports.
 11. **Tier-2 live wire-shape proof** — ✅ Complete 2026-06-24. Added an opt-in, default-skipped Vitest proof that sends `buildTier2Request` output to local `mlx_vlm.server` and confirms `parseTier2Answer` reads a real answer; no production adapter mismatch or per-model branch was needed.
 12. **Tier-2 failure diagnostics** — ✅ Complete 2026-06-24 (PR #14 merged → ffe07b3). Replaced the silent `catch { return null }` / `!res.ok → null` with a structured `Tier2Diagnostic` (unconfigured / http-error+status / empty-answer / timeout / network-error) surfaced as `details.tier2` on `watch` + `watch_batch`, via an option-a onDiagnostic boundary collector that left the null→tier-3 escalation contract and `tier-runner.ts` byte-for-byte unchanged.
-13. **Tier-2 config UX** — UNIFY complete 2026-07-10 (PR #15 merge gate pending). Added secret-free unconfigured guidance to single-video `watch` results and opt-in `WATCH_TIER2_LOCAL=1` resolution to the documented localhost mlx_vlm endpoint; explicit URL/model configuration wins and the default path remains network-free.
+13. **Tier-2 config UX** — ✅ Complete 2026-07-10 (PR #15 merged → 6f26a6f). Added secret-free unconfigured guidance to single-video `watch` results and opt-in `WATCH_TIER2_LOCAL=1` resolution to the documented localhost mlx_vlm endpoint; explicit URL/model configuration wins and the default path remains network-free.
 
 ## Phase Details (v0.1 — completed)
 
@@ -61,4 +61,4 @@ The proposed order below was **risk-first** (prove the un-de-risked tool-activat
 **Early architectural decision (resolve in/before phase 1):** standalone vs interop with pi-web-access / s2p2-agent (already does Gemini video) — see PRD Open Questions.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 created: 2026-06-22 · Phase 10 completed: 2026-06-24 · Phase 11 completed: 2026-06-24*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 created: 2026-06-22 · v0.2 completed: 2026-07-10*

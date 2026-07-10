@@ -2,26 +2,26 @@
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-06-24 after Phase 12)
+See: .paul/PROJECT.md (updated 2026-07-10 after Phase 13 / v0.2 completion)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.2 — Tier 2, For Real. Phase 13 tier-2 config UX is UNIFY complete; PR #15 is ready for the required GitHub Flow merge gate, after which v0.2 is complete.
+**Current focus:** v0.2 — Tier 2, For Real is complete. All four phases shipped and PR #15 merged; ready to choose the next milestone.
 
 ## Current Position
 
 Milestone: v0.2 — Tier 2, For Real
 Phase: 13 of 13 (Tier-2 config UX)
-Plan: 13-01 (UNIFY complete) — .paul/phases/13-tier2-config-ux/13-01-SUMMARY.md
-Status: UNIFY complete; AC-1..AC-5 PASS under option-b. Secret-free unconfigured guidance ships on single-video `watch`; opt-in `WATCH_TIER2_LOCAL=1` resolves the documented localhost mlx_vlm endpoint while explicit env vars win and the default remains network-free. 152 passed/1 skipped; build/typecheck/audit clean; tier-runner.ts and dependencies unchanged. PR #15 open, mergeable, CI green.
-Last activity: 2026-07-10 — Phase 13 UNIFY reconciled plan 13-01; SUMMARY and WALT/CODI history reports finalized.
-Next action: GitHub Flow merge gate for PR #15, then complete the v0.2 milestone transition
+Plan: 13-01 complete — .paul/phases/13-tier2-config-ux/13-01-SUMMARY.md
+Status: Milestone v0.2 complete. Phase 13 AC-1..AC-5 PASS under option-b; PR #15 squash-merged as 6f26a6f. Tier 2 now has local setup, live wire proof, structured failure diagnostics, and actionable config UX. 152 passed/1 skipped; build/typecheck/audit clean.
+Last activity: 2026-07-10 — PR #15 merged; Phase 13 and milestone v0.2 transitioned to complete.
+Next action: /paul:milestone to start the next milestone
 
 Progress:
-- Milestone v0.2: [████████░░] 75% (3 of 4 phases complete)
+- Milestone v0.2: [██████████] 100% (4 of 4 phases complete)
 - Phase 10: Stand up the model — ✅ complete (10-01)
 - Phase 11: Tier-2 live wire-shape proof — ✅ complete (11-01)
 - Phase 12: Tier-2 failure diagnostics — ✅ complete (12-01; PR #14 merged → ffe07b3)
-- Phase 13: Tier-2 config UX — 🔄 UNIFY complete (13-01; PR #15 merge gate pending)
+- Phase 13: Tier-2 config UX — ✅ complete (13-01; PR #15 merged → 6f26a6f)
 - v0.1 Initial Release: ✅ complete (9 of 9 phases; PRs #1–#11 merged; final 6bf2270)
 
 ## Loop Position
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 13: UNIFY complete — PR #15 merge gate pending]
+  ✓        ✓        ✓     [Phase 13 complete — v0.2 milestone complete]
 ```
 
 ## Accumulated Context
@@ -52,6 +52,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (Phase 10 checkpoint:decision) Local tier-2 default = `mlx-community/Qwen3-VL-8B-Instruct-4bit` first: verified reachable, ~5.38 GiB weights vs ~17.01 GiB for 30B-A3B, fastest low-risk path to a running endpoint; model remains swappable by config.
 - (Phase 11) Live tier-2 model tests are opt-in/default-skipped (`WATCH_TIER2_LIVE=1`) and must use the production `buildTier2Request` / `parseTier2Answer` path, not model-specific request branches.
 - (Phase 12 checkpoint:decision) Tier-2 failure diagnostics use option-a: an optional `onDiagnostic` boundary collector built fresh per call / per batch item, merged into `details.tier2` by a pure helper only when the final tier ≠ 2 — NOT a widening of the `null === escalate` tier-walk contract. `tier-runner.ts` stays byte-for-byte unchanged; diagnostics are secret-free.
+- (Phase 13 checkpoint:decision) Config UX uses option-b: append a secret-free hint only to single-video `watch` when tier 2 was unconfigured and another tier answered; `WATCH_TIER2_LOCAL=1` opts into the documented localhost mlx_vlm endpoint, explicit URL/model wins, and the no-flag default stays network-free.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -62,22 +63,22 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-07-10 — Phase 13 UNIFY complete for 13-01; all ACs PASS and reports finalized.
-Stopped at: UNIFY complete on feature/13-tier2-config-ux; PR #15 open (MERGEABLE), CI green. Awaiting required merge gate and milestone transition.
-Next action: merge PR #15 through the GitHub Flow gate, sync main, then complete v0.2 transition metadata
-wip_result: committed (4934054 feat Task 2, 1e1647a test/docs Task 3) on feature/13-tier2-config-ux
-Resume file: .paul/phases/13-tier2-config-ux/13-01-SUMMARY.md
+Last session: 2026-07-10 — Phase 13 UNIFY, PR #15 merge gate, and v0.2 transition completed.
+Stopped at: v0.2 milestone complete on synced `main`; all four milestone phases unified and merged.
+Next action: /paul:milestone to start the next milestone
+wip_result: complete — Phase 13 task commits 4934054 / 1e1647a, UNIFY metadata 70e89c4, squash merge 6f26a6f
+Resume file: .paul/ROADMAP.md
 Resume context:
 - Phase 12 shipped structured tier-2 failure diagnostics: `createTier2Runner` now emits a `Tier2Diagnostic` (`unconfigured` / `http-error`+status / `empty-answer` / `timeout` / `network-error`) via an optional `onDiagnostic` side channel; the extension surfaces it as `details.tier2` on watch + watch_batch when tier 3 (or 1) answers. null→tier-3 escalation and the model-agnostic adapter are unchanged.
-- Phase 13 PLAN 13-01 (.paul/phases/13-tier2-config-ux/13-01-PLAN.md) builds tier-2 config UX over the `unconfigured` reason: Task 2 adds a secret-free `TIER2_UNCONFIGURED_HINT` constant + a pure `withUnconfiguredHint` helper that appends "set WATCH_TIER2_BASE_URL/WATCH_TIER2_MODEL — see docs/TIER2-SETUP.md" to the single-video `watch` result content only when tier 2 was unconfigured and another tier answered; Task 3 adds pure specs + docs.
+- Phase 13 shipped a secret-free `TIER2_UNCONFIGURED_HINT` plus pure `withUnconfiguredHint`, appended only to single-video `watch` when tier 2 was unconfigured and another tier answered.
 - Task 1 checkpoint:decision RESOLVED → option-b (message + opt-in `WATCH_TIER2_LOCAL=1` localhost default). `resolveTier2ConfigFromEnv` now resolves the flag to `http://localhost:8080/v1` + `mlx-community/Qwen3-VL-8B-Instruct-4bit`; explicit `WATCH_TIER2_BASE_URL`/`MODEL` win; default (flag unset/other) stays network-free `null`.
-- APPLY results: 152 passed / 1 skipped (was 139/1; +13 new pure specs); tsc clean. tier-runner.ts unchanged; no dependency change. Minor in-scope deviation: re-exported `LOCAL_TIER2_*` + `TIER2_UNCONFIGURED_HINT` from `src/watch/index.ts` (barrel) so tests can import them — to note in UNIFY. `.codegraph/` is an untracked CODI artifact, intentionally never staged.
+- Final results: 152 passed / 1 skipped; build, typecheck, and audit clean. `tier-runner.ts` and dependencies unchanged. Minor in-scope barrel re-export documented in SUMMARY. `.codegraph/` remains an untracked local-only CODI artifact.
 - Scope guards held: tier-runner.ts byte-for-byte unchanged; Phase-12 `null===escalate` + `details.tier2` contract additive only; watch_batch keeps structured per-item details (no aggregated hint); no new deps; no secrets in any message/constant.
 
 ### Git State
-Last commit: 1e1647a (test(13-01): cover unconfigured hint + opt-in local default; docs), on feature/13-tier2-config-ux
-Branch: feature/13-tier2-config-ux pushed to origin; PR #15 OPEN + MERGEABLE: https://github.com/coctostan/pi-watch/pull/15; CI green (Socket Security Project Report + Pull Request Alerts). UNIFY metadata commit/push precedes merge.
-Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270), PR #12 (10-01 → cdf3db2), PR #13 (11-01 → 8e74f45), PR #14 (12-01 → ffe07b3)
+Last commit: 6f26a6f (Phase 13-01: Tier-2 config UX (#15)), on main
+Branch: main synced with origin/main; PR #15 squash-merged and feature/13-tier2-config-ux deleted; CI green (Socket Security Project Report + Pull Request Alerts).
+Feature branches merged: PR #1 (01), PR #2 (02), PR #3 (03-01 → 82aff62), PR #4 (03-02 → 2f9f669), PR #5 (04-01 → f9c558f), PR #6 (05-01 → d355a91), PR #7 (06-01 → 0bd585a), PR #8 (06-02 → 0bd585a), PR #9 (07-01 → 7745f07), PR #10 (08-01 → 0c26401), PR #11 (09-01 → 6bf2270), PR #12 (10-01 → cdf3db2), PR #13 (11-01 → 8e74f45), PR #14 (12-01 → ffe07b3), PR #15 (13-01 → 6f26a6f)
 
 ---
 *STATE.md — Updated after every significant action*

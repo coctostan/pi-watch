@@ -9,9 +9,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.2.0 in progress |
-| Status | v0.2 in progress — Phase 12 complete: tier-2 failures are now legible. Phase 11 proved the live tier-2 wire shape against the local Qwen3-VL endpoint (no adapter change needed); Phase 12 replaced the silent null-escalation with a structured `Tier2Diagnostic` surfaced as `details.tier2` on `watch`/`watch_batch`. Next: Phase 13 — tier-2 config UX (sensible local default / "tier 2 unconfigured" guidance). |
-| Last Updated | 2026-06-24 |
+| Version | 0.2.0 complete |
+| Status | v0.2 complete — the local Qwen3-VL tier-2 path is stood up, proven through the production wire shape, diagnosable on failure, and approachable on first run through secret-free unconfigured guidance plus the opt-in `WATCH_TIER2_LOCAL=1` localhost default. PR #15 merged; 152 tests pass with 1 opt-in live test skipped. |
+| Last Updated | 2026-07-10 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -26,13 +26,12 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 10 (2026-06-24):** The local tier-2 model is stood up for real. A uv-pinned Python 3.12 environment outside the repo runs `mlx_vlm==0.6.3`; `mlx_vlm.server` is serving `mlx-community/Qwen3-VL-8B-Instruct-4bit` on port 8080; a smoke POST to `/v1/chat/completions` using base64 `image_url` content returned `HTTP 200` with `CONTENT red`. `docs/TIER2-SETUP.md` captures exact setup, server command, smoke test, troubleshooting, and `WATCH_TIER2_BASE_URL=http://localhost:8080/v1` / `WATCH_TIER2_MODEL=mlx-community/Qwen3-VL-8B-Instruct-4bit`.
 - **Phase 11 (2026-06-24):** The production tier-2 request/response seam touched a real endpoint. An **opt-in** Vitest proof (`test/watch/tier2.live.test.ts`, gated by `WATCH_TIER2_LIVE=1`, skipped by default for CI/offline) sends `buildTier2Request` output to the local `mlx_vlm.server` and parses the real response with `parseTier2Answer`. Outcome: the existing OpenAI-compatible wire shape works as-is — **no production adapter change was needed** — confirming the model-agnostic seam. The silent null-escalation debt was explicitly deferred to Phase 12.
 - **Phase 12 (2026-06-24):** Tier-2 failures are now **legible**. The single silent `null` that `createTier2Runner` returned for every failure mode is replaced by a structured `Tier2Diagnostic` (`unconfigured` / `http-error`+status / `empty-answer` / `timeout` / `network-error`) surfaced as `details.tier2` on `watch` and `watch_batch` tool results. Chosen mechanism (checkpoint decision): **option-a — an `onDiagnostic` boundary collector** built fresh per call / per batch item, merged into `details` by a pure helper. The null→tier-3 escalation contract, the model-agnostic adapter, and `tier-runner.ts` are **byte-for-byte unchanged**; diagnostics are secret-free (never the api key, Authorization header, or request body). `docs/TIER2-SETUP.md` gained a "Reading tier-2 failures" runbook section.
+- **Phase 13 (2026-07-10):** Tier-2 **config UX** closes v0.2. A shared, secret-free `TIER2_UNCONFIGURED_HINT` is appended by the pure `withUnconfiguredHint` helper only to single-video `watch` results when tier 2 was unconfigured and another tier answered. `WATCH_TIER2_LOCAL=1` opt-in resolves the documented localhost `mlx_vlm` endpoint; explicit base URL/model configuration wins, and the default path remains network-free. `watch_batch`, `tier-runner.ts`, the null→tier-3 contract, and dependencies remain unchanged. PR #15 merged; suite 152 passed / 1 skipped.
 
 ## Scope Snapshot
-### Active
+### Completed
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
-
-### Planned / In progress
-- v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX (next).
+- v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -83,6 +82,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 11) Keep live tier-2 verification opt-in (`WATCH_TIER2_LIVE=1`, default-skipped); use the production `buildTier2Request`/`parseTier2Answer` path, not a model-specific branch | A local model server is machine-specific and unsuitable for default CI/offline runs; the real endpoint accepted the existing wire shape unchanged | 2026-06-24 | Active |
 | (Phase 12) Surface tier-2 failure reasons via an optional `onDiagnostic` side channel (option-a), not by widening the `null === escalate` tier-walk contract | Smallest blast radius — keeps `tier-runner.ts` and its escalation tests byte-for-byte unchanged; the diagnostic is a boundary/observability concern, and option-b's generality isn't used yet (tiers 1/3 don't fail interestingly) | 2026-06-24 | ✓ Validated (Phase 12) |
 | (Phase 12) Record `details.tier2` only when the final tier ≠ 2; build a fresh tier-2 runner + collector per call / per batch item | A successful tier-2 answer is not a failure; per-call construction is free (config-only closure) and gives correct per-item attribution where one shared runner previously served N parallel batch items | 2026-06-24 | Active |
+| (Phase 13) Ship option-b: secret-free unconfigured guidance plus opt-in `WATCH_TIER2_LOCAL=1`; explicit URL/model config wins and the no-flag default stays network-free | Completes the local-first first-run on-ramp without silently contacting localhost or forking the model-agnostic adapter | 2026-07-10 | ✓ Validated (Phase 13) |
+| (Phase 13) Add the hint only to single-video `watch`, not aggregate `watch_batch` content | Batch already exposes structured per-item `details.tier2`; aggregate hint text would be noisy and ambiguous | 2026-07-10 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -92,4 +93,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-06-24 after Phase 12*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-07-10 after Phase 13 / v0.2 completion*
