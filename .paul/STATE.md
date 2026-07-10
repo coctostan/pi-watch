@@ -5,7 +5,7 @@
 See: .paul/PROJECT.md (updated 2026-07-10 after Phase 13 / v0.2 completion)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.2 is complete, archived, and ready for release tagging; no phase is active while the next milestone is defined.
+**Current focus:** v0.2 is complete, archived, and tagged; no phase is active while the next milestone is defined.
 
 ## Current Position
 
@@ -13,8 +13,8 @@ Milestone: Awaiting next milestone
 Version: v0.2.0
 Phase: None active
 Plan: None
-Status: Milestone v0.2 — Tier 2, For Real complete and archived. Four phases / four plans shipped; package version aligned to 0.2.0; permanent record in `.paul/MILESTONES.md`; release tag `v0.2.0` is the milestone completion target.
-Last activity: 2026-07-10 — v0.2 milestone finalized, archived, and package version aligned.
+Status: Milestone v0.2 — Tier 2, For Real complete, archived, and released. Four phases / four plans shipped; package version is 0.2.0; permanent record in `.paul/MILESTONES.md`; annotated tag `v0.2.0` is pushed to origin.
+Last activity: 2026-07-10 — v0.2 milestone finalized and archived; release commit 427f5a4 and annotated tag `v0.2.0` pushed.
 Next action: /paul:discuss-milestone to define the next milestone
 
 Progress:
@@ -60,8 +60,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-07-10 — v0.2 milestone completion ritual finalized.
-Stopped at: v0.2 complete; permanent milestone log and roadmap archive created; package version aligned to 0.2.0; no active phase.
+Last session: 2026-07-10 — v0.2 milestone completion, archival, version alignment, and release tagging finalized.
+Stopped at: v0.2 complete, archived, and tagged on synced `main`; no active phase.
 Next action: /paul:discuss-milestone to define the next milestone
 wip_result: complete — 4 phases, 4 plans, 10 unique product/test/doc files; 152 passed / 1 skipped; build/typecheck/audit clean
 Resume file: .paul/MILESTONES.md
@@ -71,8 +71,8 @@ Resume context:
 - Carry forward: dedicated CI, live pi runtime smoke, tier-3 batch fan-out, richer command/config surfaces, optional TypeBox peer cleanup, optional cloud tier.
 
 ### Git State
-Milestone completion commit: release/tag target for `v0.2.0` on `main`.
-Branch: `main`; completion commit and annotated `v0.2.0` tag are configured to push to origin.
+Release commit: 427f5a4 (`chore: finalize v0.2.0 milestone release`); annotated tag `v0.2.0` points to this commit.
+Branch: `main` synced with origin; annotated tag `v0.2.0` pushed to origin.
 Feature branches merged through PR #15; v0.2 implementation merge commit: 6f26a6f.
 
 ---
