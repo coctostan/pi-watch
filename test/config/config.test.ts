@@ -116,3 +116,20 @@ describe("resolveWatchConfig — precedence: overrides > env > defaults (AC-1)",
 		expect(cfg.fetchTimeoutMs).toBe(5000); // env
 	});
 });
+
+describe("resolveWatchConfig — opt-in local tier2 default (AC-4)", () => {
+	it("flows WATCH_TIER2_LOCAL=1 through to a resolved tier2 endpoint", () => {
+		expect(resolveWatchConfig({ WATCH_TIER2_LOCAL: "1" }).tier2).toEqual({
+			baseURL: "http://localhost:8080/v1",
+			model: "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+		});
+	});
+
+	it("keeps tier2 null when the flag is absent (default stays network-free, AC-3)", () => {
+		expect(resolveWatchConfig({}).tier2).toBeNull();
+	});
+
+	it("still honors an explicit tier2: null override over the local default", () => {
+		expect(resolveWatchConfig({ WATCH_TIER2_LOCAL: "1" }, { tier2: null }).tier2).toBeNull();
+	});
+});

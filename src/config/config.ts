@@ -71,7 +71,9 @@ function parseResolution(raw: string | undefined): ResolutionTier | null {
  * on malformed input (bad values fall back to the next precedence level).
  *
  * Precedence per field: `overrides` > env > default.
- *   - tier2:          overrides.tier2 (incl. explicit `null`) else `resolveTier2ConfigFromEnv(env)`.
+ *   - tier2:          overrides.tier2 (incl. explicit `null`) else `resolveTier2ConfigFromEnv(env)`
+ *                     (which resolves explicit `WATCH_TIER2_BASE_URL`+`WATCH_TIER2_MODEL`, else the
+ *                     opt-in `WATCH_TIER2_LOCAL=1` localhost default, else `null`).
  *   - budget:         overrides.budget else `WATCH_BUDGET` (positive int) else `DEFAULT_BUDGET`.
  *   - resolution:     overrides.resolution else `WATCH_RESOLUTION` ("low"|"high") else `DEFAULT_RESOLUTION`.
  *   - fetchTimeoutMs: overrides.fetchTimeoutMs else `WATCH_TIER2_TIMEOUT_MS` (positive int) else `DEFAULT_FETCH_TIMEOUT_MS`.

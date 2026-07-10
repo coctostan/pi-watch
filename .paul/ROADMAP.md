@@ -16,7 +16,7 @@ Focus: Stand up the local Qwen3-VL server, prove the tier-2 wire shape against i
 | 10 | Stand up the model | 10-01 ✅ | ✅ Complete | 2026-06-24 |
 | 11 | Tier-2 live wire-shape proof | 11-01 ✅ | ✅ Complete | 2026-06-24 |
 | 12 | Tier-2 failure diagnostics | 12-01 ✅ | ✅ Complete | 2026-06-24 |
-| 13 | Tier-2 config UX | TBD | 🔵 Ready to plan | - |
+| 13 | Tier-2 config UX | 13-01 ✅ | 🔄 Merge gate (PR #15) | - |
 
 ## Completed Milestones
 
@@ -42,7 +42,7 @@ Phases will be finalized during `/paul:plan`. v0.2 makes the local native-video 
 10. **Stand up the model** — ✅ Complete 2026-06-24. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; `docs/TIER2-SETUP.md` records uv-pinned setup, server command, smoke test, and WATCH_TIER2_* exports.
 11. **Tier-2 live wire-shape proof** — ✅ Complete 2026-06-24. Added an opt-in, default-skipped Vitest proof that sends `buildTier2Request` output to local `mlx_vlm.server` and confirms `parseTier2Answer` reads a real answer; no production adapter mismatch or per-model branch was needed.
 12. **Tier-2 failure diagnostics** — ✅ Complete 2026-06-24 (PR #14 merged → ffe07b3). Replaced the silent `catch { return null }` / `!res.ok → null` with a structured `Tier2Diagnostic` (unconfigured / http-error+status / empty-answer / timeout / network-error) surfaced as `details.tier2` on `watch` + `watch_batch`, via an option-a onDiagnostic boundary collector that left the null→tier-3 escalation contract and `tier-runner.ts` byte-for-byte unchanged.
-13. **Tier-2 config UX** — 🔵 Ready to plan (v0.2 finale). A sensible local default (auto-point at localhost `mlx_vlm`) and/or a "tier 2 unconfigured — set X to enable it" message, built over Phase 12's new `unconfigured` diagnostic reason. (Originally noted as possibly folding into Phase 12, but Phase 12 stayed diagnostics-only, so this remains its own phase.)
+13. **Tier-2 config UX** — UNIFY complete 2026-07-10 (PR #15 merge gate pending). Added secret-free unconfigured guidance to single-video `watch` results and opt-in `WATCH_TIER2_LOCAL=1` resolution to the documented localhost mlx_vlm endpoint; explicit URL/model configuration wins and the default path remains network-free.
 
 ## Phase Details (v0.1 — completed)
 
