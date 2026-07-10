@@ -9,8 +9,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.2.0 complete |
-| Status | v0.2 complete — the local Qwen3-VL tier-2 path is stood up, proven through the production wire shape, diagnosable on failure, and approachable on first run through secret-free unconfigured guidance plus the opt-in `WATCH_TIER2_LOCAL=1` localhost default. PR #15 merged; 152 tests pass with 1 opt-in live test skipped. |
+| Version | 0.2.0 |
+| Status | v0.2 complete and archived — local Qwen3-VL tier 2 is stood up, proven through the production wire shape, diagnosable on failure, and approachable on first run through secret-free guidance plus opt-in `WATCH_TIER2_LOCAL=1`. Permanent record: `.paul/MILESTONES.md`; release tag: `v0.2.0`. |
 | Last Updated | 2026-07-10 |
 
 **Current system summary:**
@@ -47,7 +47,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- A working `watch` tool + `/watch` command that answers video questions via the cheapest applicable tier, with a local default (Qwen3-VL via mlx_vlm.server) and no required cloud key.
+- ✓ A working `watch` tool + `/watch` command answers video questions through the cheapest applicable tier, with local Qwen3-VL via `mlx_vlm.server`, no required cloud key, actionable diagnostics/config UX, and 152 passing tests at v0.2 completion.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
@@ -93,4 +93,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-07-10 after Phase 13 / v0.2 completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-07-10 after v0.2 milestone archival*

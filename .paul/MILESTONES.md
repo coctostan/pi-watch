@@ -1,0 +1,55 @@
+# Milestones
+
+Completed milestone log for this project.
+
+| Milestone | Completed | Duration | Stats |
+|-----------|-----------|----------|-------|
+| v0.2 — Tier 2, For Real | 2026-07-10 | 16 days elapsed | 4 phases, 4 plans, 10 unique files |
+
+---
+
+## ✅ v0.2 — Tier 2, For Real
+
+**Version:** v0.2.0
+**Completed:** 2026-07-10
+**Duration:** 16 days elapsed (phase work began 2026-06-24; milestone finalized 2026-07-10)
+**Release tag:** `v0.2.0`
+**Roadmap archive:** [archive/roadmap/v0.2.0-tier-2-for-real.md](archive/roadmap/v0.2.0-tier-2-for-real.md)
+
+### Stats
+
+| Metric | Value |
+|--------|-------|
+| Phases | 4 (10–13) |
+| Plans | 4 |
+| Unique product/test/doc files | 10 |
+| Final tests | 152 passed, 1 opt-in live test skipped |
+| Final quality | Build, typecheck, and npm audit clean |
+
+### Key Accomplishments
+
+- Stood up `mlx_vlm.server` with `mlx-community/Qwen3-VL-8B-Instruct-4bit` through a uv-pinned Python 3.12 environment and documented the reproducible local setup.
+- Proved the production `buildTier2Request` → local OpenAI-compatible endpoint → `parseTier2Answer` wire shape against a real Qwen3-VL response without adding a model-specific adapter branch.
+- Added an opt-in, default-skipped `WATCH_TIER2_LIVE=1` integration proof so offline/default test runs remain deterministic.
+- Replaced silent tier-2 failures with a structured, secret-free `Tier2Diagnostic` covering unconfigured, HTTP, empty-answer, timeout, and network failures.
+- Surfaced `details.tier2` on `watch` and per-item `watch_batch` results while preserving the load-bearing `null === escalate` tier-walk contract.
+- Added an actionable, secret-free unconfigured hint to single-video `watch` results only when another tier answers.
+- Added opt-in `WATCH_TIER2_LOCAL=1` localhost resolution with explicit URL/model precedence and an unchanged network-free default path.
+
+### Key Decisions
+
+- Start with `mlx-community/Qwen3-VL-8B-Instruct-4bit` as the smallest verified local green path; keep the model swappable through `baseURL` + model id.
+- Keep live model verification opt-in and use the production adapter path rather than a model-specific request branch.
+- Surface diagnostics through an optional `onDiagnostic` boundary collector instead of widening `TierRunner` or changing `null === escalate`.
+- Record `details.tier2` only when tier 2 did not answer; successful tier-2 results carry no failure diagnostic.
+- Ship config UX option-b: secret-free guidance plus explicit opt-in `WATCH_TIER2_LOCAL=1`; explicit configuration wins and the no-flag default stays network-free.
+- Keep aggregate `watch_batch` content unchanged; structured per-item diagnostics remain the batch failure surface.
+
+### Source Summaries
+
+- [Phase 10 — Stand up the model](phases/10-standup-model/10-01-SUMMARY.md)
+- [Phase 11 — Tier-2 live wire-shape proof](phases/11-tier2-live-proof/11-01-SUMMARY.md)
+- [Phase 12 — Tier-2 failure diagnostics](phases/12-tier2-failure-diagnostics/12-01-SUMMARY.md)
+- [Phase 13 — Tier-2 config UX](phases/13-tier2-config-ux/13-01-SUMMARY.md)
+
+---

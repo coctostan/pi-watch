@@ -5,60 +5,27 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 **v0.2 — Tier 2, For Real** (v0.2.0)
-Status: ✅ Complete (2026-07-10)
-Phases: 4 of 4 complete (100%)
-Focus: Completed — local Qwen3-VL tier 2 is running, production-wire-shape proven, failure-diagnosable, and equipped with actionable first-run config UX while remaining local-first and model-agnostic.
+Status: ✅ Complete
+Completed: 2026-07-10
+Archive: [archive/roadmap/v0.2.0-tier-2-for-real.md](archive/roadmap/v0.2.0-tier-2-for-real.md)
 
-## Phases
-
-| Phase | Name | Plans | Status | Completed |
-|-------|------|-------|--------|-----------|
-| 10 | Stand up the model | 10-01 ✅ | ✅ Complete | 2026-06-24 |
-| 11 | Tier-2 live wire-shape proof | 11-01 ✅ | ✅ Complete | 2026-06-24 |
-| 12 | Tier-2 failure diagnostics | 12-01 ✅ | ✅ Complete | 2026-06-24 |
-| 13 | Tier-2 config UX | 13-01 ✅ | ✅ Complete | 2026-07-10 |
+## Next Milestone
+Run `/paul:discuss-milestone` to define the next milestone's vision and scope.
 
 ## Completed Milestones
 
-### v0.1 Initial Release (v0.1.0) — Complete 2026-06-22
-9 of 9 phases (100%): tool activation proven, sampler contract/implementation, router, watch tool, tier adapters, config surface, `/watch` command, and batching.
+| Milestone | Completed | Phases | Summary | Archive |
+|-----------|-----------|--------|---------|---------|
+| v0.1 — Initial Release | 2026-06-22 | 1–9 | Tool activation, sampler, router, watch tool, tier adapters, config, command, and batching. | — (completed before roadmap archives) |
+| v0.2 — Tier 2, For Real | 2026-07-10 | 10–13 | Local Qwen3-VL endpoint, production live proof, structured tier-2 diagnostics, and first-run config UX. | [archive](archive/roadmap/v0.2.0-tier-2-for-real.md) |
 
-| Phase | Name | Plans | Status | Completed |
-|-------|------|-------|--------|-----------|
-| 1 | Tool-activation spike | 01-01 | ✅ Complete | 2026-06-18 |
-| 2 | Sampler data contract | 02-01 | ✅ Complete | 2026-06-18 |
-| 3 | Sampler implementation | 03-01 ✅ + 03-02 ✅ | ✅ Complete | 2026-06-18 |
-| 4 | Router | 04-01 ✅ | ✅ Complete | 2026-06-18 |
-| 5 | watch tool primitive | 05-01 ✅ | ✅ Complete | 2026-06-19 |
-| 6 | Tier adapters | 06-01 ✅ + 06-02 ✅ | ✅ Complete | 2026-06-19 |
-| 7 | Config surface | 07-01 ✅ | ✅ Complete | 2026-06-19 |
-| 8 | /watch command | 08-01 ✅ | ✅ Complete | 2026-06-20 |
-| 9 | Batching | 09-01 ✅ | ✅ Complete | 2026-06-22 |
+## Carried Forward
 
-## Phase Details (v0.2 — completed)
-
-Phases will be finalized during `/paul:plan`. v0.2 makes the local native-video tier (Qwen3-VL via `mlx_vlm.server`) actually answer through `/watch`, and fail legibly. See `.paul/MILESTONES.md` (if present) and the strategic assessment `.paul/assessments/2026-06-22-after-v0.1.md` for rationale.
-
-10. **Stand up the model** — ✅ Complete 2026-06-24. Local `mlx_vlm.server` is running with `mlx-community/Qwen3-VL-8B-Instruct-4bit`; `docs/TIER2-SETUP.md` records uv-pinned setup, server command, smoke test, and WATCH_TIER2_* exports.
-11. **Tier-2 live wire-shape proof** — ✅ Complete 2026-06-24. Added an opt-in, default-skipped Vitest proof that sends `buildTier2Request` output to local `mlx_vlm.server` and confirms `parseTier2Answer` reads a real answer; no production adapter mismatch or per-model branch was needed.
-12. **Tier-2 failure diagnostics** — ✅ Complete 2026-06-24 (PR #14 merged → ffe07b3). Replaced the silent `catch { return null }` / `!res.ok → null` with a structured `Tier2Diagnostic` (unconfigured / http-error+status / empty-answer / timeout / network-error) surfaced as `details.tier2` on `watch` + `watch_batch`, via an option-a onDiagnostic boundary collector that left the null→tier-3 escalation contract and `tier-runner.ts` byte-for-byte unchanged.
-13. **Tier-2 config UX** — ✅ Complete 2026-07-10 (PR #15 merged → 6f26a6f). Added secret-free unconfigured guidance to single-video `watch` results and opt-in `WATCH_TIER2_LOCAL=1` resolution to the documented localhost mlx_vlm endpoint; explicit URL/model configuration wins and the default path remains network-free.
-
-## Phase Details (v0.1 — completed)
-
-The proposed order below was **risk-first** (prove the un-de-risked tool-activation assumption before building for it), then followed the DESIGN.md §7 build order. See `.paul/PRD.md` → Recommended Direction / Risks / Testing Strategy for rationale.
-
-1. **Tool-activation spike** — prove a `pi -e ext.ts`-registered `watch` tool actually runs (TUI/print mode) before building anything for it. ⚠️ only un-de-risked load-bearing assumption.
-2. **Sampler data contract** — the in-memory "watched frame set" type.
-3. **Sampler implementation** — ffmpeg scene-change + uniform backfill + transcript merge, with golden-clip fixtures.
-4. **Router** — tier-selection + escalation policy as its own deterministically-tested unit.
-5. **`watch` tool primitive** — video ref + question → sampler → router → answer.
-6. **Tier adapters** — tier 1 (transcript), tier 2 (OpenAI-compat video: local Qwen / hosted Gemini), tier 3 (frames → orchestrator `ImageContent`).
-7. **Config surface** — `baseURL`/`model id`, tier order, frame budget, resolution thresholds, transcript source.
-8. **`/watch` command** — UX wrapper over the tool.
-9. **Batching** — `Promise.all` over tiers 1/2; tier-3 subagent fan-out deferred.
-
-**Early architectural decision (resolve in/before phase 1):** standalone vs interop with pi-web-access / s2p2-agent (already does Gemini video) — see PRD Open Questions.
+- Dedicated CI workflow beyond Socket-only PR checks.
+- Live pi runtime smoke for `watch` and `watch_batch`.
+- Tier-3 batch fan-out when frames-for-many-videos becomes necessary.
+- Richer command/config surfaces and optional TypeBox peer-dependency cleanup.
+- Optional Gemini/cloud tier remains non-mandatory.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 created: 2026-06-22 · v0.2 completed: 2026-07-10*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed and archived: 2026-07-10*
