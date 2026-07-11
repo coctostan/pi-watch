@@ -18,6 +18,9 @@
  */
 
 import { execFile } from "node:child_process";
+import { mkdtemp as fsMkdtemp, rm as fsRm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 import type {
 	MediaType,
@@ -36,12 +39,25 @@ const DEFAULT_MAX_BUFFER = 64 * 1024 * 1024;
 /** Default longest-side cap for "low" resolution frames (DESIGN §3). */
 const LOW_RES_MAX_DIM = 512;
 
-interface RunResult {
+export interface RunResult {
 	stdout: Buffer;
 	stderr: Buffer;
 }
 
-interface RunOptions {
+export interface ResolveSourceDeps {
+	mkdtemp: (prefix: string) => Promise<string>;
+	rm: (path: string, opts: { recursive: true; force: true }) => Promise<void>;
+	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
+}
+
+export interface ResolvedSource {
+	originalRef: string;
+	mediaRef: string;
+	ownership: "caller" | "sampler-temporary";
+	cleanup: () => Promise<void>;
+}
+
+export interface RunOptions {
 	timeoutMs?: number;
 	maxBuffer?: number;
 }
@@ -96,6 +112,194 @@ async function run(
 		throw new Error(
 			`${bin} exited with ${String(e.code ?? "unknown")}.${tail ? ` stderr: ${tail}` : ""}`,
 		);
+	}
+}
+
+export interface YouTubeSource {
+	kind: "youtube";
+	originalRef: string;
+	videoId: string;
+	canonicalUrl: string;
+}
+
+export interface LocalSource {
+	kind: "local";
+	originalRef: string;
+	mediaRef: string;
+}
+
+export type SourceClassification = YouTubeSource | LocalSource;
+
+const DEFAULT_RESOLVE_SOURCE_DEPS: ResolveSourceDeps = {
+	mkdtemp: fsMkdtemp,
+	rm: async (path, opts) => fsRm(path, opts),
+	run,
+};
+
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
+function sourceUrlError(ref: string, detail: string): Error {
+	return new Error(`Unsupported YouTube source URL ${JSON.stringify(ref)}: ${detail}.`);
+}
+
+/** Normalize one of the deliberately supported YouTube URL forms. */
+export function normalizeYouTubeUrl(ref: string): { videoId: string; canonicalUrl: string } {
+	const candidate = ref.trim();
+	if (!/^https?:\/\//i.test(candidate)) {
+		throw sourceUrlError(ref, "expected an http(s) URL");
+	}
+
+	let url: URL;
+	try {
+		url = new URL(candidate);
+	} catch {
+		throw sourceUrlError(ref, "the URL is malformed");
+	}
+
+	if (url.protocol !== "http:" && url.protocol !== "https:") {
+		throw sourceUrlError(ref, "expected an http(s) URL");
+	}
+	if (url.username || url.password || url.port) {
+		throw sourceUrlError(ref, "the URL authority is unsupported");
+	}
+
+	const host = url.hostname.toLowerCase();
+	let videoId: string | null = null;
+	if (host === "youtube.com" || host === "www.youtube.com") {
+		if (url.pathname === "/watch") {
+			const values = url.searchParams.getAll("v");
+			videoId = values.length === 1 ? values[0] ?? null : null;
+		} else if (url.pathname.startsWith("/shorts/")) {
+			const parts = url.pathname.split("/");
+			videoId = parts.length === 3 && parts[1] === "shorts" ? parts[2] ?? null : null;
+		}
+	} else if (host === "youtu.be") {
+		const parts = url.pathname.split("/");
+		videoId = parts.length === 2 ? parts[1] ?? null : null;
+	} else {
+		throw sourceUrlError(ref, `host ${JSON.stringify(url.hostname)} is not supported`);
+	}
+
+	if (!videoId || !YOUTUBE_ID.test(videoId)) {
+		throw sourceUrlError(ref, "the video ID must be exactly 11 valid characters");
+	}
+	return {
+		videoId,
+		canonicalUrl: `https://www.youtube.com/watch?v=${videoId}`,
+	};
+}
+
+/** Classify a ref without changing borrowed local refs. */
+export function classifySourceRef(ref: string): SourceClassification {
+	if (/^\s*https?:/i.test(ref)) {
+		const normalized = normalizeYouTubeUrl(ref);
+		return {
+			kind: "youtube",
+			originalRef: ref,
+			...normalized,
+		};
+	}
+	return { kind: "local", originalRef: ref, mediaRef: ref };
+}
+
+function downloadError(err: unknown): Error {
+	const e = asExecError(err);
+	const message = err instanceof Error ? err.message : String(err);
+	if (e.code === "ENOENT" || /(?:spawn|yt-dlp).*(?:ENOENT|not found)/i.test(message)) {
+		return new Error("yt-dlp not found on PATH. Install it to resolve YouTube sources.");
+	}
+	if (e.killed || /timed out|timeout/i.test(message)) {
+		return new Error(`yt-dlp timed out while downloading the source: ${message}`);
+	}
+	if (e.code !== undefined && e.code !== 0) {
+		const tail = stderrText(e).trim();
+		return new Error(
+			`yt-dlp exited with ${String(e.code)}.${tail ? ` stderr: ${tail}` : ` ${message}`}`,
+		);
+	}
+	return new Error(`yt-dlp download failed: ${message}`);
+}
+
+function parseDownloadedPath(stdout: Buffer, ownedDir: string): string {
+	const lines = stdout
+		.toString("utf8")
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0);
+	if (lines.length === 0) {
+		throw new Error("yt-dlp produced no downloaded file output");
+	}
+	if (lines.length !== 1) {
+		throw new Error(`yt-dlp produced ambiguous output (${lines.length} paths)`);
+	}
+
+	const mediaRef = resolve(lines[0]!);
+	const ownedRoot = resolve(ownedDir);
+	const within = relative(ownedRoot, mediaRef);
+	if (within === "" || within === ".." || within.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || /^(?:[A-Za-z]:[\\/]|[\\/])/.test(within)) {
+		throw new Error(`yt-dlp output is outside the owned temporary directory: ${lines[0]}`);
+	}
+	return mediaRef;
+}
+
+/** Resolve a local ref or download a supported YouTube ref into owned storage. */
+export async function resolveSource(
+	ref: string,
+	deps: ResolveSourceDeps = DEFAULT_RESOLVE_SOURCE_DEPS,
+): Promise<ResolvedSource> {
+	const classification = classifySourceRef(ref);
+	if (classification.kind === "local") {
+		return {
+			originalRef: ref,
+			mediaRef: ref,
+			ownership: "caller",
+			cleanup: async () => undefined,
+		};
+	}
+
+	let tempDir: string;
+	try {
+		tempDir = await deps.mkdtemp(join(tmpdir(), "pi-watch-youtube-"));
+	} catch (err) {
+		throw new Error(`yt-dlp temporary directory setup failed: ${err instanceof Error ? err.message : String(err)}`);
+	}
+
+	let cleanupPromise: Promise<void> | undefined;
+	const cleanup = (): Promise<void> => {
+		cleanupPromise ??= deps.rm(tempDir, { recursive: true, force: true });
+		return cleanupPromise;
+	};
+
+	try {
+		const output = await deps.run(
+			"yt-dlp",
+			[
+				"--no-playlist",
+				"--print",
+				"after_move:filepath",
+				"-o",
+				join(tempDir, "%(id)s.%(ext)s"),
+				classification.canonicalUrl,
+			],
+			{ timeoutMs: DEFAULT_TIMEOUT_MS, maxBuffer: DEFAULT_MAX_BUFFER },
+		);
+		const mediaRef = parseDownloadedPath(output.stdout, tempDir);
+		return {
+			originalRef: ref,
+			mediaRef,
+			ownership: "sampler-temporary",
+			cleanup,
+		};
+	} catch (err) {
+		try {
+			await cleanup();
+		} catch {
+			// Preserve the stage-specific download/output error if cleanup also fails.
+		}
+		if (err instanceof Error && /yt-dlp (?:produced|output)/i.test(err.message)) {
+			throw err;
+		}
+		throw downloadError(err);
 	}
 }
 
