@@ -138,29 +138,29 @@ const DEFAULT_RESOLVE_SOURCE_DEPS: ResolveSourceDeps = {
 
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 
-function sourceUrlError(ref: string, detail: string): Error {
-	return new Error(`Unsupported YouTube source URL ${JSON.stringify(ref)}: ${detail}.`);
+function sourceUrlError(detail: string): Error {
+	return new Error(`Unsupported YouTube source URL: ${detail}.`);
 }
 
 /** Normalize one of the deliberately supported YouTube URL forms. */
 export function normalizeYouTubeUrl(ref: string): { videoId: string; canonicalUrl: string } {
 	const candidate = ref.trim();
 	if (!/^https?:\/\//i.test(candidate)) {
-		throw sourceUrlError(ref, "expected an http(s) URL");
+		throw sourceUrlError("expected an http(s) URL");
 	}
 
 	let url: URL;
 	try {
 		url = new URL(candidate);
 	} catch {
-		throw sourceUrlError(ref, "the URL is malformed");
+		throw sourceUrlError("the URL is malformed");
 	}
 
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
-		throw sourceUrlError(ref, "expected an http(s) URL");
+		throw sourceUrlError("expected an http(s) URL");
 	}
 	if (url.username || url.password || url.port) {
-		throw sourceUrlError(ref, "the URL authority is unsupported");
+		throw sourceUrlError("the URL authority is unsupported");
 	}
 
 	const host = url.hostname.toLowerCase();
@@ -177,11 +177,11 @@ export function normalizeYouTubeUrl(ref: string): { videoId: string; canonicalUr
 		const parts = url.pathname.split("/");
 		videoId = parts.length === 2 ? parts[1] ?? null : null;
 	} else {
-		throw sourceUrlError(ref, `host ${JSON.stringify(url.hostname)} is not supported`);
+		throw sourceUrlError(`host ${JSON.stringify(url.hostname)} is not supported`);
 	}
 
 	if (!videoId || !YOUTUBE_ID.test(videoId)) {
-		throw sourceUrlError(ref, "the video ID must be exactly 11 valid characters");
+		throw sourceUrlError("the video ID must be exactly 11 valid characters");
 	}
 	return {
 		videoId,
@@ -212,7 +212,7 @@ function downloadError(err: unknown): Error {
 		return new Error(`yt-dlp timed out while downloading the source: ${message}`);
 	}
 	if (e.code !== undefined && e.code !== 0) {
-		const tail = stderrText(e).trim();
+		const tail = stderrText(e).split("\n").slice(-5).join("\n").trim();
 		return new Error(
 			`yt-dlp exited with ${String(e.code)}.${tail ? ` stderr: ${tail}` : ` ${message}`}`,
 		);
