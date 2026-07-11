@@ -291,16 +291,22 @@ export async function resolveSource(
 			cleanup,
 		};
 	} catch (err) {
+		const primaryError =
+			err instanceof Error && /yt-dlp (?:produced|output)/i.test(err.message)
+				? err
+				: downloadError(err);
 		try {
 			await cleanup();
-		} catch {
-			// Preserve the stage-specific download/output error if cleanup also fails.
+		} catch (cleanupErr) {
+			const cleanupError =
+				cleanupErr instanceof Error ? cleanupErr : new Error(String(cleanupErr));
+			throw new AggregateError(
+				[primaryError, cleanupError],
+				`${primaryError.message} Temporary source cleanup also failed: ${cleanupError.message}`,
+			);
 		}
-		if (err instanceof Error && /yt-dlp (?:produced|output)/i.test(err.message)) {
-			throw err;
-		}
-		throw downloadError(err);
-	}
+		throw primaryError;
+}
 }
 
 // ── Pure parsers (no I/O — exported for direct unit tests) ───────────────────

@@ -157,6 +157,27 @@ describe("sample() source resolution lifecycle", () => {
 		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
 	});
 
+	it("preserves both downstream sampling and cleanup failures", async () => {
+		const resolved = makeResolvedSource({
+			originalRef: "https://youtube.com/watch?v=dQw4w9WgXcQ",
+			mediaRef: "/tmp/pi-watch-youtube-owned/video.mp4",
+			ownership: "sampler-temporary",
+		});
+		resolved.cleanup.mockRejectedValue(new Error("cleanup failed"));
+		effects.resolveSource.mockResolvedValue(resolved);
+		effects.probeDurationMs.mockRejectedValue(new Error("probe failed"));
+
+		const error = await sample({ ref: resolved.originalRef, budget: 2 }).catch((err) => err);
+
+		expect(error).toBeInstanceOf(AggregateError);
+		expect(error.message).toMatch(/probe failed.*cleanup failed/i);
+		expect(error.errors).toEqual([
+			expect.objectContaining({ message: "probe failed" }),
+			expect.objectContaining({ message: "cleanup failed" }),
+		]);
+		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
+	});
+
 	it("never cleans caller-owned refs even when downstream sampling fails", async () => {
 		const local = makeResolvedSource({ originalRef: "fixtures/local video.mp4" });
 		effects.resolveSource.mockResolvedValue(local);

@@ -47,6 +47,8 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 	const { ref } = opts;
 	const resolution: ResolutionTier = opts.resolution ?? "low";
 	const resolved = await resolveSource(ref);
+	let samplingFailed = false;
+	let samplingError: unknown;
 
 	try {
 		const mediaRef = resolved.mediaRef;
@@ -92,9 +94,27 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 			transcript: segments,
 			transcriptSource: source,
 		});
+	} catch (err) {
+		samplingFailed = true;
+		samplingError = err;
+		throw err;
 	} finally {
 		if (resolved.ownership === "sampler-temporary") {
-			await resolved.cleanup();
+			try {
+				await resolved.cleanup();
+			} catch (cleanupErr) {
+				if (samplingFailed) {
+					const primaryError =
+						samplingError instanceof Error ? samplingError : new Error(String(samplingError));
+					const cleanupError =
+						cleanupErr instanceof Error ? cleanupErr : new Error(String(cleanupErr));
+					throw new AggregateError(
+						[primaryError, cleanupError],
+						`${primaryError.message} Temporary source cleanup also failed: ${cleanupError.message}`,
+					);
+				}
+				throw cleanupErr;
+			}
 		}
-	}
+}
 }

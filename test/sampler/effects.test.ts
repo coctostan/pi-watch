@@ -267,6 +267,24 @@ describe("resolveSource()", () => {
 		expect(deps.rm).toHaveBeenCalledWith(tempDir, { recursive: true, force: true });
 	});
 
+	it("preserves both the download and cleanup failures", async () => {
+		const resolveSource = exportedFunction<ResolveSource>("resolveSource");
+		const { deps } = makeResolverDeps("");
+		deps.run = vi.fn<ResolveSourceDeps["run"]>(async () => {
+			throw Object.assign(new Error("exit 1"), { code: 1, stderr: Buffer.from("download failed") });
+		});
+		deps.rm.mockRejectedValue(new Error("cleanup failed"));
+
+		const error = await resolveSource(`https://youtu.be/${youtubeId()}`, deps).catch((err) => err);
+
+		expect(error).toBeInstanceOf(AggregateError);
+		expect(error.message).toMatch(/download failed.*cleanup failed/i);
+		expect(error.errors).toEqual([
+			expect.objectContaining({ message: expect.stringMatching(/download failed/i) }),
+			expect.objectContaining({ message: "cleanup failed" }),
+		]);
+	});
+
 	it.each([
 		{ name: "absent output", stdout: "", message: /yt-dlp.*(no|missing).*output|downloaded file/i },
 		{
