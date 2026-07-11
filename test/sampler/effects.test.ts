@@ -219,6 +219,7 @@ describe("resolveSource()", () => {
 		expect(opts?.timeoutMs).toBeLessThanOrEqual(60_000);
 		expect(opts?.maxBuffer).toBeGreaterThan(0);
 		expect(opts?.maxBuffer).toBeLessThanOrEqual(64 * 1024 * 1024);
+		expect(args).toContain("--ignore-config");
 		expect(args).toContain("--no-playlist");
 		expect(args).toContain("--print");
 		expect(args).toContain("after_move:filepath");

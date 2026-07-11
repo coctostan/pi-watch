@@ -274,6 +274,7 @@ export async function resolveSource(
 		const output = await deps.run(
 			"yt-dlp",
 			[
+				"--ignore-config",
 				"--no-playlist",
 				"--print",
 				"after_move:filepath",
