@@ -2,31 +2,35 @@
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-07-10 after Phase 13 / v0.2 completion)
+See: .paul/PROJECT.md (v0.2 release baseline; v0.3 milestone active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.2 is complete, archived, and tagged; no phase is active while the next milestone is defined.
+**Current focus:** v0.3 — Paste and Watch. Phase 14 will add a bounded YouTube source-resolution boundary so pasted URLs become local sampler inputs without changing local-file behavior.
 
 ## Current Position
 
-Milestone: Awaiting next milestone
-Version: v0.2.0
-Phase: None active
-Plan: None
-Status: Milestone v0.2 — Tier 2, For Real complete, archived, and released. Four phases / four plans shipped; package version is 0.2.0; permanent record in `.paul/MILESTONES.md`; annotated tag `v0.2.0` is pushed to origin.
-Last activity: 2026-07-10 — v0.2 milestone finalized and archived; release commit 427f5a4 and annotated tag `v0.2.0` pushed.
-Next action: /paul:discuss-milestone to define the next milestone
+Milestone: v0.3 — Paste and Watch
+Version: v0.3.0 target (package remains released at 0.2.0 until milestone completion)
+Phase: 14 of 16 (YouTube source resolution)
+Plan: `.paul/phases/14-youtube-source-resolution/14-01-PLAN.md`
+Status: UNIFY reconciled — all acceptance criteria pass and SUMMARY is drafted; post-unify reporting and GitHub Flow merge gate remain.
+Last activity: 2026-07-10 — reconciled Phase 14 plan vs actual, documented two review-driven hardening fixes, and created `14-01-SUMMARY.md`.
+Next action: finalize post-unify reports, then complete PR #16 merge gate
 
 Progress:
-- Milestone v0.2: [██████████] 100% ✓ (4 phases, 4 plans)
-- Milestone v0.1: [██████████] 100% ✓ (9 phases)
+- Milestone v0.3: [░░░░░░░░░░] 0% (0 of 3 phases complete)
+- Phase 14: YouTube source resolution — 🟣 UNIFY reconciled; merge/transition pending (PR #16)
+- Phase 15: Caption transcript pipeline — not started
+- Phase 16: End-to-end URL UX — not started
+- Milestone v0.2: [██████████] 100% ✓
+- Milestone v0.1: [██████████] 100% ✓
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Milestone complete — ready for next]
+  ✓        ✓        ✓     [Phase 14: loop reconciled; merge/transition pending]
 ```
 
 ## Accumulated Context
@@ -50,30 +54,33 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (Phase 11) Live tier-2 model tests are opt-in/default-skipped (`WATCH_TIER2_LIVE=1`) and must use the production `buildTier2Request` / `parseTier2Answer` path, not model-specific request branches.
 - (Phase 12 checkpoint:decision) Tier-2 failure diagnostics use option-a: an optional `onDiagnostic` boundary collector built fresh per call / per batch item, merged into `details.tier2` by a pure helper only when the final tier ≠ 2 — NOT a widening of the `null === escalate` tier-walk contract. `tier-runner.ts` stays byte-for-byte unchanged; diagnostics are secret-free.
 - (Phase 13 checkpoint:decision) Config UX uses option-b: append a secret-free hint only to single-video `watch` when tier 2 was unconfigured and another tier answered; `WATCH_TIER2_LOCAL=1` opts into the documented localhost mlx_vlm endpoint, explicit URL/model wins, and the no-flag default stays network-free.
+- (v0.3 discussion) URL scope is YouTube-first behind a generic resolver seam; captions (human or auto-generated) make tier 1 real; Whisper/local ASR is deferred; missing captions degrade to existing visual tiers.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
 - Optional Gemini tier-2 upgrade (only if a key is added).
 
 ### Blockers/Concerns
-- No current blockers. Carry for next milestone: dedicated CI workflow (merge gate is Socket-only), live pi runtime smoke for watch/watch_batch, tier-3 batch fan-out, richer command/config surfaces, optional TypeBox peer-dependency cleanup.
+- No current blockers. PR #16 is open/mergeable with Socket checks passing. Download-size limiting remains explicitly outside Phase 14 scope; captions and live URL UX remain Phases 15–16.
 
 ## Session Continuity
 
-Last session: 2026-07-10 — v0.2 milestone completion, archival, version alignment, and release tagging finalized.
-Stopped at: v0.2 complete, archived, and tagged on synced `main`; no active phase.
-Next action: /paul:discuss-milestone to define the next milestone
-wip_result: complete — 4 phases, 4 plans, 10 unique product/test/doc files; 152 passed / 1 skipped; build/typecheck/audit clean
-Resume file: .paul/MILESTONES.md
+Last session: 2026-07-10 — reconciled Phase 14 and drafted the finalized plan summary.
+Stopped at: UNIFY reconciliation complete; post-unify reports and GitHub Flow merge gate pending.
+Next action: finalize post-unify reports, then complete PR #16 merge gate
+wip_result: implementation commits are pushed; UNIFY lifecycle/history artifacts are local and will be committed before the merge gate; `.codegraph/` remains local-only
+Resume file: .paul/phases/14-youtube-source-resolution/14-01-SUMMARY.md
 Resume context:
-- v0.2 archive: `.paul/archive/roadmap/v0.2.0-tier-2-for-real.md`; completed milestone log: `.paul/MILESTONES.md`.
-- Tier 2 is locally runnable, production-wire proven, failure-diagnosable, and equipped with opt-in local config UX; the model backend remains a thin OpenAI-compatible adapter.
-- Carry forward: dedicated CI, live pi runtime smoke, tier-3 batch fan-out, richer command/config surfaces, optional TypeBox peer cleanup, optional cloud tier.
+- TDD commits: RED `c081b98`, GREEN `0eed207`, REFACTOR `ce649d7`; post-review fixes `3e62ba4` (dual-error preservation) and `b3ff94e` (`yt-dlp --ignore-config`).
+- Implemented exact supported YouTube classification/canonicalization, bounded argv-only `yt-dlp`, owned temp paths, original-ref preservation, and cleanup across success/failure.
+- Verification: 171 passed / 0 failed / 1 skipped; targeted 29 passed; typecheck/build pass; npm audit 0 vulnerabilities; no dependency/contract/watch/router/config/docs changes.
+- Module enforcement passed. Advisory cleanup warning was fixed; independent reviewer hardening finding was fixed. Codex adversarial review was unavailable due expired auth.
+- PR: https://github.com/coctostan/pi-watch/pull/16 — open, mergeable, 0 behind / 5 ahead, Socket checks passing.
 
 ### Git State
-Release commit: 427f5a4 (`chore: finalize v0.2.0 milestone release`); annotated tag `v0.2.0` points to this commit.
-Branch: `main` synced with origin; annotated tag `v0.2.0` pushed to origin.
-Feature branches merged through PR #15; v0.2 implementation merge commit: 6f26a6f.
+Last release commit: 427f5a4; annotated tag `v0.2.0` points to it.
+Branch: `feature/14-youtube-source-resolution`, 0 behind / 5 ahead of origin/main.
+PR #16: https://github.com/coctostan/pi-watch/pull/16 — OPEN, mergeable; Socket Security Project Report and Pull Request Alerts passing.
 
 ---
 *STATE.md — Updated after every significant action*
