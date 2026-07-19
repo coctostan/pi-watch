@@ -10,7 +10,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.2.0 |
-| Status | v0.2 complete and archived — local Qwen3-VL tier 2 is stood up, proven through the production wire shape, diagnosable on failure, and approachable on first run through secret-free guidance plus opt-in `WATCH_TIER2_LOCAL=1`. Permanent record: `.paul/MILESTONES.md`; release tag: `v0.2.0`. |
+| Status | v0.3 in progress — Phase 14 YouTube source resolution is complete and merged; supported YouTube refs now resolve once through bounded/config-isolated `yt-dlp` into explicitly owned temporary media while local refs and tier contracts remain stable. Phase 15 caption transcript pipeline is ready to plan. |
 | Last Updated | 2026-07-10 |
 
 **Current system summary:**
@@ -27,11 +27,13 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 11 (2026-06-24):** The production tier-2 request/response seam touched a real endpoint. An **opt-in** Vitest proof (`test/watch/tier2.live.test.ts`, gated by `WATCH_TIER2_LIVE=1`, skipped by default for CI/offline) sends `buildTier2Request` output to the local `mlx_vlm.server` and parses the real response with `parseTier2Answer`. Outcome: the existing OpenAI-compatible wire shape works as-is — **no production adapter change was needed** — confirming the model-agnostic seam. The silent null-escalation debt was explicitly deferred to Phase 12.
 - **Phase 12 (2026-06-24):** Tier-2 failures are now **legible**. The single silent `null` that `createTier2Runner` returned for every failure mode is replaced by a structured `Tier2Diagnostic` (`unconfigured` / `http-error`+status / `empty-answer` / `timeout` / `network-error`) surfaced as `details.tier2` on `watch` and `watch_batch` tool results. Chosen mechanism (checkpoint decision): **option-a — an `onDiagnostic` boundary collector** built fresh per call / per batch item, merged into `details` by a pure helper. The null→tier-3 escalation contract, the model-agnostic adapter, and `tier-runner.ts` are **byte-for-byte unchanged**; diagnostics are secret-free (never the api key, Authorization header, or request body). `docs/TIER2-SETUP.md` gained a "Reading tier-2 failures" runbook section.
 - **Phase 13 (2026-07-10):** Tier-2 **config UX** closes v0.2. A shared, secret-free `TIER2_UNCONFIGURED_HINT` is appended by the pure `withUnconfiguredHint` helper only to single-video `watch` results when tier 2 was unconfigured and another tier answered. `WATCH_TIER2_LOCAL=1` opt-in resolves the documented localhost `mlx_vlm` endpoint; explicit base URL/model configuration wins, and the default path remains network-free. `watch_batch`, `tier-runner.ts`, the null→tier-3 contract, and dependencies remain unchanged. PR #15 merged; suite 152 passed / 1 skipped.
+- **Phase 14 (2026-07-10):** YouTube-first source resolution shipped behind a generic sampler seam. Supported watch/short-link/shorts URLs canonicalize and download once through bounded argv-only `yt-dlp --ignore-config` into resolver-owned temporary storage; `sample()` uses local `mediaRef` for ffprobe/ffmpeg while preserving caller `originalRef` for transcript lookup and `WatchedFrameSet.source.ref`. Caller paths are never deleted, owned cleanup is idempotent across success/failure, and dual failures preserve both causes. Offline TDD coverage raised the suite to 171 passing tests; no npm dependency or watch/router/contract change.
 
 ## Scope Snapshot
 ### Completed
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 - v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
+- v0.3: Phase 14 YouTube source resolution ✓; Phase 15 captions and Phase 16 end-to-end URL UX remain.
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -47,7 +49,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- ✓ A working `watch` tool + `/watch` command answers video questions through the cheapest applicable tier, with local Qwen3-VL via `mlx_vlm.server`, no required cloud key, actionable diagnostics/config UX, and 152 passing tests at v0.2 completion.
+- ✓ Current baseline: 171 passing tests, 1 default-skipped live test; local-file and tier-2/tier-3 contracts remain stable while supported YouTube URLs now resolve into owned sampler media. v0.3 captions/end-to-end URL UX remain in Phases 15–16.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
@@ -84,6 +86,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 12) Record `details.tier2` only when the final tier ≠ 2; build a fresh tier-2 runner + collector per call / per batch item | A successful tier-2 answer is not a failure; per-call construction is free (config-only closure) and gives correct per-item attribution where one shared runner previously served N parallel batch items | 2026-06-24 | Active |
 | (Phase 13) Ship option-b: secret-free unconfigured guidance plus opt-in `WATCH_TIER2_LOCAL=1`; explicit URL/model config wins and the no-flag default stays network-free | Completes the local-first first-run on-ramp without silently contacting localhost or forking the model-agnostic adapter | 2026-07-10 | ✓ Validated (Phase 13) |
 | (Phase 13) Add the hint only to single-video `watch`, not aggregate `watch_batch` content | Batch already exposes structured per-item `details.tier2`; aggregate hint text would be noisy and ambiguous | 2026-07-10 | Active |
+| (Phase 14) Preserve separate `originalRef` and resolved `mediaRef`; only resolver-created directories are sampler-owned/removable | Phase 15 needs the YouTube page ref for captions while ffprobe/ffmpeg need local media; explicit ownership prevents caller-file deletion and duplicate cleanup | 2026-07-10 | ✓ Validated (Phase 14) |
+| (Phase 14) Run external `yt-dlp` once with argv-only bounds and `--ignore-config` | Keeps caller input command-injection-safe and prevents user/system config from adding hooks or output outside the resolver contract | 2026-07-10 | ✓ Validated (Phase 14) |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -93,4 +97,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-07-10 after v0.2 milestone archival*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-07-10 after Phase 14 completion*

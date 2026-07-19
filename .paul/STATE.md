@@ -5,22 +5,22 @@
 See: .paul/PROJECT.md (v0.2 release baseline; v0.3 milestone active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.3 — Paste and Watch. Phase 14 will add a bounded YouTube source-resolution boundary so pasted URLs become local sampler inputs without changing local-file behavior.
+**Current focus:** v0.3 — Paste and Watch. Phase 15 will fetch and parse YouTube captions into the existing transcript timeline so spoken-content questions can reach tier 1, with visual fallback when captions are absent.
 
 ## Current Position
 
 Milestone: v0.3 — Paste and Watch
 Version: v0.3.0 target (package remains released at 0.2.0 until milestone completion)
-Phase: 14 of 16 (YouTube source resolution)
-Plan: `.paul/phases/14-youtube-source-resolution/14-01-PLAN.md`
-Status: UNIFY reconciled — all acceptance criteria pass and SUMMARY is drafted; post-unify reporting and GitHub Flow merge gate remain.
-Last activity: 2026-07-10 — reconciled Phase 14 plan vs actual, documented two review-driven hardening fixes, and created `14-01-SUMMARY.md`.
-Next action: finalize post-unify reports, then complete PR #16 merge gate
+Phase: 15 of 16 (Caption transcript pipeline)
+Plan: Not started
+Status: Ready to plan. Phase 14 is complete and merged; Phase 15 owns caption fetch/parsing, tier-1 reachability, and visual fallback preservation.
+Last activity: 2026-07-10 — completed Phase 14, merged PR #16 as `5fd4e37`, and transitioned to Phase 15.
+Next action: /paul:plan for Phase 15
 
 Progress:
-- Milestone v0.3: [░░░░░░░░░░] 0% (0 of 3 phases complete)
-- Phase 14: YouTube source resolution — 🟣 UNIFY reconciled; merge/transition pending (PR #16)
-- Phase 15: Caption transcript pipeline — not started
+- Milestone v0.3: [███░░░░░░░] 33% (1 of 3 phases complete)
+- Phase 14: YouTube source resolution — ✅ complete (14-01, PR #16)
+- Phase 15: Caption transcript pipeline — 🔵 ready to plan
 - Phase 16: End-to-end URL UX — not started
 - Milestone v0.2: [██████████] 100% ✓
 - Milestone v0.1: [██████████] 100% ✓
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 14: loop reconciled; merge/transition pending]
+  ○        ○        ○     [Phase 15: ready for first PLAN]
 ```
 
 ## Accumulated Context
@@ -55,32 +55,34 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (Phase 12 checkpoint:decision) Tier-2 failure diagnostics use option-a: an optional `onDiagnostic` boundary collector built fresh per call / per batch item, merged into `details.tier2` by a pure helper only when the final tier ≠ 2 — NOT a widening of the `null === escalate` tier-walk contract. `tier-runner.ts` stays byte-for-byte unchanged; diagnostics are secret-free.
 - (Phase 13 checkpoint:decision) Config UX uses option-b: append a secret-free hint only to single-video `watch` when tier 2 was unconfigured and another tier answered; `WATCH_TIER2_LOCAL=1` opts into the documented localhost mlx_vlm endpoint, explicit URL/model wins, and the no-flag default stays network-free.
 - (v0.3 discussion) URL scope is YouTube-first behind a generic resolver seam; captions (human or auto-generated) make tier 1 real; Whisper/local ASR is deferred; missing captions degrade to existing visual tiers.
+- (Phase 14) Source resolution separates caller `originalRef` from local `mediaRef`; only resolver-created directories are sampler-owned/removable, and dual primary/cleanup failures preserve both causes.
+- (Phase 14) `yt-dlp` runs once through bounded argv-only execution with `--ignore-config`; local refs and existing contract/tier behavior remain unchanged.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
 - Optional Gemini tier-2 upgrade (only if a key is added).
+- Optional resolver download filesize/duration caps if Phase-16 live runtime evidence warrants them.
 
 ### Blockers/Concerns
-- No current blockers. PR #16 is open/mergeable with Socket checks passing. Download-size limiting remains explicitly outside Phase 14 scope; captions and live URL UX remain Phases 15–16.
+- No current blockers. Phase 15 must avoid duplicate media downloads, preserve Phase-14 ownership/cleanup, prefer human or auto-generated captions, and degrade to existing visual tiers without fabricating spoken content.
 
 ## Session Continuity
 
-Last session: 2026-07-10 — reconciled Phase 14 and drafted the finalized plan summary.
-Stopped at: UNIFY reconciliation complete; post-unify reports and GitHub Flow merge gate pending.
-Next action: finalize post-unify reports, then complete PR #16 merge gate
-wip_result: implementation commits are pushed; UNIFY lifecycle/history artifacts are local and will be committed before the merge gate; `.codegraph/` remains local-only
-Resume file: .paul/phases/14-youtube-source-resolution/14-01-SUMMARY.md
+Last session: 2026-07-10 — completed and merged Phase 14, then transitioned to Phase 15.
+Stopped at: Phase 14 complete; Phase 15 ready for its first PLAN.
+Next action: /paul:plan for Phase 15
+wip_result: Phase 14 merged and feature branch cleaned; Phase 15 is ready to plan on synced `main`; `.codegraph/` remains local-only
+Resume file: .paul/ROADMAP.md
 Resume context:
-- TDD commits: RED `c081b98`, GREEN `0eed207`, REFACTOR `ce649d7`; post-review fixes `3e62ba4` (dual-error preservation) and `b3ff94e` (`yt-dlp --ignore-config`).
-- Implemented exact supported YouTube classification/canonicalization, bounded argv-only `yt-dlp`, owned temp paths, original-ref preservation, and cleanup across success/failure.
-- Verification: 171 passed / 0 failed / 1 skipped; targeted 29 passed; typecheck/build pass; npm audit 0 vulnerabilities; no dependency/contract/watch/router/config/docs changes.
-- Module enforcement passed. Advisory cleanup warning was fixed; independent reviewer hardening finding was fixed. Codex adversarial review was unavailable due expired auth.
-- PR: https://github.com/coctostan/pi-watch/pull/16 — open, mergeable, 0 behind / 5 ahead, Socket checks passing.
+- Phase 14 shipped generic YouTube resolution, bounded/config-isolated `yt-dlp`, explicit temp ownership/cleanup, and original-ref preservation; record: `.paul/phases/14-youtube-source-resolution/14-01-SUMMARY.md`.
+- Quality baseline is now 171 passing / 0 failing / 1 skipped; typecheck/build/audit passed.
+- Phase 15 scope: fetch human or auto-generated captions, parse timestamped segments into the existing timeline, make tier 1 reachable, and preserve visual fallback when captions are unavailable.
+- Preserve the Phase-14 rule: `mediaRef` is for ffprobe/ffmpeg; `originalRef` is the YouTube page ref for caption lookup and source metadata.
 
 ### Git State
-Last release commit: 427f5a4; annotated tag `v0.2.0` points to it.
-Branch: `feature/14-youtube-source-resolution`, 0 behind / 5 ahead of origin/main.
-PR #16: https://github.com/coctostan/pi-watch/pull/16 — OPEN, mergeable; Socket Security Project Report and Pull Request Alerts passing.
+Last merged phase commit: `5fd4e37` (PR #16 squash merge); release tag `v0.2.0` remains at `427f5a4`.
+Branch: `main`, 0 behind / 0 ahead of origin/main.
+PR #16: https://github.com/coctostan/pi-watch/pull/16 — MERGED; Socket checks passed; feature branch cleaned.
 
 ---
 *STATE.md — Updated after every significant action*

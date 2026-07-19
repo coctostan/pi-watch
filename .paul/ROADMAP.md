@@ -6,22 +6,22 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.3 — Paste and Watch** (v0.3.0)
 Status: 🚧 In Progress
-Phases: 0 of 3 complete (0%)
+Phases: 1 of 3 complete (33%)
 Focus: Paste a YouTube URL into `watch` or `/watch` and answer spoken-content questions from timestamped captions, with automatic visual fallback when captions are unavailable.
 
 ## Phases
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
-| 14 | YouTube source resolution | 1/1 | 🟣 UNIFY reconciled — merge pending | - |
-| 15 | Caption transcript pipeline | TBD | Not started | - |
+| 14 | YouTube source resolution | 1/1 | ✅ Complete | 2026-07-10 |
+| 15 | Caption transcript pipeline | TBD | 🔵 Ready to plan | - |
 | 16 | End-to-end URL UX | TBD | Not started | - |
 
 ## Phase Details (v0.3 — active)
 
 ### Phase 14: YouTube source resolution
 Focus: Detect and normalize YouTube URLs; resolve/download media through `yt-dlp`; preserve local refs; enforce argv-only process execution, timeouts, explicit temporary-file ownership/cleanup, and legible resolver errors.
-Plans: 1 — [14-01](phases/14-youtube-source-resolution/14-01-PLAN.md) (TDD: resolver contract, owned download lifecycle, cleanup/error coverage)
+Plans: 1/1 complete — [14-01 PLAN](phases/14-youtube-source-resolution/14-01-PLAN.md) · [SUMMARY](phases/14-youtube-source-resolution/14-01-SUMMARY.md)
 
 ### Phase 15: Caption transcript pipeline
 Focus: Fetch human or auto-generated captions, parse timestamped segments into the existing transcript timeline, make tier 1 reachable for spoken-content questions, and preserve visual fallback when captions are unavailable.
@@ -57,4 +57,4 @@ Plans: TBD (defined during `/paul:plan`)
 - Optional Gemini/cloud tier remains non-mandatory.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 created: 2026-07-10*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 created: 2026-07-10 · Phase 14 completed: 2026-07-10*
