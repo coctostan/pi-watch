@@ -32,6 +32,16 @@ export {
 	fetchTranscript,
 	parseDurationMs,
 	parseSceneCutsMs,
+	normalizeYouTubeUrl,
+	classifySourceRef,
+	resolveSource,
+	type ResolvedSource,
+	type ResolveSourceDeps,
+	type RunOptions,
+	type RunResult,
+	type SourceClassification,
+	type YouTubeSource,
+	type LocalSource,
 } from "./effects.js";
 
 export { sample, type SampleOptions } from "./sample.js";

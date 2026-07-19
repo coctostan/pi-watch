@@ -21,6 +21,7 @@ import {
 	detectSceneCutsMs,
 	fetchTranscript,
 	probeDurationMs,
+	resolveSource,
 } from "./effects.js";
 import { selectFrameTimes } from "./select-frames.js";
 
@@ -45,46 +46,75 @@ export interface SampleOptions {
 export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 	const { ref } = opts;
 	const resolution: ResolutionTier = opts.resolution ?? "low";
+	const resolved = await resolveSource(ref);
+	let samplingFailed = false;
+	let samplingError: unknown;
 
-	// 1. Effect: total duration (defines the timeline's upper bound).
-	const durationMs = await probeDurationMs(ref);
+	try {
+		const mediaRef = resolved.mediaRef;
 
-	// 2. Effect: raw scene-change offsets.
-	const sceneCutsMs =
-		opts.sceneThreshold === undefined
-			? await detectSceneCutsMs(ref, durationMs)
-			: await detectSceneCutsMs(ref, durationMs, opts.sceneThreshold);
+		// 1. Effect: total duration (defines the timeline's upper bound).
+		const durationMs = await probeDurationMs(mediaRef);
 
-	// 3. Pure decision: budget-capped frame times (cuts + gap-gated backfill).
-	const selected = selectFrameTimes({
-		sceneCutsMs,
-		durationMs,
-		...(opts.budget === undefined ? {} : { budget: opts.budget }),
-	});
+		// 2. Effect: raw scene-change offsets.
+		const sceneCutsMs =
+			opts.sceneThreshold === undefined
+				? await detectSceneCutsMs(mediaRef, durationMs)
+				: await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold);
 
-	// 4. Effect: decode exactly the selected times, in order (images[i] ↔ selected[i]).
-	const images = await decodeFramesAt(
-		ref,
-		selected.map((s) => s.tMs),
-		resolution,
-	);
+		// 3. Pure decision: budget-capped frame times (cuts + gap-gated backfill).
+		const selected = selectFrameTimes({
+			sceneCutsMs,
+			durationMs,
+			...(opts.budget === undefined ? {} : { budget: opts.budget }),
+		});
 
-	// 5. Effect: best-effort transcript (degrades to "none").
-	const { segments, source } = await fetchTranscript(ref);
+		// 4. Effect: decode exactly the selected times, in order (images[i] ↔ selected[i]).
+		const images = await decodeFramesAt(
+			mediaRef,
+			selected.map((s) => s.tMs),
+			resolution,
+		);
 
-	// 6. Effective frames-per-second the sampler actually captured.
-	const fpsSampled =
-		selected.length > 0 && durationMs > 0 ? selected.length / (durationMs / 1000) : 0;
+		// 5. Effect: best-effort transcript (degrades to "none").
+		const { segments, source } = await fetchTranscript(ref);
 
-	// 7. Pure assembly → contract-valid WatchedFrameSet.
-	return assembleWatchedFrameSet({
-		ref,
-		durationMs,
-		fpsSampled,
-		selected,
-		images,
-		resolution,
-		transcript: segments,
-		transcriptSource: source,
-	});
+		// 6. Effective frames-per-second the sampler actually captured.
+		const fpsSampled =
+			selected.length > 0 && durationMs > 0 ? selected.length / (durationMs / 1000) : 0;
+
+		// 7. Pure assembly → contract-valid WatchedFrameSet.
+		return assembleWatchedFrameSet({
+			ref,
+			durationMs,
+			fpsSampled,
+			selected,
+			images,
+			resolution,
+			transcript: segments,
+			transcriptSource: source,
+		});
+	} catch (err) {
+		samplingFailed = true;
+		samplingError = err;
+		throw err;
+	} finally {
+		if (resolved.ownership === "sampler-temporary") {
+			try {
+				await resolved.cleanup();
+			} catch (cleanupErr) {
+				if (samplingFailed) {
+					const primaryError =
+						samplingError instanceof Error ? samplingError : new Error(String(samplingError));
+					const cleanupError =
+						cleanupErr instanceof Error ? cleanupErr : new Error(String(cleanupErr));
+					throw new AggregateError(
+						[primaryError, cleanupError],
+						`${primaryError.message} Temporary source cleanup also failed: ${cleanupError.message}`,
+					);
+				}
+				throw cleanupErr;
+			}
+		}
+}
 }
