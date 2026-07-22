@@ -396,10 +396,22 @@ function parseWebVttTiming(line: string): { startMs: number; endMs: number } | n
 	return { startMs, endMs };
 }
 
+const WEBVTT_CHARACTER_REFERENCES: Readonly<Record<string, string>> = {
+	amp: "&",
+	lt: "<",
+	gt: ">",
+	nbsp: "\u00a0",
+	lrm: "\u200e",
+	rlm: "\u200f",
+};
+
 function stripWebVttMarkup(line: string): string {
 	return line
 		.replace(/<(?:\d+:)?\d{2}:\d{2}[.,]\d{3}>/g, "")
 		.replace(/<[^>]*>/g, "")
+		.replace(/&(amp|lt|gt|nbsp|lrm|rlm);/g, (_match, name: string) =>
+			WEBVTT_CHARACTER_REFERENCES[name] ?? _match,
+		)
 		.trim();
 }
 

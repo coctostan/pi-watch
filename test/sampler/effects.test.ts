@@ -402,6 +402,15 @@ describe("parseWebVtt() caption core (AC-1)", () => {
 		]);
 	});
 
+	it("decodes the WebVTT character references used in cue text", () => {
+		const parseWebVtt = exportedFunction<ParseWebVtt>("parseWebVtt");
+		const input = captionVtt("Tom &amp; Jerry &lt;3 &gt; 2&nbsp;ok &lrm;L &rlm;R");
+
+		expect(parseWebVtt(input)[0]?.text).toBe(
+			"Tom & Jerry <3 > 2\u00a0ok \u200eL \u200fR",
+		);
+	});
+
 	it("drops notes, blank or tag-only cues, malformed timings, reversed ranges, and preserves stable order", () => {
 		const parseWebVtt = exportedFunction<ParseWebVtt>("parseWebVtt");
 		const input = [
