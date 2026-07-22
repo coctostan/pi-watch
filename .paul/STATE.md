@@ -5,23 +5,23 @@
 See: .paul/PROJECT.md (v0.2 release baseline; v0.3 milestone active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.3 — Paste and Watch. Plan 15-01 reconciliation is complete; PR #17 must pass the GitHub Flow merge gate before Phase 15 can transition to end-to-end URL UX.
+**Current focus:** v0.3 — Paste and Watch. Phases 14–15 are complete and merged; Phase 16 end-to-end URL UX is ready to plan.
 
 ## Current Position
 
 Milestone: v0.3 — Paste and Watch
 Version: v0.3.0 target (package remains released at 0.2.0 until milestone completion)
-Phase: 15 of 16 (Caption transcript pipeline)
-Plan: 15-01 UNIFY reconciled — `.paul/phases/15-caption-transcript-pipeline/15-01-SUMMARY.md`
-Status: SUMMARY finalized on `feature/caption-transcript-pipeline`; PR #17 merge gate pending.
-Last activity: 2026-07-22 — reconciled Plan 15-01; all five acceptance criteria pass with 189 passing / 0 failing / 1 skipped, typecheck/build pass, audit unchanged.
-Next action: Complete PR #17 CI/merge gate, then transition Phase 15 to Phase 16.
+Phase: 16 of 16 (End-to-end URL UX)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-22 — completed Phase 15, merged PR #17 as `4927fde`, and transitioned to Phase 16.
+Next action: Run `/paul:plan` for Phase 16.
 
 Progress:
-- Milestone v0.3: [███░░░░░░░] 33% (1 of 3 phases complete)
+- Milestone v0.3: [███████░░░] 67% (2 of 3 phases complete)
 - Phase 14: YouTube source resolution — ✅ complete (14-01, PR #16)
-- Phase 15: Caption transcript pipeline — 🟣 UNIFY reconciled, merge gate pending (15-01, PR #17)
-- Phase 16: End-to-end URL UX — not started
+- Phase 15: Caption transcript pipeline — ✅ complete (15-01, PR #17)
+- Phase 16: End-to-end URL UX — 🔵 ready to plan
 - Milestone v0.2: [██████████] 100% ✓
 - Milestone v0.1: [██████████] 100% ✓
 
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ◐     [Phase 15, Plan 15-01: reconciliation complete; merge gate pending]
+  ○        ○        ○     [Phase 16: ready to plan]
 ```
 
 ## Accumulated Context
@@ -66,25 +66,24 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional resolver download filesize/duration caps if Phase-16 live runtime evidence warrants them.
 
 ### Blockers/Concerns
-- No UNIFY blocker remains. ARCH/RUBY advise a future focused split because `src/sampler/effects.ts` exceeds 600 lines. Audit remains 0 critical / 1 high / 1 moderate with no new findings. PR #17 merge gate is pending.
+- No blocker. ARCH/RUBY advise a future focused split because `src/sampler/effects.ts` exceeds 600 lines. Audit remains 0 critical / 1 high / 1 moderate with no new findings.
 
 ## Session Continuity
 
-Last session: 2026-07-22 — finalized Plan 15-01 reconciliation and post-UNIFY evidence.
-Stopped at: SUMMARY finalized; PR #17 GitHub Flow merge gate pending.
-Next action: Complete PR #17 CI/merge gate, then transition to Phase 16.
-wip_result: not needed — implementation is committed/pushed; UNIFY metadata is ready to commit and push.
-Resume file: .paul/phases/15-caption-transcript-pipeline/15-01-SUMMARY.md
+Last session: 2026-07-22 — completed Phase 15 and transitioned to Phase 16.
+Stopped at: Phase 16 ready to plan.
+Next action: Run `/paul:plan` for Phase 16.
+wip_result: not needed — Phase 15 merged and lifecycle transition is complete.
+Resume file: .paul/ROADMAP.md
 Resume context:
-- Commits: RED `44ab797`, GREEN `5bd06ca`, REFACTOR `06b5556`, entity fix `3760550`, review RED `f2ca5f1`, timeline/size fix `36dad7a`.
-- Final verification: 189 passing / 0 failing / 1 skipped; typecheck/build pass; audit unchanged at 0 critical / 1 high / 1 moderate.
-- User-approved deviation added `src/sampler/assemble.ts` and `test/sampler/assemble.test.ts`; no dependency, contract, router, watch, config, docs, `sample.ts`, or generated-source change.
-- Module evidence: WALT/DEAN/TODD/SETH/OMAR/PETE/REED pass; IRIS finding fixed; ARCH future-split warning only; final independent review found no blocking issue.
+- Phase 15 shipped bounded human→automatic YouTube captions, pure WebVTT parsing, shared-timeline tier-1 reachability, and total visual fallback.
+- Final Phase-15 verification: 189 passing / 0 failing / 1 skipped; typecheck/build pass; audit unchanged at 0 critical / 1 high / 1 moderate.
+- Phase 16 owns actual `watch`/`/watch` pasted-URL proof, opt-in live YouTube smoke, prerequisites, supported-scope, cleanup/fallback, and troubleshooting documentation.
 
 ### Git State
-Last merged phase commit: `5fd4e37` (PR #16 squash merge); release tag `v0.2.0` remains at `427f5a4`.
-Branch: `feature/caption-transcript-pipeline`, created from current `main` (0 behind / 0 ahead of origin/main at preflight).
-PR #17: https://github.com/coctostan/pi-watch/pull/17 — OPEN; branch pushed; Socket checks passing at APPLY postflight.
+Last merged phase commit: `4927fde` (PR #17 squash merge); release tag `v0.2.0` remains at `427f5a4`.
+Branch: `main`, synced with `origin/main` after PR #17; feature branch deleted.
+PR #17: https://github.com/coctostan/pi-watch/pull/17 — MERGED 2026-07-22; Socket checks passed on `7acfed1`.
 
 ---
 *STATE.md — Updated after every significant action*

@@ -6,16 +6,16 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 **v0.3 — Paste and Watch** (v0.3.0)
 Status: 🚧 In Progress
-Phases: 1 of 3 complete (33%)
-Focus: Paste a YouTube URL into `watch` or `/watch` and answer spoken-content questions from timestamped captions, with automatic visual fallback when captions are unavailable.
+Phases: 2 of 3 complete (67%)
+Focus: Complete the end-to-end pasted-URL experience through `watch` and `/watch`, including deterministic coverage, an opt-in live YouTube smoke, prerequisites, supported scope, cleanup/fallback behavior, and troubleshooting.
 
 ## Phases
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 14 | YouTube source resolution | 1/1 | ✅ Complete | 2026-07-10 |
-| 15 | Caption transcript pipeline | 1/1 unified | 🟣 Merge gate | - |
-| 16 | End-to-end URL UX | TBD | Not started | - |
+| 15 | Caption transcript pipeline | 1/1 | ✅ Complete | 2026-07-22 |
+| 16 | End-to-end URL UX | TBD | 🔵 Ready to plan | - |
 
 ## Phase Details (v0.3 — active)
 
@@ -25,7 +25,7 @@ Plans: 1/1 complete — [14-01 PLAN](phases/14-youtube-source-resolution/14-01-P
 
 ### Phase 15: Caption transcript pipeline
 Focus: Fetch human or auto-generated captions, parse timestamped segments into the existing transcript timeline, make tier 1 reachable for spoken-content questions, and preserve visual fallback when captions are unavailable.
-Plans: 1/1 unified — [15-01 PLAN](phases/15-caption-transcript-pipeline/15-01-PLAN.md) · [SUMMARY](phases/15-caption-transcript-pipeline/15-01-SUMMARY.md) · [PR #17](https://github.com/coctostan/pi-watch/pull/17) · merge gate pending
+Plans: 1/1 complete — [15-01 PLAN](phases/15-caption-transcript-pipeline/15-01-PLAN.md) · [SUMMARY](phases/15-caption-transcript-pipeline/15-01-SUMMARY.md) · [PR #17](https://github.com/coctostan/pi-watch/pull/17)
 
 ### Phase 16: End-to-end URL UX
 Focus: Prove pasted YouTube URLs through the actual `watch` tool and `/watch` command, add deterministic offline coverage plus an opt-in live YouTube smoke, and document prerequisites, supported scope, cleanup, fallback behavior, and troubleshooting.
@@ -57,4 +57,4 @@ Plans: TBD (defined during `/paul:plan`)
 - Optional Gemini/cloud tier remains non-mandatory.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 created: 2026-07-10 · Phase 14 completed: 2026-07-10*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 created: 2026-07-10 · Phase 14 completed: 2026-07-10 · Phase 15 completed: 2026-07-22*
