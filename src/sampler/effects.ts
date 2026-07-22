@@ -8,9 +8,9 @@
  * core (select-frames.ts / assemble.ts) stays pure (AGENTS.md "Pure Core,
  * Explicit Effects").
  *
- * Local-first: it uses the system `ffmpeg`/`ffprobe`/`yt-dlp` and never requires
- * a cloud service, a `whisper` install, or network access. Transcript fetch is
- * best-effort and degrades to "none".
+ * Local-first: local refs remain network-free, while supported YouTube refs use
+ * the system `yt-dlp` for owned media/caption effects. No cloud API, provider key,
+ * or `whisper` install is required; transcript fetch stays best-effort.
  *
  * Security: `ref` is caller-supplied and flows straight into argv. We ALWAYS
  * spawn via `execFile` with an argument array — never a shell string, never
@@ -554,7 +554,7 @@ async function readCaptionCandidates(
 				entry.name.toLowerCase().endsWith(".vtt"),
 		)
 		.map((entry) => entry.name)
-		.sort((a, b) => a.localeCompare(b));
+		.sort();
 
 	for (const name of candidates) {
 		const segments = parseWebVtt(await deps.readFile(join(tempDir, name), "utf8"));
