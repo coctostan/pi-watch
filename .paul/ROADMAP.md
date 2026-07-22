@@ -14,7 +14,7 @@ Focus: Paste a YouTube URL into `watch` or `/watch` and answer spoken-content qu
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 14 | YouTube source resolution | 1/1 | ✅ Complete | 2026-07-10 |
-| 15 | Caption transcript pipeline | TBD | 🔵 Ready to plan | - |
+| 15 | Caption transcript pipeline | 1/1 unified | 🟣 Merge gate | - |
 | 16 | End-to-end URL UX | TBD | Not started | - |
 
 ## Phase Details (v0.3 — active)
@@ -25,7 +25,7 @@ Plans: 1/1 complete — [14-01 PLAN](phases/14-youtube-source-resolution/14-01-P
 
 ### Phase 15: Caption transcript pipeline
 Focus: Fetch human or auto-generated captions, parse timestamped segments into the existing transcript timeline, make tier 1 reachable for spoken-content questions, and preserve visual fallback when captions are unavailable.
-Plans: TBD (defined during `/paul:plan`)
+Plans: 1/1 unified — [15-01 PLAN](phases/15-caption-transcript-pipeline/15-01-PLAN.md) · [SUMMARY](phases/15-caption-transcript-pipeline/15-01-SUMMARY.md) · [PR #17](https://github.com/coctostan/pi-watch/pull/17) · merge gate pending
 
 ### Phase 16: End-to-end URL UX
 Focus: Prove pasted YouTube URLs through the actual `watch` tool and `/watch` command, add deterministic offline coverage plus an opt-in live YouTube smoke, and document prerequisites, supported scope, cleanup, fallback behavior, and troubleshooting.

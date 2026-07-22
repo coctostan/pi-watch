@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { parseDurationMs, parseSceneCutsMs } from "../../src/sampler/index.js";
+import type { TranscriptSegment } from "../../src/contract/index.js";
 import * as samplerExports from "../../src/sampler/index.js";
 
 /**
@@ -311,3 +312,350 @@ describe("resolveSource()", () => {
 function tempDirPath(basename: string): string {
 	return `/tmp/pi-watch-youtube-test-owned/${basename}`;
 }
+
+
+type ParseWebVtt = (input: string) => TranscriptSegment[];
+type FetchTranscriptResult = {
+	segments: TranscriptSegment[];
+	source: "captions" | "none";
+};
+type FetchTranscript = (
+	ref: string,
+	deps?: CaptionDeps,
+) => Promise<FetchTranscriptResult>;
+
+interface CaptionEntry {
+	name: string;
+	isFile: () => boolean;
+}
+
+interface CaptionDeps {
+	mkdtemp: (prefix: string) => Promise<string>;
+	rm: (path: string, opts: { recursive: true; force: true }) => Promise<void>;
+	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
+	readdir: (path: string) => Promise<CaptionEntry[]>;
+	readFile: (path: string, encoding: "utf8") => Promise<string>;
+	stat: (path: string) => Promise<{ size: number }>;
+}
+
+const captionVtt = (text: string): string =>
+	[`WEBVTT`, ``, `00:00:01.000 --> 00:00:02.000`, text, ``].join("\n");
+
+function captionEntry(name: string, isFile = true): CaptionEntry {
+	return { name, isFile: () => isFile };
+}
+
+function makeCaptionDeps(files: Record<string, string> = {}) {
+	const tempDir = "/tmp/pi-watch-caption-test-owned";
+	const mkdtemp = vi.fn<CaptionDeps["mkdtemp"]>(async (prefix) => {
+		expect(prefix).toMatch(/pi-watch.*caption/i);
+		return tempDir;
+	});
+	const rm = vi.fn<CaptionDeps["rm"]>(async () => undefined);
+	const run = vi.fn<CaptionDeps["run"]>(async () => ({
+		stdout: Buffer.alloc(0),
+		stderr: Buffer.alloc(0),
+	}));
+	const readdir = vi.fn<CaptionDeps["readdir"]>(async () =>
+		Object.keys(files).map((name) => captionEntry(name)),
+	);
+	const stat = vi.fn<CaptionDeps["stat"]>(async (path) => {
+		const name = path.split("/").at(-1) ?? "";
+		return { size: Buffer.byteLength(files[name] ?? "", "utf8") };
+	});
+	const readFile = vi.fn<CaptionDeps["readFile"]>(async (path) => {
+		const name = path.split("/").at(-1) ?? "";
+		const value = files[name];
+		if (value === undefined) throw new Error(`missing test caption ${name}`);
+		return value;
+	});
+	return { deps: { mkdtemp, rm, run, readdir, stat, readFile }, tempDir };
+}
+
+describe("parseWebVtt() caption core (AC-1)", () => {
+	it("parses headers, identifiers, both timestamp forms, settings, multiline text, and markup", () => {
+		const parseWebVtt = exportedFunction<ParseWebVtt>("parseWebVtt");
+		const input = [
+			"WEBVTT - Example captions",
+			"",
+			"NOTE this note is ignored",
+			"not a cue",
+			"",
+			"cue-two",
+			"01:02.250 --> 01:03.000 align:start position:10%",
+			"<v Speaker><b>Hello</b> <00:01:02.700>world</v>",
+			"next line",
+			"",
+			"cue-one",
+			"00:00:01.000 --> 00:00:02.500 line:90%",
+			"Earlier <i>caption</i>",
+		].join("\n");
+
+		expect(parseWebVtt(input)).toEqual([
+			{
+				startMs: 1000,
+				endMs: 2500,
+				text: "Earlier caption",
+				source: "captions",
+			},
+			{
+				startMs: 62250,
+				endMs: 63000,
+				text: "Hello world\nnext line",
+				source: "captions",
+			},
+		]);
+	});
+
+	it("decodes the WebVTT character references used in cue text", () => {
+		const parseWebVtt = exportedFunction<ParseWebVtt>("parseWebVtt");
+		const input = captionVtt("Tom &amp; Jerry &lt;3 &gt; 2&nbsp;ok &lrm;L &rlm;R");
+
+		expect(parseWebVtt(input)[0]?.text).toBe(
+			"Tom & Jerry <3 > 2\u00a0ok \u200eL \u200fR",
+		);
+	});
+
+	it("drops notes, blank or tag-only cues, malformed timings, reversed ranges, and preserves stable order", () => {
+		const parseWebVtt = exportedFunction<ParseWebVtt>("parseWebVtt");
+		const input = [
+			"WEBVTT",
+			"",
+			"NOTE",
+			"00:00:00.000 --> 00:00:01.000",
+			"not parsed as a note cue",
+			"",
+			"bad-time",
+			"00:00:xx.000 --> 00:00:02.000",
+			"malformed",
+			"",
+			"reversed",
+			"00:03.000 --> 00:02.000",
+			"reversed",
+			"",
+			"blank",
+			"00:00:02.000 --> 00:00:03.000",
+			"   ",
+			"",
+			"tag-only",
+			"00:00:03.000 --> 00:00:04.000",
+			"<c.yellow></c>",
+			"",
+			"later",
+			"00:00:04.000 --> 00:00:05.000",
+			"later",
+			"",
+			"same-start-second",
+			"00:00:04.000 --> 00:00:06.000",
+			"same start second",
+			"",
+			"same-start-first",
+			"00:00:04.000 --> 00:00:05.500",
+			"same start first",
+		].join("\n");
+
+		expect(parseWebVtt(input)).toEqual([
+			{ startMs: 4000, endMs: 5000, text: "later", source: "captions" },
+			{ startMs: 4000, endMs: 6000, text: "same start second", source: "captions" },
+			{ startMs: 4000, endMs: 5500, text: "same start first", source: "captions" },
+		]);
+	});
+});
+
+describe("fetchTranscript() caption effect (AC-2/AC-3)", () => {
+	it("bypasses every caption effect for local refs", async () => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const { deps } = makeCaptionDeps({ "captions.vtt": captionVtt("must not be read") });
+
+		expect(await fetchTranscript("fixtures/local video.mp4", deps)).toEqual({
+			segments: [],
+			source: "none",
+		});
+		expect(deps.mkdtemp).not.toHaveBeenCalled();
+		expect(deps.run).not.toHaveBeenCalled();
+		expect(deps.readdir).not.toHaveBeenCalled();
+		expect(deps.readFile).not.toHaveBeenCalled();
+		expect(deps.rm).not.toHaveBeenCalled();
+	});
+
+	it("uses the canonical original URL and one bounded subtitle-only human request", async () => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const noisyRef = `https://youtu.be/${youtubeId()}?si=tracking&t=30`;
+		const { deps, tempDir } = makeCaptionDeps({
+			"human.en.vtt": captionVtt("human caption"),
+		});
+
+		const result = await fetchTranscript(noisyRef, deps);
+		expect(result).toEqual({
+			segments: [{ startMs: 1000, endMs: 2000, text: "human caption", source: "captions" }],
+			source: "captions",
+		});
+		expect(deps.run).toHaveBeenCalledTimes(1);
+		const [bin, args, opts] = deps.run.mock.calls[0]!;
+		expect(bin).toBe("yt-dlp");
+		expect(Array.isArray(args)).toBe(true);
+		expect((opts as Record<string, unknown> | undefined)?.shell).toBeUndefined();
+		expect(opts?.timeoutMs).toBeGreaterThan(0);
+		expect(opts?.timeoutMs).toBeLessThanOrEqual(60_000);
+		expect(opts?.maxBuffer).toBeGreaterThan(0);
+		expect(opts?.maxBuffer).toBeLessThanOrEqual(64 * 1024 * 1024);
+		expect(args).toContain("--ignore-config");
+		expect(args).toContain("--no-playlist");
+		expect(args).toContain("--skip-download");
+		expect(args).toContain("--write-subs");
+		expect(args).toContain("--sub-format");
+		expect(args[args.indexOf("--sub-format") + 1]).toBe("vtt");
+		expect(args).toContain(`https://www.youtube.com/watch?v=${youtubeId()}`);
+		expect(args).not.toContain(noisyRef);
+		expect(args).not.toContain("-f");
+		const outputIndex = args.indexOf("-o");
+		expect(outputIndex).toBeGreaterThanOrEqual(0);
+		expect(args[outputIndex + 1]).toMatch(new RegExp(`^${tempDir}/`));
+		expect(deps.readFile).toHaveBeenCalledWith(`${tempDir}/human.en.vtt`, "utf8");
+		expect(deps.rm).toHaveBeenCalledTimes(1);
+		expect(deps.rm).toHaveBeenCalledWith(tempDir, { recursive: true, force: true });
+	});
+
+	it.each([
+		{ name: "empty", human: "" },
+		{ name: "malformed", human: "WEBVTT\n\n00:00:xx.000 --> 00:01.000\nbad" },
+	])("attempts automatic captions exactly once after $name human captions", async ({ human }) => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const { deps } = makeCaptionDeps();
+		let attempts = 0;
+		deps.run.mockImplementation(async () => {
+			attempts += 1;
+			return { stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
+		});
+		deps.readdir.mockImplementation(async () =>
+			attempts === 1 ? [captionEntry("human.vtt")] : [captionEntry("auto.vtt")],
+		);
+		deps.readFile.mockImplementation(async (path) =>
+			path.endsWith("human.vtt") ? human : captionVtt("automatic caption"),
+		);
+
+		const result = await fetchTranscript(`https://www.youtube.com/watch?v=${youtubeId()}`, deps);
+		expect(result).toEqual({
+			segments: [{ startMs: 1000, endMs: 2000, text: "automatic caption", source: "captions" }],
+			source: "captions",
+		});
+		expect(deps.run).toHaveBeenCalledTimes(2);
+		expect(deps.run.mock.calls[0]?.[1]).toContain("--write-subs");
+		expect(deps.run.mock.calls[0]?.[1]).not.toContain("--write-auto-subs");
+		expect(deps.run.mock.calls[1]?.[1]).toContain("--write-auto-subs");
+		expect(deps.run.mock.calls.every((call) => call[1].includes("--skip-download"))).toBe(true);
+		expect(deps.rm).toHaveBeenCalledTimes(1);
+	});
+
+	it("prefers the first valid candidate in deterministic filename order", async () => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const { deps } = makeCaptionDeps({
+			"z.vtt": captionVtt("z caption"),
+			"a.vtt": captionVtt("a caption"),
+			"notes.txt": "not WebVTT",
+		});
+		deps.readdir.mockResolvedValue([
+			captionEntry("z.vtt"),
+			captionEntry("notes.txt"),
+			captionEntry("nested.vtt", false),
+			captionEntry("a.vtt"),
+		]);
+
+		const result = await fetchTranscript(`https://www.youtube.com/shorts/${youtubeId()}?feature=share`, deps);
+		expect(result.segments[0]?.text).toBe("a caption");
+		expect(deps.readFile.mock.calls[0]?.[0]).toBe(`${"/tmp/pi-watch-caption-test-owned"}/a.vtt`);
+		expect(deps.readFile).toHaveBeenCalledTimes(1);
+	});
+
+	it("skips oversized caption files before reading and degrades to none", async () => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const { deps, tempDir } = makeCaptionDeps({
+			"oversized.vtt": captionVtt("must not be allocated"),
+		});
+		deps.stat.mockResolvedValue({ size: 16 * 1024 * 1024 + 1 });
+
+		await expect(
+			fetchTranscript(`https://www.youtube.com/watch?v=${youtubeId()}`, deps),
+		).resolves.toEqual({ segments: [], source: "none" });
+		expect(deps.run).toHaveBeenCalledTimes(2);
+		expect(deps.stat).toHaveBeenCalledTimes(2);
+		expect(deps.stat).toHaveBeenCalledWith(`${tempDir}/oversized.vtt`);
+		expect(deps.readFile).not.toHaveBeenCalled();
+		expect(deps.rm).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([
+		{
+			name: "missing binary",
+			configure: (deps: ReturnType<typeof makeCaptionDeps>["deps"]) => {
+				deps.run.mockRejectedValue(Object.assign(new Error("spawn yt-dlp ENOENT"), { code: "ENOENT" }));
+			},
+		},
+		{
+			name: "timeout",
+			configure: (deps: ReturnType<typeof makeCaptionDeps>["deps"]) => {
+				deps.run.mockRejectedValue(Object.assign(new Error("timed out"), { killed: true }));
+			},
+		},
+		{
+			name: "non-zero exit",
+			configure: (deps: ReturnType<typeof makeCaptionDeps>["deps"]) => {
+				deps.run.mockRejectedValue(Object.assign(new Error("exit 1"), { code: 1 }));
+			},
+		},
+		{
+			name: "no VTT output",
+			configure: (deps: ReturnType<typeof makeCaptionDeps>["deps"]) => {
+				deps.run.mockResolvedValue({ stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) });
+				deps.readdir.mockResolvedValue([]);
+			},
+		},
+		{
+			name: "unsafe and non-VTT candidates",
+			configure: (deps: ReturnType<typeof makeCaptionDeps>["deps"]) => {
+				deps.readdir.mockResolvedValue([
+					captionEntry("../outside.vtt"),
+					captionEntry("outside.txt"),
+					captionEntry("directory.vtt", false),
+				]);
+			},
+		},
+		{
+			name: "caption read failure",
+			configure: (deps: ReturnType<typeof makeCaptionDeps>["deps"]) => {
+				deps.readdir.mockResolvedValue([captionEntry("broken.vtt")]);
+				deps.readFile.mockRejectedValue(new Error("read failed"));
+			},
+		},
+	])("degrades $name to none and cleans created storage exactly once", async ({ configure }) => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const { deps, tempDir } = makeCaptionDeps();
+		configure(deps);
+
+		await expect(fetchTranscript(`https://www.youtube.com/watch?v=${youtubeId()}`, deps)).resolves.toEqual({
+			segments: [],
+			source: "none",
+		});
+		expect(deps.rm).toHaveBeenCalledTimes(1);
+		expect(deps.rm).toHaveBeenCalledWith(tempDir, { recursive: true, force: true });
+	});
+
+	it("degrades temporary-directory setup and cleanup failures without throwing", async () => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const setup = makeCaptionDeps();
+		setup.deps.mkdtemp.mockRejectedValue(new Error("temp setup failed"));
+		expect(await fetchTranscript(`https://www.youtube.com/watch?v=${youtubeId()}`, setup.deps)).toEqual({
+			segments: [],
+			source: "none",
+		});
+		expect(setup.deps.rm).not.toHaveBeenCalled();
+
+		const cleanup = makeCaptionDeps({ "human.vtt": captionVtt("caption") });
+		cleanup.deps.rm.mockRejectedValue(new Error("cleanup failed"));
+		expect(await fetchTranscript(`https://www.youtube.com/watch?v=${youtubeId()}`, cleanup.deps)).toEqual({
+			segments: [],
+			source: "none",
+		});
+		expect(cleanup.deps.rm).toHaveBeenCalledTimes(1);
+	});
+});

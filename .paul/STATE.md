@@ -5,22 +5,22 @@
 See: .paul/PROJECT.md (v0.2 release baseline; v0.3 milestone active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.3 — Paste and Watch. Phase 15 will fetch and parse YouTube captions into the existing transcript timeline so spoken-content questions can reach tier 1, with visual fallback when captions are absent.
+**Current focus:** v0.3 — Paste and Watch. Plan 15-01 reconciliation is complete; PR #17 must pass the GitHub Flow merge gate before Phase 15 can transition to end-to-end URL UX.
 
 ## Current Position
 
 Milestone: v0.3 — Paste and Watch
 Version: v0.3.0 target (package remains released at 0.2.0 until milestone completion)
 Phase: 15 of 16 (Caption transcript pipeline)
-Plan: Not started
-Status: Ready to plan. Phase 14 is complete and merged; Phase 15 owns caption fetch/parsing, tier-1 reachability, and visual fallback preservation.
-Last activity: 2026-07-10 — completed Phase 14, merged PR #16 as `5fd4e37`, and transitioned to Phase 15.
-Next action: /paul:plan for Phase 15
+Plan: 15-01 UNIFY reconciled — `.paul/phases/15-caption-transcript-pipeline/15-01-SUMMARY.md`
+Status: SUMMARY finalized on `feature/caption-transcript-pipeline`; PR #17 merge gate pending.
+Last activity: 2026-07-22 — reconciled Plan 15-01; all five acceptance criteria pass with 189 passing / 0 failing / 1 skipped, typecheck/build pass, audit unchanged.
+Next action: Complete PR #17 CI/merge gate, then transition Phase 15 to Phase 16.
 
 Progress:
 - Milestone v0.3: [███░░░░░░░] 33% (1 of 3 phases complete)
 - Phase 14: YouTube source resolution — ✅ complete (14-01, PR #16)
-- Phase 15: Caption transcript pipeline — 🔵 ready to plan
+- Phase 15: Caption transcript pipeline — 🟣 UNIFY reconciled, merge gate pending (15-01, PR #17)
 - Phase 16: End-to-end URL UX — not started
 - Milestone v0.2: [██████████] 100% ✓
 - Milestone v0.1: [██████████] 100% ✓
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 15: ready for first PLAN]
+  ✓        ✓        ◐     [Phase 15, Plan 15-01: reconciliation complete; merge gate pending]
 ```
 
 ## Accumulated Context
@@ -57,6 +57,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - (v0.3 discussion) URL scope is YouTube-first behind a generic resolver seam; captions (human or auto-generated) make tier 1 real; Whisper/local ASR is deferred; missing captions degrade to existing visual tiers.
 - (Phase 14) Source resolution separates caller `originalRef` from local `mediaRef`; only resolver-created directories are sampler-owned/removable, and dual primary/cleanup failures preserve both causes.
 - (Phase 14) `yt-dlp` runs once through bounded argv-only execution with `--ignore-config`; local refs and existing contract/tier behavior remain unchanged.
+- (Phase 15) Caption lookup uses bounded subtitle-only `yt-dlp`: human captions first, one automatic-caption fallback, deterministic owned VTT discovery, and a 16 MiB pre-read file cap; every failure degrades to `none`.
+- (Phase 15 review recovery, user-approved) `mergeTranscript()` drops cues starting at/after media duration so caption timing can never violate `endMs >= startMs`; WebVTT text decodes the six standard cue character references.
 
 ### Deferred Issues
 - Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
@@ -64,25 +66,25 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional resolver download filesize/duration caps if Phase-16 live runtime evidence warrants them.
 
 ### Blockers/Concerns
-- No current blockers. Phase 15 must avoid duplicate media downloads, preserve Phase-14 ownership/cleanup, prefer human or auto-generated captions, and degrade to existing visual tiers without fabricating spoken content.
+- No UNIFY blocker remains. ARCH/RUBY advise a future focused split because `src/sampler/effects.ts` exceeds 600 lines. Audit remains 0 critical / 1 high / 1 moderate with no new findings. PR #17 merge gate is pending.
 
 ## Session Continuity
 
-Last session: 2026-07-10 — completed and merged Phase 14, then transitioned to Phase 15.
-Stopped at: Phase 14 complete; Phase 15 ready for its first PLAN.
-Next action: /paul:plan for Phase 15
-wip_result: Phase 14 merged and feature branch cleaned; Phase 15 is ready to plan on synced `main`; `.codegraph/` remains local-only
-Resume file: .paul/ROADMAP.md
+Last session: 2026-07-22 — finalized Plan 15-01 reconciliation and post-UNIFY evidence.
+Stopped at: SUMMARY finalized; PR #17 GitHub Flow merge gate pending.
+Next action: Complete PR #17 CI/merge gate, then transition to Phase 16.
+wip_result: not needed — implementation is committed/pushed; UNIFY metadata is ready to commit and push.
+Resume file: .paul/phases/15-caption-transcript-pipeline/15-01-SUMMARY.md
 Resume context:
-- Phase 14 shipped generic YouTube resolution, bounded/config-isolated `yt-dlp`, explicit temp ownership/cleanup, and original-ref preservation; record: `.paul/phases/14-youtube-source-resolution/14-01-SUMMARY.md`.
-- Quality baseline is now 171 passing / 0 failing / 1 skipped; typecheck/build/audit passed.
-- Phase 15 scope: fetch human or auto-generated captions, parse timestamped segments into the existing timeline, make tier 1 reachable, and preserve visual fallback when captions are unavailable.
-- Preserve the Phase-14 rule: `mediaRef` is for ffprobe/ffmpeg; `originalRef` is the YouTube page ref for caption lookup and source metadata.
+- Commits: RED `44ab797`, GREEN `5bd06ca`, REFACTOR `06b5556`, entity fix `3760550`, review RED `f2ca5f1`, timeline/size fix `36dad7a`.
+- Final verification: 189 passing / 0 failing / 1 skipped; typecheck/build pass; audit unchanged at 0 critical / 1 high / 1 moderate.
+- User-approved deviation added `src/sampler/assemble.ts` and `test/sampler/assemble.test.ts`; no dependency, contract, router, watch, config, docs, `sample.ts`, or generated-source change.
+- Module evidence: WALT/DEAN/TODD/SETH/OMAR/PETE/REED pass; IRIS finding fixed; ARCH future-split warning only; final independent review found no blocking issue.
 
 ### Git State
 Last merged phase commit: `5fd4e37` (PR #16 squash merge); release tag `v0.2.0` remains at `427f5a4`.
-Branch: `main`, 0 behind / 0 ahead of origin/main.
-PR #16: https://github.com/coctostan/pi-watch/pull/16 — MERGED; Socket checks passed; feature branch cleaned.
+Branch: `feature/caption-transcript-pipeline`, created from current `main` (0 behind / 0 ahead of origin/main at preflight).
+PR #17: https://github.com/coctostan/pi-watch/pull/17 — OPEN; branch pushed; Socket checks passing at APPLY postflight.
 
 ---
 *STATE.md — Updated after every significant action*

@@ -45,11 +45,11 @@ export function formatTimestamp(ms: number): string {
  * Merge raw transcript segments onto the shared timeline.
  *
  * Pure transform:
- *   - drops segments whose text is empty / whitespace-only;
- *   - clamps endMs to min(max(endMs, startMs), durationMs) so endMs is always
- *     >= startMs and <= durationMs;
+ *   - drops empty/whitespace-only segments and cues starting at/after durationMs;
+ *   - clamps retained endMs to min(max(endMs, startMs), durationMs), preserving
+ *     endMs >= startMs and endMs <= durationMs;
  *   - sorts by startMs ascending (stable);
- *   - preserves each segment's source and original text.
+ *   - preserves each retained segment's source and original text.
  *
  * The result satisfies the transcript invariants enforced by
  * `validateWatchedFrameSet`.
@@ -59,7 +59,7 @@ export function mergeTranscript(
 	durationMs: number,
 ): TranscriptSegment[] {
 	return segments
-		.filter((seg) => seg.text.trim().length > 0)
+		.filter((seg) => seg.text.trim().length > 0 && seg.startMs < durationMs)
 		.map((seg) => ({
 			startMs: seg.startMs,
 			endMs: Math.min(Math.max(seg.endMs, seg.startMs), durationMs),

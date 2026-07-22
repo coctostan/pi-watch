@@ -151,6 +151,34 @@ describe("mergeTranscript (AC-5)", () => {
 		expect(merged.every((s) => s.endMs <= 3000)).toBe(true);
 	});
 
+	it("drops segments that start at or beyond the media duration", () => {
+		const merged = mergeTranscript(
+			[
+				{ startMs: 2500, endMs: 3500, text: "crosses end", source: "captions" },
+				{ startMs: 3000, endMs: 3500, text: "starts at end", source: "captions" },
+				{ startMs: 4000, endMs: 5000, text: "starts after end", source: "captions" },
+			],
+			3000,
+		);
+
+		expect(merged).toEqual([
+			{ startMs: 2500, endMs: 3000, text: "crosses end", source: "captions" },
+		]);
+		expect(
+			validateWatchedFrameSet({
+				source: {
+					ref: "fixtures/rgb.mp4",
+					durationMs: 3000,
+					fpsSampled: 1,
+					frameCount: 0,
+					transcriptSource: "captions",
+				},
+				frames: [],
+				transcript: merged,
+			}).ok,
+		).toBe(true);
+	});
+
 	it("drops empty / whitespace-only segments", () => {
 		const merged = mergeTranscript(
 			[

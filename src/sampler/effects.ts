@@ -8,9 +8,9 @@
  * core (select-frames.ts / assemble.ts) stays pure (AGENTS.md "Pure Core,
  * Explicit Effects").
  *
- * Local-first: it uses the system `ffmpeg`/`ffprobe`/`yt-dlp` and never requires
- * a cloud service, a `whisper` install, or network access. Transcript fetch is
- * best-effort and degrades to "none".
+ * Local-first: local refs remain network-free, while supported YouTube refs use
+ * the system `yt-dlp` for owned media/caption effects. No cloud API, provider key,
+ * or `whisper` install is required; transcript fetch stays best-effort.
  *
  * Security: `ref` is caller-supplied and flows straight into argv. We ALWAYS
  * spawn via `execFile` with an argument array — never a shell string, never
@@ -18,9 +18,15 @@
  */
 
 import { execFile } from "node:child_process";
-import { mkdtemp as fsMkdtemp, rm as fsRm } from "node:fs/promises";
+import {
+	mkdtemp as fsMkdtemp,
+	readFile as fsReadFile,
+	readdir as fsReaddir,
+	rm as fsRm,
+	stat as fsStat,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 import type {
 	MediaType,
@@ -39,6 +45,9 @@ const DEFAULT_MAX_BUFFER = 64 * 1024 * 1024;
 /** Default longest-side cap for "low" resolution frames (DESIGN §3). */
 const LOW_RES_MAX_DIM = 512;
 
+/** Maximum UTF-8 WebVTT file size read into memory. */
+const MAX_CAPTION_FILE_BYTES = 16 * 1024 * 1024;
+
 export interface RunResult {
 	stdout: Buffer;
 	stderr: Buffer;
@@ -48,6 +57,24 @@ export interface ResolveSourceDeps {
 	mkdtemp: (prefix: string) => Promise<string>;
 	rm: (path: string, opts: { recursive: true; force: true }) => Promise<void>;
 	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
+}
+
+export interface CaptionFileEntry {
+	name: string;
+	isFile: () => boolean;
+}
+
+export interface CaptionFileStat {
+	size: number;
+}
+
+export interface FetchTranscriptDeps {
+	mkdtemp: (prefix: string) => Promise<string>;
+	rm: (path: string, opts: { recursive: true; force: true }) => Promise<void>;
+	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
+	readdir: (path: string) => Promise<CaptionFileEntry[]>;
+	stat: (path: string) => Promise<CaptionFileStat>;
+	readFile: (path: string, encoding: "utf8") => Promise<string>;
 }
 
 export interface ResolvedSource {
@@ -134,6 +161,15 @@ const DEFAULT_RESOLVE_SOURCE_DEPS: ResolveSourceDeps = {
 	mkdtemp: fsMkdtemp,
 	rm: async (path, opts) => fsRm(path, opts),
 	run,
+};
+
+const DEFAULT_FETCH_TRANSCRIPT_DEPS: FetchTranscriptDeps = {
+	mkdtemp: fsMkdtemp,
+	rm: async (path, opts) => fsRm(path, opts),
+	run,
+	readdir: async (path) => fsReaddir(path, { withFileTypes: true }),
+	stat: async (path) => fsStat(path),
+	readFile: async (path, encoding) => fsReadFile(path, encoding),
 };
 
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -349,6 +385,95 @@ export function parseSceneCutsMs(ffmpegOutput: string, durationMs: number): numb
 	return Array.from(out).sort((a, b) => a - b);
 }
 
+function parseWebVttTimestamp(value: string): number | null {
+	const match = /^(?:(\d+):)?(\d{2}):(\d{2})[.,](\d{3})$/.exec(value);
+	if (!match) return null;
+
+	const hours = match[1] === undefined ? 0 : Number.parseInt(match[1], 10);
+	const minutes = Number.parseInt(match[2]!, 10);
+	const seconds = Number.parseInt(match[3]!, 10);
+	const milliseconds = Number.parseInt(match[4]!, 10);
+	if (minutes >= 60 || seconds >= 60) return null;
+	return ((hours * 60 + minutes) * 60 + seconds) * 1000 + milliseconds;
+}
+
+function parseWebVttTiming(line: string): { startMs: number; endMs: number } | null {
+	const match = /^(\S+)\s+-->\s+(\S+)(?:\s+.*)?$/.exec(line.trim());
+	if (!match) return null;
+	const startMs = parseWebVttTimestamp(match[1]!);
+	const endMs = parseWebVttTimestamp(match[2]!);
+	if (startMs === null || endMs === null || endMs < startMs) return null;
+	return { startMs, endMs };
+}
+
+const WEBVTT_CHARACTER_REFERENCES: Readonly<Record<string, string>> = {
+	amp: "&",
+	lt: "<",
+	gt: ">",
+	nbsp: "\u00a0",
+	lrm: "\u200e",
+	rlm: "\u200f",
+};
+
+function stripWebVttMarkup(line: string): string {
+	return line
+		.replace(/<(?:\d+:)?\d{2}:\d{2}[.,]\d{3}>/g, "")
+		.replace(/<[^>]*>/g, "")
+		.replace(/&(amp|lt|gt|nbsp|lrm|rlm);/g, (_match, name: string) =>
+			WEBVTT_CHARACTER_REFERENCES[name] ?? _match,
+		)
+		.trim();
+}
+
+/** Parse WebVTT cues into stable, ordered caption segments without I/O. */
+export function parseWebVtt(input: string): TranscriptSegment[] {
+	const lines = input.replace(/\r\n?/g, "\n").split("\n");
+	const parsed: Array<TranscriptSegment & { order: number }> = [];
+	let cueOrder = 0;
+
+	for (let i = 0; i < lines.length; ) {
+		const line = lines[i]!.trim();
+		if (line === "" || (i === 0 && line.startsWith("WEBVTT"))) {
+			i += 1;
+			continue;
+		}
+		if (/^(?:NOTE|STYLE|REGION)(?:\s|$)/.test(line)) {
+			while (i < lines.length && lines[i]!.trim() !== "") i += 1;
+			continue;
+		}
+
+		let timingIndex = i;
+		if (!line.includes("-->")) timingIndex += 1;
+		const timingLine = lines[timingIndex]?.trim() ?? "";
+		const timing = parseWebVttTiming(timingLine);
+		if (!timing) {
+			while (i < lines.length && lines[i]!.trim() !== "") i += 1;
+			continue;
+		}
+
+		i = timingIndex + 1;
+		const payload: string[] = [];
+		while (i < lines.length && lines[i]!.trim() !== "") {
+			const text = stripWebVttMarkup(lines[i]!);
+			if (text !== "") payload.push(text);
+			i += 1;
+		}
+		if (payload.length > 0) {
+			parsed.push({
+				...timing,
+				text: payload.join("\n"),
+				source: "captions",
+				order: cueOrder,
+			});
+			cueOrder += 1;
+		}
+	}
+
+	return parsed
+		.sort((a, b) => a.startMs - b.startMs || a.order - b.order)
+		.map(({ order: _order, ...segment }) => segment);
+}
+
 // ── Effects (thin wrappers over `run` + a parser) ────────────────────────────
 
 /** Probe the total duration of `ref` in integer milliseconds (AC-1). */
@@ -424,29 +549,108 @@ export async function decodeFramesAt(
 	return frames;
 }
 
+function captionArgs(tempDir: string, canonicalUrl: string, automatic: boolean): string[] {
+	return [
+		"--ignore-config",
+		"--no-playlist",
+		"--skip-download",
+		automatic ? "--write-auto-subs" : "--write-subs",
+		"--sub-format",
+		"vtt",
+		"-o",
+		join(tempDir, `${automatic ? "auto" : "human"}.%(id)s.%(language)s.%(ext)s`),
+		canonicalUrl,
+	];
+}
+
+async function readCaptionCandidates(
+	tempDir: string,
+	deps: FetchTranscriptDeps,
+): Promise<TranscriptSegment[]> {
+	const entries = await deps.readdir(tempDir);
+	const candidates = entries
+		.filter(
+			(entry) =>
+				entry.isFile() &&
+				entry.name === basename(entry.name) &&
+				entry.name.toLowerCase().endsWith(".vtt"),
+		)
+		.map((entry) => entry.name)
+		.sort();
+
+	for (const name of candidates) {
+		const path = join(tempDir, name);
+		const { size } = await deps.stat(path);
+		if (size > MAX_CAPTION_FILE_BYTES) continue;
+		const segments = parseWebVtt(await deps.readFile(path, "utf8"));
+		if (segments.length > 0) return segments;
+	}
+	return [];
+}
+
+async function fetchCaptionAttempt(
+	tempDir: string,
+	canonicalUrl: string,
+	automatic: boolean,
+	deps: FetchTranscriptDeps,
+): Promise<TranscriptSegment[]> {
+	await deps.run("yt-dlp", captionArgs(tempDir, canonicalUrl, automatic), {
+		timeoutMs: DEFAULT_TIMEOUT_MS,
+		maxBuffer: DEFAULT_MAX_BUFFER,
+	});
+	return readCaptionCandidates(tempDir, deps);
+}
+
 /**
- * Best-effort transcript fetch (AC-5).
+ * Fetch human YouTube captions with one automatic-caption fallback.
  *
- * Local-first and never-throwing: returns `{ segments: [], source: "none" }`
- * unless a transcript is genuinely available. Real caption (yt-dlp) / Whisper
- * parsing is a deferred extension point — a clean "none" fallback is a complete,
- * accepted implementation for this phase. This function MUST NOT throw, require
- * a `whisper` install, or require network access.
+ * This boundary is deliberately best-effort and never throws. Local refs,
+ * unsupported URLs, missing captions, process/filesystem failures, malformed
+ * WebVTT, and cleanup failures all degrade to `source: "none"` so visual tiers
+ * remain reachable. Caption attempts are subtitle-only and never download media.
  */
 export async function fetchTranscript(
 	ref: string,
+	deps: FetchTranscriptDeps = DEFAULT_FETCH_TRANSCRIPT_DEPS,
 ): Promise<{ segments: TranscriptSegment[]; source: TranscriptSource | "none" }> {
 	const none = { segments: [] as TranscriptSegment[], source: "none" as const };
+	let classification: SourceClassification;
 	try {
-		const isUrl = /^https?:\/\//i.test(ref.trim());
-		if (!isUrl) {
-			// Local file: no embedded captions; Whisper transcription is deferred.
-			return none;
-		}
-		// URL: caption download/parse (yt-dlp) is a deferred extension point.
-		// Until implemented, degrade to "none" rather than risk a network hang.
-		return none;
+		classification = classifySourceRef(ref);
 	} catch {
 		return none;
 	}
+	if (classification.kind === "local") return none;
+
+	let tempDir: string | undefined;
+	let result: { segments: TranscriptSegment[]; source: "captions" | "none" } = none;
+	try {
+		tempDir = await deps.mkdtemp(join(tmpdir(), "pi-watch-caption-"));
+		let segments = await fetchCaptionAttempt(
+			tempDir,
+			classification.canonicalUrl,
+			false,
+			deps,
+		);
+		if (segments.length === 0) {
+			segments = await fetchCaptionAttempt(
+				tempDir,
+				classification.canonicalUrl,
+				true,
+				deps,
+			);
+		}
+		if (segments.length > 0) result = { segments, source: "captions" };
+	} catch {
+		result = none;
+	} finally {
+		if (tempDir !== undefined) {
+			try {
+				await deps.rm(tempDir, { recursive: true, force: true });
+			} catch {
+				result = none;
+			}
+		}
+	}
+	return result;
 }
