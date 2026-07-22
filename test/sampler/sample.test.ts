@@ -187,4 +187,34 @@ describe("sample() source resolution lifecycle", () => {
 
 		expect(local.cleanup).not.toHaveBeenCalled();
 	});
+
+	it("carries caption segments from the original YouTube ref onto the validated shared timeline", async () => {
+		const originalRef = "https://youtu.be/dQw4w9WgXcQ?si=tracking";
+		const mediaRef = "/tmp/pi-watch-youtube-owned/video.mp4";
+		const resolved = makeResolvedSource({
+			originalRef,
+			mediaRef,
+			ownership: "sampler-temporary",
+		});
+		const captions: TranscriptSegment[] = [
+			{ startMs: 250, endMs: 900, text: "hello", source: "captions" },
+			{ startMs: 1500, endMs: 2200, text: "world", source: "captions" },
+		];
+		effects.resolveSource.mockResolvedValue(resolved);
+		effects.fetchTranscript.mockResolvedValue({ segments: captions, source: "captions" });
+
+		const result = await sample({ ref: originalRef, budget: 3, resolution: "high" });
+
+		expect(effects.fetchTranscript).toHaveBeenCalledWith(originalRef);
+		expect(effects.probeDurationMs).toHaveBeenCalledWith(mediaRef);
+		expect(effects.detectSceneCutsMs).toHaveBeenCalledWith(mediaRef, 3000);
+		expect(effects.decodeFramesAt.mock.calls[0]?.[0]).toBe(mediaRef);
+		expect(effects.decodeFramesAt.mock.calls[0]?.[2]).toBe("high");
+		expect(result.source).toMatchObject({ ref: originalRef, transcriptSource: "captions" });
+		expect(result.transcript).toEqual(captions);
+		expect(result.transcript.every((segment) => Number.isInteger(segment.startMs) && Number.isInteger(segment.endMs))).toBe(
+			true,
+		);
+		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
+	});
 });
