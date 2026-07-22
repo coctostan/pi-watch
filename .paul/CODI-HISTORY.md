@@ -15,3 +15,4 @@ Per-UNIFY codegraph blast-radius outcome appended by CODI (post-unify). One row 
 | 12-01 | 2026-06-24 | injected-degraded | 0 | 1 | 0 | createTier2Runner, walkTierChain, parseTier2Answer | y |
 | 13-01 | 2026-07-10 | no-dispatch-found | — | — | — | — | n |
 | 14-01 | 2026-07-10 | no-dispatch-found | — | — | — | — | n |
+| 15-01 | 2026-07-22 | no-dispatch-found | — | — | — | — | n |
