@@ -335,6 +335,7 @@ interface CaptionDeps {
 	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
 	readdir: (path: string) => Promise<CaptionEntry[]>;
 	readFile: (path: string, encoding: "utf8") => Promise<string>;
+	stat: (path: string) => Promise<{ size: number }>;
 }
 
 const captionVtt = (text: string): string =>
@@ -358,13 +359,17 @@ function makeCaptionDeps(files: Record<string, string> = {}) {
 	const readdir = vi.fn<CaptionDeps["readdir"]>(async () =>
 		Object.keys(files).map((name) => captionEntry(name)),
 	);
+	const stat = vi.fn<CaptionDeps["stat"]>(async (path) => {
+		const name = path.split("/").at(-1) ?? "";
+		return { size: Buffer.byteLength(files[name] ?? "", "utf8") };
+	});
 	const readFile = vi.fn<CaptionDeps["readFile"]>(async (path) => {
 		const name = path.split("/").at(-1) ?? "";
 		const value = files[name];
 		if (value === undefined) throw new Error(`missing test caption ${name}`);
 		return value;
 	});
-	return { deps: { mkdtemp, rm, run, readdir, readFile }, tempDir };
+	return { deps: { mkdtemp, rm, run, readdir, stat, readFile }, tempDir };
 }
 
 describe("parseWebVtt() caption core (AC-1)", () => {
@@ -560,6 +565,23 @@ describe("fetchTranscript() caption effect (AC-2/AC-3)", () => {
 		expect(result.segments[0]?.text).toBe("a caption");
 		expect(deps.readFile.mock.calls[0]?.[0]).toBe(`${"/tmp/pi-watch-caption-test-owned"}/a.vtt`);
 		expect(deps.readFile).toHaveBeenCalledTimes(1);
+	});
+
+	it("skips oversized caption files before reading and degrades to none", async () => {
+		const fetchTranscript = exportedFunction<FetchTranscript>("fetchTranscript");
+		const { deps, tempDir } = makeCaptionDeps({
+			"oversized.vtt": captionVtt("must not be allocated"),
+		});
+		deps.stat.mockResolvedValue({ size: 16 * 1024 * 1024 + 1 });
+
+		await expect(
+			fetchTranscript(`https://www.youtube.com/watch?v=${youtubeId()}`, deps),
+		).resolves.toEqual({ segments: [], source: "none" });
+		expect(deps.run).toHaveBeenCalledTimes(2);
+		expect(deps.stat).toHaveBeenCalledTimes(2);
+		expect(deps.stat).toHaveBeenCalledWith(`${tempDir}/oversized.vtt`);
+		expect(deps.readFile).not.toHaveBeenCalled();
+		expect(deps.rm).toHaveBeenCalledTimes(1);
 	});
 
 	it.each([
