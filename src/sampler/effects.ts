@@ -23,6 +23,7 @@ import {
 	readFile as fsReadFile,
 	readdir as fsReaddir,
 	rm as fsRm,
+	stat as fsStat,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, relative, resolve } from "node:path";
@@ -44,6 +45,9 @@ const DEFAULT_MAX_BUFFER = 64 * 1024 * 1024;
 /** Default longest-side cap for "low" resolution frames (DESIGN §3). */
 const LOW_RES_MAX_DIM = 512;
 
+/** Maximum UTF-8 WebVTT file size read into memory. */
+const MAX_CAPTION_FILE_BYTES = 16 * 1024 * 1024;
+
 export interface RunResult {
 	stdout: Buffer;
 	stderr: Buffer;
@@ -60,11 +64,16 @@ export interface CaptionFileEntry {
 	isFile: () => boolean;
 }
 
+export interface CaptionFileStat {
+	size: number;
+}
+
 export interface FetchTranscriptDeps {
 	mkdtemp: (prefix: string) => Promise<string>;
 	rm: (path: string, opts: { recursive: true; force: true }) => Promise<void>;
 	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
 	readdir: (path: string) => Promise<CaptionFileEntry[]>;
+	stat: (path: string) => Promise<CaptionFileStat>;
 	readFile: (path: string, encoding: "utf8") => Promise<string>;
 }
 
@@ -159,6 +168,7 @@ const DEFAULT_FETCH_TRANSCRIPT_DEPS: FetchTranscriptDeps = {
 	rm: async (path, opts) => fsRm(path, opts),
 	run,
 	readdir: async (path) => fsReaddir(path, { withFileTypes: true }),
+	stat: async (path) => fsStat(path),
 	readFile: async (path, encoding) => fsReadFile(path, encoding),
 };
 
@@ -569,7 +579,10 @@ async function readCaptionCandidates(
 		.sort();
 
 	for (const name of candidates) {
-		const segments = parseWebVtt(await deps.readFile(join(tempDir, name), "utf8"));
+		const path = join(tempDir, name);
+		const { size } = await deps.stat(path);
+		if (size > MAX_CAPTION_FILE_BYTES) continue;
+		const segments = parseWebVtt(await deps.readFile(path, "utf8"));
 		if (segments.length > 0) return segments;
 	}
 	return [];

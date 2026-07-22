@@ -40,6 +40,7 @@ export {
 	type ResolveSourceDeps,
 	type FetchTranscriptDeps,
 	type CaptionFileEntry,
+	type CaptionFileStat,
 	type RunOptions,
 	type RunResult,
 	type SourceClassification,
