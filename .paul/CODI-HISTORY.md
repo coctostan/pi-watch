@@ -16,3 +16,4 @@ Per-UNIFY codegraph blast-radius outcome appended by CODI (post-unify). One row 
 | 13-01 | 2026-07-10 | no-dispatch-found | — | — | — | — | n |
 | 14-01 | 2026-07-10 | no-dispatch-found | — | — | — | — | n |
 | 15-01 | 2026-07-22 | no-dispatch-found | — | — | — | — | n |
+| 16-01 | 2026-08-09 | injected | 1 | 0 | 1 | watchExtension, runWatchCommand, sample | y |
