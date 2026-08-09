@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { parseDurationMs, parseSceneCutsMs } from "../../src/sampler/index.js";
+import {
+	parseDurationMs,
+	parseSceneCutsMs,
+	ProcessTimeoutError,
+	detectSceneCutsMs,
+} from "../../src/sampler/index.js";
+import type { SceneDetectionOptions } from "../../src/sampler/index.js";
 import type { TranscriptSegment } from "../../src/contract/index.js";
 import * as samplerExports from "../../src/sampler/index.js";
 
@@ -59,6 +65,78 @@ describe("parseSceneCutsMs (AC-2)", () => {
 		expect(parseSceneCutsMs("", 5000)).toEqual([]);
 		const dupes = "pts_time:1\npts_time:1.0\npts_time:1";
 		expect(parseSceneCutsMs(dupes, 5000)).toEqual([1000]);
+	});
+});
+
+
+describe("detectSceneCutsMs bounded effect", () => {
+	const emptyResult = { stdout: Buffer.alloc(0), stderr: Buffer.from("pts_time:1.25") };
+
+	it("uses the reduced-rate, reduced-resolution scene argv", async () => {
+		const run = vi.fn<NonNullable<SceneDetectionOptions["run"]>>(async () => emptyResult);
+
+		await expect(detectSceneCutsMs("clip.mp4", 3_000, 0.25, { run })).resolves.toEqual([1250]);
+		expect(run).toHaveBeenCalledWith(
+			"ffmpeg",
+			[
+				"-nostdin",
+				"-i",
+				"clip.mp4",
+				"-vf",
+				"fps=2,scale=320:-2,select='gt(scene,0.25)',showinfo",
+				"-f",
+				"null",
+				"-",
+			],
+			expect.objectContaining({ timeoutMs: 60_000 }),
+		);
+	});
+
+	it("skips scene analysis above the ten-minute limit without spawning", async () => {
+		const run = vi.fn<NonNullable<SceneDetectionOptions["run"]>>(async () => emptyResult);
+		const onDiagnostic = vi.fn();
+
+		await expect(
+			detectSceneCutsMs("long.mp4", 10 * 60_000 + 1, 0.4, { run, onDiagnostic }),
+		).resolves.toEqual([]);
+		expect(run).not.toHaveBeenCalled();
+		expect(onDiagnostic).toHaveBeenCalledWith({
+			reason: "duration-skip",
+			durationMs: 10 * 60_000 + 1,
+			limitMs: 10 * 60_000,
+		});
+	});
+
+	it("falls back only for the typed scene-process timeout", async () => {
+		const run = vi.fn<NonNullable<SceneDetectionOptions["run"]>>(async () => {
+			throw new ProcessTimeoutError("ffmpeg", 1_234);
+		});
+		const onDiagnostic = vi.fn();
+
+		await expect(
+			detectSceneCutsMs("clip.mp4", 3_000, 0.4, { run, timeoutMs: 1_234, onDiagnostic }),
+		).resolves.toEqual([]);
+		expect(onDiagnostic).toHaveBeenCalledWith({ reason: "timeout-fallback", timeoutMs: 1_234 });
+	});
+
+	it("propagates non-timeout scene failures", async () => {
+		const failure = new Error("invalid media");
+		const run = vi.fn<NonNullable<SceneDetectionOptions["run"]>>(async () => {
+			throw failure;
+		});
+
+		await expect(detectSceneCutsMs("clip.mp4", 3_000, 0.4, { run })).rejects.toBe(failure);
+	});
+
+	it("does not let a diagnostic callback failure break the fallback", async () => {
+		const run = vi.fn<NonNullable<SceneDetectionOptions["run"]>>(async () => {
+			throw new ProcessTimeoutError("ffmpeg", 60_000);
+		});
+		const onDiagnostic = vi.fn(() => {
+			throw new Error("diagnostic consumer failed");
+		});
+
+		await expect(detectSceneCutsMs("clip.mp4", 3_000, 0.4, { run, onDiagnostic })).resolves.toEqual([]);
 	});
 });
 

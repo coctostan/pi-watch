@@ -40,6 +40,8 @@ const execFileAsync = promisify(execFile);
 
 /** Default per-spawn timeout. External tools must never hang the sampler. */
 const DEFAULT_TIMEOUT_MS = 60_000;
+/** Scene analysis is intentionally bounded independently of the per-process timeout. */
+const MAX_SCENE_DETECTION_DURATION_MS = 10 * 60_000;
 /** Generous capture ceiling — a low-res PNG frame is well under this. */
 const DEFAULT_MAX_BUFFER = 64 * 1024 * 1024;
 /** Default longest-side cap for "low" resolution frames (DESIGN §3). */
@@ -88,6 +90,34 @@ export interface RunOptions {
 	timeoutMs?: number;
 	maxBuffer?: number;
 }
+/** A typed timeout from a bounded external-process invocation. */
+export class ProcessTimeoutError extends Error {
+	readonly bin: string;
+	readonly timeoutMs: number;
+
+	constructor(bin: string, timeoutMs: number) {
+		super(`${bin} timed out after ${timeoutMs}ms.`);
+		this.name = "ProcessTimeoutError";
+		this.bin = bin;
+		this.timeoutMs = timeoutMs;
+	}
+}
+
+export type SceneDetectionDiagnostic =
+	| { reason: "duration-skip"; durationMs: number; limitMs: number }
+	| { reason: "timeout-fallback"; timeoutMs: number };
+
+export interface SceneDetectionDeps {
+	run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
+}
+
+export interface SceneDetectionOptions {
+	/** Injectable process runner for deterministic tests. */
+	run?: SceneDetectionDeps["run"];
+	/** Optional override used by deterministic tests; production defaults to 60 seconds. */
+	timeoutMs?: number;
+	onDiagnostic?: (diagnostic: SceneDetectionDiagnostic) => void;
+}
 
 /** Shape of the error `execFile` rejects with (narrowed from `unknown`). */
 interface ExecError {
@@ -133,7 +163,7 @@ async function run(
 			);
 		}
 		if (e.killed) {
-			throw new Error(`${bin} timed out after ${opts.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms.`);
+			throw new ProcessTimeoutError(bin, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 		}
 		const tail = stderrText(e).split("\n").slice(-5).join("\n").trim();
 		throw new Error(
@@ -493,26 +523,59 @@ export async function probeDurationMs(ref: string): Promise<number> {
 /**
  * Detect scene-change offsets (ms) in `ref` via ffmpeg's `scene` filter (AC-2).
  *
- * `select='gt(scene,<threshold>)',showinfo` keeps only frames where the scene
- * score jumps; `showinfo` prints their `pts_time` to stderr. We discard the
- * decoded output (`-f null -`).
+ * `fps=2,scale=320:-2,select='gt(scene,<threshold>)',showinfo` keeps only
+ * reduced-rate, reduced-resolution frames where the scene score jumps;
+ * `showinfo` prints their `pts_time` to stderr. We discard the decoded output
+ * (`-f null -`). Scene analysis is skipped for clips longer than ten minutes.
  */
 export async function detectSceneCutsMs(
 	ref: string,
 	durationMs: number,
 	threshold = 0.4,
+	options?: SceneDetectionOptions,
 ): Promise<number[]> {
-	const { stderr } = await run("ffmpeg", [
-		"-nostdin",
-		"-i",
-		ref,
-		"-vf",
-		`select='gt(scene,${threshold})',showinfo`,
-		"-f",
-		"null",
-		"-",
-	]);
-	return parseSceneCutsMs(stderr.toString("utf8"), durationMs);
+	const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+	const emit = (diagnostic: SceneDetectionDiagnostic): void => {
+		try {
+			options?.onDiagnostic?.(diagnostic);
+		} catch {
+			/* diagnostics are a best-effort side channel */
+		}
+	};
+
+	if (durationMs > MAX_SCENE_DETECTION_DURATION_MS) {
+		emit({
+			reason: "duration-skip",
+			durationMs,
+			limitMs: MAX_SCENE_DETECTION_DURATION_MS,
+		});
+		return [];
+	}
+
+	const sceneFilter = `fps=2,scale=320:-2,select='gt(scene,${threshold})',showinfo`;
+	try {
+		const { stderr } = await (options?.run ?? run)(
+			"ffmpeg",
+			[
+				"-nostdin",
+				"-i",
+				ref,
+				"-vf",
+				sceneFilter,
+				"-f",
+				"null",
+				"-",
+			],
+			{ timeoutMs, maxBuffer: DEFAULT_MAX_BUFFER },
+		);
+		return parseSceneCutsMs(stderr.toString("utf8"), durationMs);
+	} catch (err) {
+		if (err instanceof ProcessTimeoutError) {
+			emit({ reason: "timeout-fallback", timeoutMs });
+			return [];
+		}
+		throw err;
+	}
 }
 
 /**

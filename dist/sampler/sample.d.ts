@@ -14,6 +14,7 @@
  * result (and throws on a programmer error such as a frame/time count mismatch).
  */
 import type { ResolutionTier, WatchedFrameSet } from "../contract/index.js";
+import { type SceneDetectionDiagnostic } from "./effects.js";
 export interface SampleOptions {
     /** Video reference: a local file path or an http(s) URL. */
     ref: string;
@@ -23,13 +24,15 @@ export interface SampleOptions {
     resolution?: ResolutionTier;
     /** ffmpeg scene-change sensitivity (0–1). Lower = more cuts. */
     sceneThreshold?: number;
+    /** Best-effort side-channel for bounded scene-analysis fallbacks. */
+    onSceneDetectionDiagnostic?: (diagnostic: SceneDetectionDiagnostic) => void;
 }
 /**
  * Watch `ref`: produce a validated `WatchedFrameSet` on one shared timeline.
  *
- * Effects run sequentially at this boundary; frames are decoded ONLY at the
- * selected times (bounded by `budget`), so cost scales with the budget, not the
- * clip length.
+ * Effects run sequentially at this boundary. Frame decoding scales with the
+ * selected budget; scene analysis uses a reduced stream and duration/timeout
+ * fallbacks so long media degrades to uniform sampling instead of failing.
  */
 export declare function sample(opts: SampleOptions): Promise<WatchedFrameSet>;
 //# sourceMappingURL=sample.d.ts.map

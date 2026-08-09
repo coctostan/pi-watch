@@ -12,6 +12,6 @@
  */
 export { selectFrameTimes, } from "./select-frames.js";
 export { formatTimestamp, mergeTranscript, assembleWatchedFrameSet, } from "./assemble.js";
-export { probeDurationMs, detectSceneCutsMs, decodeFramesAt, fetchTranscript, parseDurationMs, parseSceneCutsMs, parseWebVtt, normalizeYouTubeUrl, classifySourceRef, resolveSource, } from "./effects.js";
+export { probeDurationMs, detectSceneCutsMs, decodeFramesAt, fetchTranscript, parseDurationMs, parseSceneCutsMs, parseWebVtt, normalizeYouTubeUrl, classifySourceRef, resolveSource, ProcessTimeoutError, } from "./effects.js";
 export { sample } from "./sample.js";
 //# sourceMappingURL=index.js.map

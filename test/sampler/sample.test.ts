@@ -13,12 +13,19 @@ interface ResolvedSource {
 }
 
 type FrameImage = { imageBase64: string; mediaType: "image/png" };
+type SceneDetectionDiagnostic =
+	| { reason: "duration-skip"; durationMs: number; limitMs: number }
+	| { reason: "timeout-fallback"; timeoutMs: number };
+type SceneDetectionOptions = {
+	onDiagnostic?: (diagnostic: SceneDetectionDiagnostic) => void;
+};
 type ResolveSourceEffect = (ref: string) => Promise<ResolvedSource>;
 type ProbeDurationEffect = (ref: string) => Promise<number>;
 type DetectSceneCutsEffect = (
 	ref: string,
 	durationMs: number,
 	threshold?: number,
+	options?: SceneDetectionOptions,
 ) => Promise<number[]>;
 type DecodeFramesEffect = (
 	ref: string,
@@ -110,6 +117,34 @@ describe("sample() source resolution lifecycle", () => {
 		expect(effects.fetchTranscript).toHaveBeenCalledWith(originalRef);
 		expect(result.source.ref).toBe(originalRef);
 		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
+	});
+
+	it("forwards scene fallback diagnostics without letting a consumer failure break sampling", async () => {
+		const ref = "fixtures/long.mp4";
+		const diagnostic: SceneDetectionDiagnostic = {
+			reason: "duration-skip",
+			durationMs: 700_000,
+			limitMs: 600_000,
+		};
+		const onSceneDetectionDiagnostic = vi.fn(() => {
+			throw new Error("diagnostic consumer failed");
+		});
+		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: ref }));
+		effects.detectSceneCutsMs.mockImplementation(async (_mediaRef, _durationMs, _threshold, options) => {
+			options?.onDiagnostic?.(diagnostic);
+			return [];
+		});
+
+		await expect(
+			sample({ ref, budget: 2, onSceneDetectionDiagnostic }),
+		).resolves.toMatchObject({ source: { ref }, frames: expect.any(Array) });
+		expect(effects.detectSceneCutsMs).toHaveBeenCalledWith(
+			ref,
+			3000,
+			undefined,
+			expect.objectContaining({ onDiagnostic: expect.any(Function) }),
+		);
+		expect(onSceneDetectionDiagnostic).toHaveBeenCalledWith(diagnostic);
 	});
 
 	it("cleans sampler-owned media exactly once when sampling succeeds", async () => {

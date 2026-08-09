@@ -25,7 +25,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 
-import { sample } from "../sampler/index.js";
+import { sample, type SceneDetectionDiagnostic } from "../sampler/index.js";
 import { route, routeContextFromSet, type Tier } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
@@ -216,11 +216,15 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		],
 		parameters: WATCH_PARAMS,
 		async execute(_toolCallId, params: WatchInput) {
+			let sceneDetectionDiagnostic: SceneDetectionDiagnostic | undefined;
 			try {
 				const set = await sample({
 					ref: params.ref,
 					budget: params.budget ?? config.budget,
 					resolution: params.resolution ?? config.resolution,
+					onSceneDetectionDiagnostic: (diagnostic) => {
+						sceneDetectionDiagnostic = diagnostic;
+					},
 				});
 				const ctx = routeContextFromSet(set);
 				const decision = route({ question: params.question, context: ctx });
@@ -255,6 +259,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 							rationale: decision.rationale,
 							frameCount: set.frames.length,
 							transcriptSource: set.source.transcriptSource,
+							...(sceneDetectionDiagnostic
+								? { sceneDetection: sceneDetectionDiagnostic }
+								: {}),
 						},
 						result.tier,
 						tier2Diagnostic,
