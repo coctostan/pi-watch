@@ -157,11 +157,15 @@ export default function watchExtension(pi) {
         ],
         parameters: WATCH_PARAMS,
         async execute(_toolCallId, params) {
+            let sceneDetectionDiagnostic;
             try {
                 const set = await sample({
                     ref: params.ref,
                     budget: params.budget ?? config.budget,
                     resolution: params.resolution ?? config.resolution,
+                    onSceneDetectionDiagnostic: (diagnostic) => {
+                        sceneDetectionDiagnostic = diagnostic;
+                    },
                 });
                 const ctx = routeContextFromSet(set);
                 const decision = route({ question: params.question, context: ctx });
@@ -189,6 +193,9 @@ export default function watchExtension(pi) {
                         rationale: decision.rationale,
                         frameCount: set.frames.length,
                         transcriptSource: set.source.transcriptSource,
+                        ...(sceneDetectionDiagnostic
+                            ? { sceneDetection: sceneDetectionDiagnostic }
+                            : {}),
                     }, result.tier, tier2Diagnostic),
                 };
             }

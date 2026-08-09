@@ -24,12 +24,25 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 /** Default per-spawn timeout. External tools must never hang the sampler. */
 const DEFAULT_TIMEOUT_MS = 60_000;
+/** Scene analysis is intentionally bounded independently of the per-process timeout. */
+const MAX_SCENE_DETECTION_DURATION_MS = 10 * 60_000;
 /** Generous capture ceiling — a low-res PNG frame is well under this. */
 const DEFAULT_MAX_BUFFER = 64 * 1024 * 1024;
 /** Default longest-side cap for "low" resolution frames (DESIGN §3). */
 const LOW_RES_MAX_DIM = 512;
 /** Maximum UTF-8 WebVTT file size read into memory. */
 const MAX_CAPTION_FILE_BYTES = 16 * 1024 * 1024;
+/** A typed timeout from a bounded external-process invocation. */
+export class ProcessTimeoutError extends Error {
+    bin;
+    timeoutMs;
+    constructor(bin, timeoutMs) {
+        super(`${bin} timed out after ${timeoutMs}ms.`);
+        this.name = "ProcessTimeoutError";
+        this.bin = bin;
+        this.timeoutMs = timeoutMs;
+    }
+}
 function asExecError(err) {
     return typeof err === "object" && err !== null ? err : {};
 }
@@ -60,7 +73,7 @@ async function run(bin, args, opts = {}) {
             throw new Error(`${bin} not found on PATH. Install it (e.g. \`brew install ${bin}\`) to use the sampler.`);
         }
         if (e.killed) {
-            throw new Error(`${bin} timed out after ${opts.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms.`);
+            throw new ProcessTimeoutError(bin, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
         }
         const tail = stderrText(e).split("\n").slice(-5).join("\n").trim();
         throw new Error(`${bin} exited with ${String(e.code ?? "unknown")}.${tail ? ` stderr: ${tail}` : ""}`);
@@ -371,22 +384,50 @@ export async function probeDurationMs(ref) {
 /**
  * Detect scene-change offsets (ms) in `ref` via ffmpeg's `scene` filter (AC-2).
  *
- * `select='gt(scene,<threshold>)',showinfo` keeps only frames where the scene
- * score jumps; `showinfo` prints their `pts_time` to stderr. We discard the
- * decoded output (`-f null -`).
+ * `fps=2,scale=320:-2,select='gt(scene,<threshold>)',showinfo` keeps only
+ * reduced-rate, reduced-resolution frames where the scene score jumps;
+ * `showinfo` prints their `pts_time` to stderr. We discard the decoded output
+ * (`-f null -`). Scene analysis is skipped for clips longer than ten minutes.
  */
-export async function detectSceneCutsMs(ref, durationMs, threshold = 0.4) {
-    const { stderr } = await run("ffmpeg", [
-        "-nostdin",
-        "-i",
-        ref,
-        "-vf",
-        `select='gt(scene,${threshold})',showinfo`,
-        "-f",
-        "null",
-        "-",
-    ]);
-    return parseSceneCutsMs(stderr.toString("utf8"), durationMs);
+export async function detectSceneCutsMs(ref, durationMs, threshold = 0.4, options) {
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const emit = (diagnostic) => {
+        try {
+            options?.onDiagnostic?.(diagnostic);
+        }
+        catch {
+            /* diagnostics are a best-effort side channel */
+        }
+    };
+    if (durationMs > MAX_SCENE_DETECTION_DURATION_MS) {
+        emit({
+            reason: "duration-skip",
+            durationMs,
+            limitMs: MAX_SCENE_DETECTION_DURATION_MS,
+        });
+        return [];
+    }
+    const sceneFilter = `fps=2,scale=320:-2,select='gt(scene,${threshold})',showinfo`;
+    try {
+        const { stderr } = await (options?.run ?? run)("ffmpeg", [
+            "-nostdin",
+            "-i",
+            ref,
+            "-vf",
+            sceneFilter,
+            "-f",
+            "null",
+            "-",
+        ], { timeoutMs, maxBuffer: DEFAULT_MAX_BUFFER });
+        return parseSceneCutsMs(stderr.toString("utf8"), durationMs);
+    }
+    catch (err) {
+        if (err instanceof ProcessTimeoutError) {
+            emit({ reason: "timeout-fallback", timeoutMs });
+            return [];
+        }
+        throw err;
+    }
 }
 /**
  * Decode one PNG frame per requested time (AC-3).

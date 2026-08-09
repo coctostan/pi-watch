@@ -58,6 +58,30 @@ export interface RunOptions {
     timeoutMs?: number;
     maxBuffer?: number;
 }
+/** A typed timeout from a bounded external-process invocation. */
+export declare class ProcessTimeoutError extends Error {
+    readonly bin: string;
+    readonly timeoutMs: number;
+    constructor(bin: string, timeoutMs: number);
+}
+export type SceneDetectionDiagnostic = {
+    reason: "duration-skip";
+    durationMs: number;
+    limitMs: number;
+} | {
+    reason: "timeout-fallback";
+    timeoutMs: number;
+};
+export interface SceneDetectionDeps {
+    run: (bin: string, args: readonly string[], opts?: RunOptions) => Promise<RunResult>;
+}
+export interface SceneDetectionOptions {
+    /** Injectable process runner for deterministic tests. */
+    run?: SceneDetectionDeps["run"];
+    /** Optional override used by deterministic tests; production defaults to 60 seconds. */
+    timeoutMs?: number;
+    onDiagnostic?: (diagnostic: SceneDetectionDiagnostic) => void;
+}
 export interface YouTubeSource {
     kind: "youtube";
     originalRef: string;
@@ -100,11 +124,12 @@ export declare function probeDurationMs(ref: string): Promise<number>;
 /**
  * Detect scene-change offsets (ms) in `ref` via ffmpeg's `scene` filter (AC-2).
  *
- * `select='gt(scene,<threshold>)',showinfo` keeps only frames where the scene
- * score jumps; `showinfo` prints their `pts_time` to stderr. We discard the
- * decoded output (`-f null -`).
+ * `fps=2,scale=320:-2,select='gt(scene,<threshold>)',showinfo` keeps only
+ * reduced-rate, reduced-resolution frames where the scene score jumps;
+ * `showinfo` prints their `pts_time` to stderr. We discard the decoded output
+ * (`-f null -`). Scene analysis is skipped for clips longer than ten minutes.
  */
-export declare function detectSceneCutsMs(ref: string, durationMs: number, threshold?: number): Promise<number[]>;
+export declare function detectSceneCutsMs(ref: string, durationMs: number, threshold?: number, options?: SceneDetectionOptions): Promise<number[]>;
 /**
  * Decode one PNG frame per requested time (AC-3).
  *

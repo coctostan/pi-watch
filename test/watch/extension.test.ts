@@ -136,7 +136,12 @@ describe("registered watch extension boundary", () => {
 		});
 
 		expect(sampleMock).toHaveBeenCalledOnce();
-		expect(sampleMock).toHaveBeenCalledWith({ ref, budget: 7, resolution: "low" });
+		expect(sampleMock).toHaveBeenCalledWith(
+			expect.objectContaining({ ref, budget: 7, resolution: "low" }),
+		);
+		expect(sampleMock.mock.calls[0]?.[0]).toEqual(
+			expect.objectContaining({ onSceneDetectionDiagnostic: expect.any(Function) }),
+		);
 		expect(result).toMatchObject({
 			details: {
 				tier: 1,
@@ -181,6 +186,35 @@ describe("registered watch extension boundary", () => {
 		}).content;
 		expect(content).toContainEqual({ type: "image", data: "FRAME-DATA", mimeType: "image/png" });
 		expect(content.some((part) => part.text?.includes("tier 3"))).toBe(true);
+	});
+
+	it("surfaces a recoverable scene-analysis diagnostic on a successful watch result", async () => {
+		const ref = "https://www.youtube.com/watch?v=BaW_jenozKc";
+		const diagnostic = {
+			reason: "duration-skip" as const,
+			durationMs: 700_000,
+			limitMs: 600_000,
+		};
+		sampleMock.mockImplementationOnce(
+			async (options: {
+				onSceneDetectionDiagnostic?: (value: typeof diagnostic) => void;
+			}) => {
+				options.onSceneDetectionDiagnostic?.(diagnostic);
+				return makeSet(ref, { transcriptSource: "none" });
+			},
+		);
+
+		const result = await capturedWatch(registerExtension()).execute("call-scene-fallback", {
+			ref,
+			question: "What happens visually?",
+		});
+
+		expect(result).toMatchObject({
+			details: {
+				tier: 3,
+				sceneDetection: diagnostic,
+			},
+		});
 	});
 
 	it("returns a structured, legible error when the sampler rejects a YouTube ref", async () => {

@@ -19,9 +19,9 @@ import { selectFrameTimes } from "./select-frames.js";
 /**
  * Watch `ref`: produce a validated `WatchedFrameSet` on one shared timeline.
  *
- * Effects run sequentially at this boundary; frames are decoded ONLY at the
- * selected times (bounded by `budget`), so cost scales with the budget, not the
- * clip length.
+ * Effects run sequentially at this boundary. Frame decoding scales with the
+ * selected budget; scene analysis uses a reduced stream and duration/timeout
+ * fallbacks so long media degrades to uniform sampling instead of failing.
  */
 export async function sample(opts) {
     const { ref } = opts;
@@ -34,9 +34,27 @@ export async function sample(opts) {
         // 1. Effect: total duration (defines the timeline's upper bound).
         const durationMs = await probeDurationMs(mediaRef);
         // 2. Effect: raw scene-change offsets.
+        // Keep the callback best-effort even if a custom effect seam does not
+        // implement that guarantee itself.
+        const sceneDiagnosticOptions = opts.onSceneDetectionDiagnostic
+            ? {
+                onDiagnostic: (diagnostic) => {
+                    try {
+                        opts.onSceneDetectionDiagnostic?.(diagnostic);
+                    }
+                    catch {
+                        /* diagnostics are a best-effort side channel */
+                    }
+                },
+            }
+            : undefined;
         const sceneCutsMs = opts.sceneThreshold === undefined
-            ? await detectSceneCutsMs(mediaRef, durationMs)
-            : await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold);
+            ? sceneDiagnosticOptions === undefined
+                ? await detectSceneCutsMs(mediaRef, durationMs)
+                : await detectSceneCutsMs(mediaRef, durationMs, undefined, sceneDiagnosticOptions)
+            : sceneDiagnosticOptions === undefined
+                ? await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold)
+                : await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold, sceneDiagnosticOptions);
         // 3. Pure decision: budget-capped frame times (cuts + gap-gated backfill).
         const selected = selectFrameTimes({
             sceneCutsMs,
