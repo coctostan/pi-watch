@@ -4,7 +4,53 @@ Completed milestone log for this project.
 
 | Milestone | Completed | Duration | Stats |
 |-----------|-----------|----------|-------|
+| v0.3 — Paste and Watch | 2026-08-09 | 30 days elapsed | 3 phases, 3 plans, 83 unique files |
 | v0.2 — Tier 2, For Real | 2026-07-10 | 16 days elapsed | 4 phases, 4 plans, 10 unique files |
+
+---
+
+## ✅ v0.3 — Paste and Watch
+
+**Version:** v0.3.0
+**Completed:** 2026-08-09
+**Duration:** 30 days elapsed (phase work began 2026-07-10; milestone finalized 2026-08-09)
+**Release tag:** `v0.3.0`
+**Roadmap archive:** [archive/roadmap/v0.3.0-paste-and-watch.md](archive/roadmap/v0.3.0-paste-and-watch.md)
+
+### Stats
+
+| Metric | Value |
+|--------|-------|
+| Phases | 3 (14–16) |
+| Plans | 3 |
+| Unique product/test/doc/generated files | 83 |
+| Final tests | 194 passed, 2 opt-in live tests skipped by default |
+| Final quality | Typecheck and build pass; mandatory public-YouTube smoke passed |
+| Dependency audit | 0 critical / 4 high / 2 moderate in the unchanged dev tree |
+
+### Key Accomplishments
+
+- Added secure YouTube watch, short-link, and shorts resolution into sampler-owned local media while preserving caller refs and local-file behavior.
+- Made transcript-first routing real through bounded human-caption acquisition with one automatic-caption fallback and pure WebVTT parsing.
+- Preserved deterministic visual fallback across missing captions and operational failures without fabricating spoken content.
+- Proved pasted URLs through the actual registered `watch` tool and `/watch` command boundaries, including a bounded opt-in live YouTube smoke.
+- Shipped Pi-loadable compiled output plus complete Git/local installation, supported-scope, fallback, cleanup, and troubleshooting documentation.
+- Finished with 194 passing tests, 2 default-skipped live tests, and passing typecheck/build gates.
+
+### Key Decisions
+
+- Preserve separate caller `originalRef` and local `mediaRef`; only resolver-created storage is sampler-owned and removable.
+- Keep all `yt-dlp` execution argv-only, timeout/output-bounded, and isolated from user configuration with `--ignore-config`.
+- Prefer human captions, then make at most one automatic-caption fallback; every caption failure degrades to transcript source `none`.
+- Bound caption data before shared-timeline assembly with a 16 MiB pre-read cap and duration-aware cue filtering.
+- Commit exact `npm run build` output under `dist/**` because Pi Git installs omit dev-only build tooling; add no prepare hook or dependency.
+- Use verified Git/local Pi package sources and reject the unrelated unscoped `npm:pi-watch` registry package.
+
+### Source Summaries
+
+- [Phase 14 — YouTube source resolution](phases/14-youtube-source-resolution/14-01-SUMMARY.md)
+- [Phase 15 — Caption transcript pipeline](phases/15-caption-transcript-pipeline/15-01-SUMMARY.md)
+- [Phase 16 — End-to-end URL UX](phases/16-end-to-end-url-ux/16-01-SUMMARY.md)
 
 ---
 
