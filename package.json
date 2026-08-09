@@ -1,6 +1,6 @@
 {
   "name": "pi-watch",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A pi extension that watches videos via the cheapest path that works (transcript → native video model → frames-into-context), local-first and model-agnostic.",
   "type": "module",
   "license": "MIT",

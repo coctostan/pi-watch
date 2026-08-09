@@ -52,7 +52,7 @@ Pi packages run with full system access. Review third-party package source befor
 
 ### Clone and install from a local path
 
-This is the supported path before the `v0.3.0` release tag exists:
+For local development or to track the repository checkout directly:
 
 ```bash
 git clone https://github.com/coctostan/pi-watch.git
@@ -64,13 +64,13 @@ A local-path Pi package points at the clone rather than copying it. Restart Pi o
 
 ### Install the tagged Git release
 
-After the repository publishes the `v0.3.0` tag, install that pinned release with:
+Install the pinned v0.3 release from Git with:
 
 ```bash
 pi install git:github.com/coctostan/pi-watch@v0.3.0
 ```
 
-The command above is not usable until that tag exists. Before release, use the clone/local-path workflow. The repository commits its compiled `dist/` extension so Pi's default Git-package install can load `dist/watch/extension.js` without development-only build tooling.
+The repository commits its compiled `dist/` extension so Pi's default Git-package install can load `dist/watch/extension.js` without development-only build tooling.
 
 > **Do not run `pi install npm:pi-watch`.** The unscoped npm package named `pi-watch` is an unrelated registry project. This repository is currently supported through its Git repository or a local clone; a scoped npm rename/publication is outside v0.3.
 

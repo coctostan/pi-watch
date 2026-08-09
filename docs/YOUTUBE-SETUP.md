@@ -60,7 +60,7 @@ A `watch?v=` URL must contain one valid `v` value. User information, custom port
 
 ## Install the Pi package
 
-Before the `v0.3.0` Git tag exists, clone the repository and install its local path:
+For local development or to track a repository checkout directly:
 
 ```bash
 git clone https://github.com/coctostan/pi-watch.git
@@ -68,7 +68,7 @@ pi install ./pi-watch
 pi list
 ```
 
-After the `v0.3.0` tag is published, the pinned Git-package command is:
+Install the pinned v0.3 Git release with:
 
 ```bash
 pi install git:github.com/coctostan/pi-watch@v0.3.0

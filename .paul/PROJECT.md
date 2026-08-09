@@ -9,8 +9,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.3.0 milestone complete (package remains 0.2.0 until release/tag) |
-| Status | v0.3 complete — supported YouTube URLs resolve into owned local media, prefer bounded human/automatic captions for tier 1, preserve visual fallback, and are proven through the actual registered `watch` tool and `/watch` UX. Git/local installation ships the compiled extension plus full setup/troubleshooting guidance. |
+| Version | 0.3.0 |
+| Status | v0.3 shipped — supported YouTube URLs resolve into owned local media, prefer bounded human/automatic captions for tier 1, preserve visual fallback, and are proven through the actual registered `watch` tool and `/watch` UX. Git/local installation ships the compiled extension plus full setup/troubleshooting guidance. |
 | Last Updated | 2026-08-09 |
 
 **Current system summary:**
@@ -104,4 +104,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-09 after Phase 16 / v0.3 completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-09 after v0.3 milestone completion*
