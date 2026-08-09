@@ -18,26 +18,18 @@
  *      enabling it in the active loadout, not by code here.
  *
  * "Route, don't answer": all escalation/answer logic lives in the router + tier
- * runners; this file only wires effects to the pure core and degrades gracefully
- * on failure (a single error TextContent rather than throwing through the host).
+ * runners; this file only wires effects to the pure core and surfaces failures
+ * by throwing a contextual error through the host.
  */
-import { Type } from "typebox";
+import { StringEnum } from "@earendil-works/pi-ai";
+import { Type, } from "typebox";
 import { sample } from "../sampler/index.js";
 import { route, routeContextFromSet } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
-import { walkTierChain, defaultRunners, } from "./tier-runner.js";
+import { walkTierChain, boundToolResultContent, defaultRunners, } from "./tier-runner.js";
 import { createTier2Runner, TIER2_UNCONFIGURED_HINT, } from "./tier2.js";
 import { runWatchCommand } from "./command.js";
 import { runWatchBatch, WATCH_BATCH_MAX_ITEMS, } from "./batch.js";
-/**
- * `watch` tool parameters (TypeBox → static type + runtime schema).
- *
- * NOTE: `resolution` uses Type.Union of literals to match the project's contract
- * convention (src/contract: ResolutionTier). If a Google-compatible provider is
- * ever targeted, migrate this to `StringEnum` from `@earendil-works/pi-ai`
- * (docs/extensions.md: Type.Union/Type.Literal is rejected by Google's API) —
- * deferred to Phase 6, when pi-ai enters for the tier-2 adapter anyway.
- */
 export const WATCH_PARAMS = Type.Object({
     ref: Type.String({
         description: "Video reference: local file path or http(s) URL",
@@ -49,11 +41,10 @@ export const WATCH_PARAMS = Type.Object({
         minimum: 1,
         description: "Max frames to sample (default ~16)",
     })),
-    resolution: Type.Optional(Type.Union([Type.Literal("low"), Type.Literal("high")], {
+    resolution: Type.Optional(StringEnum(["low", "high"], {
         description: "Optional frame-resolution override; normally the router sets this by question intent.",
     })),
 });
-/** `watch_batch` tool parameters (TypeBox → static type + runtime schema). */
 export const WATCH_BATCH_PARAMS = Type.Object({
     items: Type.Array(Type.Object({
         ref: Type.String({
@@ -71,14 +62,15 @@ export const WATCH_BATCH_PARAMS = Type.Object({
         minimum: 1,
         description: "Shared max frames to sample per video (default ~16)",
     })),
-    resolution: Type.Optional(Type.Union([Type.Literal("low"), Type.Literal("high")], {
+    resolution: Type.Optional(StringEnum(["low", "high"], {
         description: "Shared frame-resolution override for every item; normally the router sets this by question intent.",
     })),
 });
 const WATCH_DESCRIPTION = "Watch a video (local file or URL) and answer a question about it. Samples " +
     "frames + best-effort transcript, then routes to the cheapest tier that can " +
     "answer (transcript → native video → frames-into-context), returning the answer " +
-    "and, for the frames tier, the sampled frames themselves.";
+    "and, for the frames tier, the sampled frames themselves. Tool-result text, " +
+    "including transcripts, is truncated at Pi's 50 KB / 2,000-line output limits.";
 const WATCH_BATCH_DESCRIPTION = "Watch several videos in one call. Samples each video, routes each to the " +
     "cheapest available tier, and returns combined text answers; tier-3 frame " +
     "batch fan-out is deferred to individual single-video watch calls.";
@@ -142,9 +134,7 @@ export default function watchExtension(pi) {
         timeoutMs: config.fetchTimeoutMs,
         onDiagnostic,
     });
-    // Pin TDetails to a shared record so the success and error branches of
-    // `execute` return a single, consistent details shape (otherwise TS infers
-    // TDetails from the first branch and rejects the other).
+    // Pin TDetails to a shared record for the successful `execute` result.
     pi.registerTool({
         name: "watch",
         label: "Watch",
@@ -183,8 +173,10 @@ export default function watchExtension(pi) {
                     question: params.question,
                     runners,
                 });
+                const contentWithHint = withUnconfiguredHint(result.content, result.tier, tier2Diagnostic);
+                const preservedTrailingParts = contentWithHint.length - result.content.length;
                 return {
-                    content: withUnconfiguredHint(result.content, result.tier, tier2Diagnostic),
+                    content: boundToolResultContent(contentWithHint, preservedTrailingParts),
                     details: withTier2Diagnostic({
                         tier: result.tier,
                         intent: decision.intent,
@@ -201,15 +193,7 @@ export default function watchExtension(pi) {
             }
             catch (err) {
                 const message = err instanceof Error ? err.message : String(err);
-                const errorPart = {
-                    type: "text",
-                    text: `watch failed for "${params.ref}": ${message}`,
-                };
-                return {
-                    content: [errorPart],
-                    details: { error: message, ref: params.ref },
-                    isError: true,
-                };
+                throw new Error(`watch failed for "${params.ref}": ${message}`);
             }
         },
     });
@@ -265,7 +249,7 @@ export default function watchExtension(pi) {
                 };
                 const result = await runWatchBatch(params.items, { processItem });
                 return {
-                    content: result.content,
+                    content: boundToolResultContent(result.content),
                     details: {
                         count: params.items.length,
                         tiers: result.items.map((item) => item.tier),
