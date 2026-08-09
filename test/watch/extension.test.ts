@@ -1,14 +1,20 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+	DEFAULT_MAX_BYTES,
+	DEFAULT_MAX_LINES,
+	type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
 
 import type { WatchedFrame, WatchedFrameSet } from "../../src/contract/index.js";
 import watchExtension, { type WatchInput } from "../../src/watch/extension.js";
+import { TIER2_UNCONFIGURED_HINT } from "../../src/watch/tier2.js";
 
 const sampleMock = vi.hoisted(() => vi.fn());
 vi.mock("../../src/sampler/index.js", () => ({ sample: sampleMock }));
 
 type CapturedTool = {
 	name: string;
+	description: string;
 	execute: (toolCallId: string, params: WatchInput) => Promise<unknown>;
 };
 
@@ -117,7 +123,27 @@ function capturedWatch(harness: ExtensionHarness): CapturedTool {
 	return watch!;
 }
 
+type CapturedResult = {
+	content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
+};
+
+function expectBoundedToolText(result: unknown): CapturedResult {
+	const captured = result as CapturedResult;
+	const text = captured.content
+		.filter((part) => part.type === "text")
+		.map((part) => part.text ?? "")
+		.join("\n");
+	expect(text.split("\n").length).toBeLessThanOrEqual(DEFAULT_MAX_LINES);
+	expect(Buffer.byteLength(text, "utf8")).toBeLessThanOrEqual(DEFAULT_MAX_BYTES);
+	return captured;
+}
+
 describe("registered watch extension boundary", () => {
+	it("documents Pi's transcript output limits in the tool description", () => {
+		const watch = capturedWatch(registerExtension());
+		expect(watch.description).toContain("50 KB");
+		expect(watch.description).toContain("2,000-line");
+	});
 	it("preserves a pasted YouTube URL through sampling and chooses transcript tier 1", async () => {
 		const ref = "https://youtu.be/BaW_jenozKc";
 		const set = makeSet(ref, {
@@ -188,6 +214,77 @@ describe("registered watch extension boundary", () => {
 		expect(content.some((part) => part.text?.includes("tier 3"))).toBe(true);
 	});
 
+	it("bounds the final tier-3 result after appending the unconfigured-tier hint", async () => {
+		const ref = "https://www.youtube.com/watch?v=BaW_jenozKc";
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text: "caption line",
+			source: "captions" as const,
+		}));
+		sampleMock.mockResolvedValueOnce(
+			makeSet(ref, { transcriptSource: "captions", transcript }),
+		);
+
+		const result = await capturedWatch(registerExtension()).execute("call-large-tier-3", {
+			ref,
+			question: "What happens visually?",
+		});
+		const captured = expectBoundedToolText(result);
+		expect(captured.content.some((part) => part.text?.includes("Tool result truncated"))).toBe(true);
+		expect(captured.content.at(-1)).toEqual({
+			type: "text",
+			text: TIER2_UNCONFIGURED_HINT,
+		});
+		const imageIndex = captured.content.findIndex((part) => part.type === "image");
+		expect(captured.content[imageIndex - 1]?.text).toContain("Frame 0 @ 00:00");
+		expect(captured.content.filter((part) => part.type === "image")).toHaveLength(1);
+	});
+
+	it("bounds a byte-heavy Unicode question on the final tier-3 result", async () => {
+		const ref = "clip.mp4";
+		sampleMock.mockResolvedValueOnce(makeSet(ref, { transcriptSource: "none" }));
+
+		const result = await capturedWatch(registerExtension()).execute("call-unicode-tier-3", {
+			ref,
+			question: `What happens visually? ${"🙂".repeat(DEFAULT_MAX_BYTES)}`,
+		});
+		const captured = expectBoundedToolText(result);
+		const text = captured.content
+			.filter((part) => part.type === "text")
+			.map((part) => part.text ?? "")
+			.join("\n");
+		expect(text).toContain("Question: What happens visually?");
+		expect(text).toContain("question truncated");
+		expect(text).toContain(TIER2_UNCONFIGURED_HINT);
+		const imageIndex = captured.content.findIndex((part) => part.type === "image");
+		expect(captured.content[imageIndex - 1]?.text).toContain("Frame 0 @ 00:00");
+		expect(captured.content.filter((part) => part.type === "image")).toHaveLength(1);
+	});
+
+	it("bounds a multiline question on the final tier-1 result", async () => {
+		const ref = "clip.mp4";
+		sampleMock.mockResolvedValueOnce(
+			makeSet(ref, {
+				transcriptSource: "captions",
+				transcript: [
+					{ startMs: 0, endMs: 1_000, text: "hello", source: "captions" },
+				],
+			}),
+		);
+
+		const result = await capturedWatch(registerExtension()).execute("call-multiline-tier-1", {
+			ref,
+			question: "What is said?\n".repeat(DEFAULT_MAX_LINES + 500),
+		});
+		const captured = expectBoundedToolText(result);
+		const text = captured.content.map((part) => part.text ?? "").join("\n");
+		expect(text).toContain("Question: What is said?");
+		expect(text).toContain("question truncated");
+		expect(text).toContain("00:00 hello");
+		expect(captured.content.every((part) => part.type === "text")).toBe(true);
+	});
+
 	it("surfaces a recoverable scene-analysis diagnostic on a successful watch result", async () => {
 		const ref = "https://www.youtube.com/watch?v=BaW_jenozKc";
 		const diagnostic = {
@@ -217,21 +314,17 @@ describe("registered watch extension boundary", () => {
 		});
 	});
 
-	it("returns a structured, legible error when the sampler rejects a YouTube ref", async () => {
+	it("throws a contextual error when the sampler rejects a YouTube ref", async () => {
 		const ref = "https://youtu.be/BaW_jenozKc";
 		const error = new Error("yt-dlp failed to resolve YouTube media (exit 1)");
 		sampleMock.mockRejectedValueOnce(error);
 
-		const result = await capturedWatch(registerExtension()).execute("call-3", {
-			ref,
-			question: "What is said?",
-		});
-
-		expect(result).toEqual({
-			content: [{ type: "text", text: `watch failed for "${ref}": ${error.message}` }],
-			details: { error: error.message, ref },
-			isError: true,
-		});
+		await expect(
+			capturedWatch(registerExtension()).execute("call-3", {
+				ref,
+				question: "What is said?",
+			}),
+		).rejects.toThrow(`watch failed for "${ref}": ${error.message}`);
 	});
 });
 

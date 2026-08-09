@@ -18,20 +18,27 @@
  *     Fact #1: tool-result images reach the orchestrator), so it needs no external
  *     model call.
  *
- * The tier-walk core in this file is intentionally pure and pi-free: it imports
- * the contract/router shapes as TYPES only and defines a local content union
- * mirroring pi's tool-result shape, so it is unit-testable without the pi runtime
- * or ffmpeg. It consumes the routing decision as given ("route, don't answer") —
- * no routing, sampling, or OpenAI-wire serialization happens here. The only
- * network/env effects (tier 2) are isolated in tier2.ts.
+ * The tier-walk core imports the contract/router shapes as TYPES only and defines
+ * a local content union mirroring pi's tool-result shape. It uses pi's shared
+ * transcript truncation utility for the documented output limits, while remaining
+ * unit-testable without the pi runtime or ffmpeg. It consumes the routing decision
+ * as given ("route, don't answer") — no routing, sampling, or OpenAI-wire
+ * serialization happens here. The only network/env effects (tier 2) are isolated
+ * in tier2.ts.
  */
 
+import {
+	DEFAULT_MAX_BYTES,
+	DEFAULT_MAX_LINES,
+	formatSize,
+	truncateHead,
+} from "@earendil-works/pi-coding-agent";
 import type { Tier, RoutingDecision } from "../router/index.js";
 import type { WatchedFrameSet } from "../contract/index.js";
 import { createTier2Runner } from "./tier2.js";
 
 // ── Tool-result content shape (mirrors pi's TextContent | ImageContent) ───────
-// Defined locally so this module imports no pi package. The extension boundary
+// Defined locally so this module only imports pi's shared truncation helpers. The extension boundary
 // (extension.ts) returns these parts directly as pi tool-result content.
 
 /** A text part of tool-result content. */
@@ -74,6 +81,175 @@ function formatMs(ms: number): string {
 		: `${pad(minutes)}:${pad(seconds)}`;
 }
 
+
+type TranscriptText = {
+	text: string;
+	truncated: boolean;
+};
+
+type TextOutputUsage = {
+	bytes: number;
+	lines: number;
+};
+
+const TRUNCATION_NOTICE_MAX_BYTES = 256;
+const TRUNCATION_NOTICE_LINES = 2;
+const QUESTION_MAX_BYTES = 4 * 1024;
+const QUESTION_MAX_LINES = 50;
+const QUESTION_TRUNCATION_NOTICE = " … [question truncated]";
+const TOOL_RESULT_TRUNCATION_NOTICE =
+	"[Tool result truncated to Pi's 50 KB / 2,000-line text limits; trailing text and paired images may be omitted.]";
+
+function textOutputUsage(parts: WatchContentPart[]): TextOutputUsage {
+	const text = parts
+		.filter((part): part is WatchTextPart => part.type === "text")
+		.map((part) => part.text)
+		.join("\n");
+	return {
+		bytes: Buffer.byteLength(text, "utf8"),
+		lines: text === "" ? 0 : text.split("\n").length,
+	};
+}
+
+function truncateUtf8Prefix(
+	text: string,
+	maxBytes: number,
+	maxLines: number,
+): { text: string; truncated: boolean } {
+	if (maxBytes <= 0 || maxLines <= 0) {
+		return { text: "", truncated: text !== "" };
+	}
+	const chars: string[] = [];
+	let bytes = 0;
+	let lines = text === "" ? 0 : 1;
+	for (const char of text) {
+		const charBytes = Buffer.byteLength(char, "utf8");
+		if (bytes + charBytes > maxBytes || (char === "\n" && lines >= maxLines)) {
+			return { text: chars.join(""), truncated: true };
+		}
+		chars.push(char);
+		bytes += charBytes;
+		if (char === "\n") lines += 1;
+	}
+	return { text, truncated: false };
+}
+
+function formatQuestion(question: string): string {
+	const noticeBytes = Buffer.byteLength(QUESTION_TRUNCATION_NOTICE, "utf8");
+	const result = truncateUtf8Prefix(
+		question,
+		QUESTION_MAX_BYTES - noticeBytes,
+		QUESTION_MAX_LINES,
+	);
+	if (!result.truncated) return question;
+	return `${result.text.replace(/\n+$/, "")}${QUESTION_TRUNCATION_NOTICE}`;
+}
+
+/** Format transcript lines within pi's total documented text-output limits. */
+function formatTranscriptText(
+	lines: string[],
+	metadataLines = 0,
+	prefixUsage: TextOutputUsage = { bytes: 0, lines: 0 },
+): TranscriptText {
+	const text = lines.join("\n");
+	const prefixSeparatorBytes = prefixUsage.lines > 0 ? 1 : 0;
+	const maxBytes = Math.max(
+		1,
+		DEFAULT_MAX_BYTES -
+			prefixUsage.bytes -
+			prefixSeparatorBytes -
+			TRUNCATION_NOTICE_MAX_BYTES,
+	);
+	const maxLines = Math.max(
+		1,
+		DEFAULT_MAX_LINES - prefixUsage.lines - TRUNCATION_NOTICE_LINES,
+	);
+	const truncation = truncateHead(text, { maxBytes, maxLines });
+	if (!truncation.truncated) {
+		return { text, truncated: false };
+	}
+
+	const retainedTranscriptLines = Math.max(0, truncation.outputLines - metadataLines);
+	const totalTranscriptLines = Math.max(0, truncation.totalLines - metadataLines);
+	const notice =
+		`[Transcript truncated: retained ${retainedTranscriptLines} of ` +
+		`${totalTranscriptLines} lines and ${truncation.outputBytes} of ` +
+		`${truncation.totalBytes} bytes ` +
+		`(${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}).]`;
+	return { text: `${truncation.content}\n\n${notice}`, truncated: true };
+}
+
+/**
+ * Bound final aggregate tool text while preserving normal multipart ordering.
+ * `preserveTrailingParts` reserves required trailing guidance such as the
+ * unconfigured-tier hint before earlier text is truncated.
+ */
+export function boundToolResultContent(
+	content: WatchContentPart[],
+	preserveTrailingParts = 0,
+): WatchContentPart[] {
+	const totalUsage = textOutputUsage(content);
+	if (totalUsage.bytes <= DEFAULT_MAX_BYTES && totalUsage.lines <= DEFAULT_MAX_LINES) {
+		return content;
+	}
+
+	const tailCount = Math.max(0, Math.min(content.length, preserveTrailingParts));
+	const core = tailCount === 0 ? content : content.slice(0, -tailCount);
+	const tail = tailCount === 0 ? [] : content.slice(-tailCount);
+	const noticePart: WatchTextPart = { type: "text", text: TOOL_RESULT_TRUNCATION_NOTICE };
+	const boundedCore: WatchContentPart[] = [];
+	let textExhausted = false;
+	let keepNextImage = true;
+
+	for (let index = 0; index < core.length; index += 1) {
+		const part = core[index]!;
+		if (part.type === "image") {
+			if (!textExhausted || keepNextImage) boundedCore.push(part);
+			keepNextImage = false;
+			continue;
+		}
+		if (textExhausted) {
+			keepNextImage = false;
+			continue;
+		}
+
+		const completeCandidate = [...boundedCore, part, noticePart, ...tail];
+		const candidateUsage = textOutputUsage(completeCandidate);
+		if (
+			candidateUsage.bytes <= DEFAULT_MAX_BYTES &&
+			candidateUsage.lines <= DEFAULT_MAX_LINES
+		) {
+			boundedCore.push(part);
+			keepNextImage = true;
+			continue;
+		}
+
+		const hasPairedImage = core[index + 1]?.type === "image";
+		if (hasPairedImage) {
+			keepNextImage = false;
+			textExhausted = true;
+			continue;
+		}
+
+		const reservedUsage = textOutputUsage([...boundedCore, noticePart, ...tail]);
+		const separatorBytes = reservedUsage.lines > 0 ? 1 : 0;
+		const prefix = truncateUtf8Prefix(
+			part.text,
+			Math.max(0, DEFAULT_MAX_BYTES - reservedUsage.bytes - separatorBytes),
+			Math.max(0, DEFAULT_MAX_LINES - reservedUsage.lines),
+		);
+		if (prefix.text !== "") {
+			boundedCore.push({ ...part, text: prefix.text });
+			keepNextImage = true;
+		} else {
+			keepNextImage = false;
+		}
+		textExhausted = true;
+	}
+
+	return [...boundedCore, noticePart, ...tail];
+}
+
 /**
  * Build the tier-3 tool-result content: the sampled frames handed back to the
  * orchestrator as image parts on a shared timeline.
@@ -100,7 +276,7 @@ export function framesToToolResultContent(
 	parts.push({
 		type: "text",
 		text:
-			`Question: ${question}\n` +
+			`Question: ${formatQuestion(question)}\n` +
 			`Tiers 1–2 were unavailable, so tier 3 (frames-into-context) is in use: ` +
 			`${frameCount} sampled frame${frameCount === 1 ? "" : "s"} are provided below ` +
 			`in timeline order (transcript source: ${transcriptSource}). ` +
@@ -120,12 +296,17 @@ export function framesToToolResultContent(
 	}
 
 	if (transcriptSource !== "none" && set.transcript.length > 0) {
-		const lines = set.transcript
-			.map((seg) => `${formatMs(seg.startMs)} ${seg.text}`)
-			.join("\n");
+		const transcript = formatTranscriptText(
+			[
+				`Transcript (${transcriptSource}):`,
+				...set.transcript.map((seg) => `${formatMs(seg.startMs)} ${seg.text}`),
+			],
+			1,
+			textOutputUsage(parts),
+		);
 		parts.push({
 			type: "text",
-			text: `Transcript (${transcriptSource}):\n${lines}`,
+			text: transcript.text,
 		});
 	}
 
@@ -155,17 +336,22 @@ export function transcriptToToolResultContent(
 	parts.push({
 		type: "text",
 		text:
-			`Question: ${question}\n` +
+			`Question: ${formatQuestion(question)}\n` +
 			`Tier 1 (transcript) is in use: the video's transcript ` +
 			`(source: ${transcriptSource}) is provided below in timeline order. ` +
 			`Answer the question from the transcript.`,
 	});
 
-	for (const seg of set.transcript) {
-		parts.push({
-			type: "text",
-			text: `${formatMs(seg.startMs)} ${seg.text}`,
-		});
+	const transcriptLines = set.transcript.map(
+		(seg) => `${formatMs(seg.startMs)} ${seg.text}`,
+	);
+	const transcript = formatTranscriptText(transcriptLines, 0, textOutputUsage(parts));
+	if (transcript.truncated) {
+		parts.push({ type: "text", text: transcript.text });
+	} else {
+		for (const line of transcriptLines) {
+			parts.push({ type: "text", text: line });
+		}
 	}
 
 	return parts;

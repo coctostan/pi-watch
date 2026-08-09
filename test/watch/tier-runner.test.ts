@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+	DEFAULT_MAX_BYTES,
+	DEFAULT_MAX_LINES,
+} from "@earendil-works/pi-coding-agent";
+import {
 	walkTierChain,
 	framesToToolResultContent,
 	transcriptToToolResultContent,
@@ -9,6 +13,7 @@ import {
 	type TierRunner,
 	type WatchImagePart,
 } from "../../src/watch/index.js";
+import { boundToolResultContent } from "../../src/watch/tier-runner.js";
 import type { RoutingDecision } from "../../src/router/index.js";
 import type {
 	WatchedFrameSet,
@@ -222,6 +227,85 @@ describe("framesToToolResultContent — tier-3 serializer (AC-3)", () => {
 	});
 });
 
+	describe("aggregate tool-result boundary", () => {
+		it("keeps frame labels and images atomic when frame metadata exceeds text limits", () => {
+			const frames = Array.from({ length: DEFAULT_MAX_LINES + 100 }, (_, index) =>
+				frame({
+					index,
+					tMs: index * 1_000,
+					timestamp: `00:${String(index % 60).padStart(2, "0")}`,
+					imageBase64: `FRAME-${index}`,
+				}),
+			);
+			const content = boundToolResultContent(
+				framesToToolResultContent(makeSet({ frames }), "What happens?"),
+			);
+			const text = content
+				.filter((part) => part.type === "text")
+				.map((part) => part.text)
+				.join("\n");
+			expect(text.split("\n").length).toBeLessThanOrEqual(DEFAULT_MAX_LINES);
+			expect(Buffer.byteLength(text, "utf8")).toBeLessThanOrEqual(DEFAULT_MAX_BYTES);
+			expect(text).toContain("Tool result truncated");
+
+			const imageIndexes = content
+				.map((part, index) => (part.type === "image" ? index : -1))
+				.filter((index) => index >= 0);
+			expect(imageIndexes.length).toBeLessThan(frames.length);
+			for (const imageIndex of imageIndexes) {
+				const image = content[imageIndex];
+				const label = content[imageIndex - 1];
+				expect(image?.type).toBe("image");
+				expect(label?.type).toBe("text");
+				if (image?.type !== "image" || label?.type !== "text") continue;
+				const frameIndex = Number(image.data.replace("FRAME-", ""));
+				expect(label.text).toBe(
+					`Frame ${frameIndex} @ 00:${String(frameIndex % 60).padStart(2, "0")} (scene-cut):`,
+				);
+			}
+		});
+
+		it("omits a frame pair when no text lines remain for its complete label", () => {
+			const lead = Array.from({ length: DEFAULT_MAX_LINES - 1 }, () => "lead").join("\n");
+			const content = boundToolResultContent([
+				{ type: "text", text: lead },
+				{ type: "text", text: "Frame 0 @ 00:00 (scene-cut):" },
+				{ type: "image", data: "FRAME-0", mimeType: "image/png" },
+				{ type: "text", text: "forces overflow" },
+			]);
+			expect(content.some((part) => part.type === "image")).toBe(false);
+			expect(
+				content.some(
+					(part) => part.type === "text" && part.text.includes("Frame 0 @ 00:00"),
+				),
+			).toBe(false);
+		});
+
+		it("omits a frame pair rather than retaining a one-byte label prefix", () => {
+			const probe = boundToolResultContent([
+				{ type: "text", text: "x".repeat(DEFAULT_MAX_BYTES + 1) },
+			]);
+			const notice = probe.find(
+				(part) => part.type === "text" && part.text.includes("Tool result truncated"),
+			);
+			expect(notice?.type).toBe("text");
+			if (notice?.type !== "text") return;
+			const leadBytes = DEFAULT_MAX_BYTES - Buffer.byteLength(notice.text, "utf8") - 3;
+			const longLabel = `Frame 0 @ 00:00 (scene-cut): ${"x".repeat(256)}`;
+			const content = boundToolResultContent([
+				{ type: "text", text: "x".repeat(leadBytes) },
+				{ type: "text", text: longLabel },
+				{ type: "image", data: "FRAME-0", mimeType: "image/png" },
+			]);
+			expect(content.some((part) => part.type === "image")).toBe(false);
+			expect(
+				content.some(
+					(part) => part.type === "text" && part.text.includes("Frame 0 @ 00:00"),
+				),
+			).toBe(false);
+		});
+	});
+
 // ── Phase-6 tier 1: transcript adapter ────────────────────────────────────────
 
 describe("tier1Runner — transcript adapter", () => {
@@ -306,5 +390,63 @@ describe("transcriptToToolResultContent — tier-1 serializer", () => {
 		expect(content.every((p) => p.type === "text")).toBe(true);
 		expect(content.some((p) => p.type === "text" && p.text === "00:00 hello world")).toBe(true);
 		expect(content.some((p) => p.type === "text" && p.text === "01:05 second line")).toBe(true);
+	});
+});
+
+
+describe("transcript truncation", () => {
+	const makeTranscript = (count: number, text = "transcript line") =>
+		Array.from({ length: count }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text,
+			source: "captions" as const,
+		}));
+
+	it("bounds tier-1 transcript text and reports retained lines and bytes", () => {
+		const transcript = makeTranscript(DEFAULT_MAX_LINES + 500);
+		const content = transcriptToToolResultContent(
+			makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			"What is said?",
+		);
+		const transcriptPart = content.at(-1);
+		expect(transcriptPart?.type).toBe("text");
+		if (transcriptPart?.type !== "text") return;
+
+		const allText = content
+			.filter((part) => part.type === "text")
+			.map((part) => part.text)
+			.join("\n");
+		expect(allText.split("\n").length).toBeLessThanOrEqual(DEFAULT_MAX_LINES);
+		expect(Buffer.byteLength(allText, "utf8")).toBeLessThanOrEqual(DEFAULT_MAX_BYTES);
+		expect(transcriptPart.text).toContain(
+			`retained ${DEFAULT_MAX_LINES - 4} of ${transcript.length} lines`,
+		);
+		expect(transcriptPart.text).toContain("bytes");
+	});
+
+	it("bounds tier-3 transcript appendix without changing frame parts", () => {
+		const transcript = makeTranscript(DEFAULT_MAX_LINES + 500);
+		const content = framesToToolResultContent(
+			makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			"What happens?",
+		);
+		const transcriptPart = content.find(
+			(part) => part.type === "text" && part.text.startsWith("Transcript ("),
+		);
+		expect(transcriptPart).toBeDefined();
+		expect(content.filter((part) => part.type === "image")).toHaveLength(2);
+		if (transcriptPart?.type !== "text") return;
+
+		const allText = content
+			.filter((part) => part.type === "text")
+			.map((part) => part.text)
+			.join("\n");
+		expect(allText.split("\n").length).toBeLessThanOrEqual(DEFAULT_MAX_LINES);
+		expect(Buffer.byteLength(allText, "utf8")).toBeLessThanOrEqual(DEFAULT_MAX_BYTES);
+		expect(transcriptPart.text).toContain(
+			`retained ${DEFAULT_MAX_LINES - 7} of ${transcript.length} lines`,
+		);
+		expect(transcriptPart.text).toContain("bytes");
 	});
 });

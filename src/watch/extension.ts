@@ -18,18 +18,29 @@
  *      enabling it in the active loadout, not by code here.
  *
  * "Route, don't answer": all escalation/answer logic lives in the router + tier
- * runners; this file only wires effects to the pure core and degrades gracefully
- * on failure (a single error TextContent rather than throwing through the host).
+ * runners; this file only wires effects to the pure core and surfaces failures
+ * by throwing a contextual error through the host.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type, type Static } from "typebox";
+import { StringEnum } from "@earendil-works/pi-ai";
+import {
+	Type,
+	type Static,
+	type TArray,
+	type TInteger,
+	type TObject,
+	type TOptional,
+	type TString,
+	type TUnsafe,
+} from "typebox";
 
 import { sample, type SceneDetectionDiagnostic } from "../sampler/index.js";
 import { route, routeContextFromSet, type Tier } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
+	boundToolResultContent,
 	defaultRunners,
 	type TierRunner,
 	type WatchContentPart,
@@ -49,13 +60,17 @@ import {
 /**
  * `watch` tool parameters (TypeBox → static type + runtime schema).
  *
- * NOTE: `resolution` uses Type.Union of literals to match the project's contract
- * convention (src/contract: ResolutionTier). If a Google-compatible provider is
- * ever targeted, migrate this to `StringEnum` from `@earendil-works/pi-ai`
- * (docs/extensions.md: Type.Union/Type.Literal is rejected by Google's API) —
- * deferred to Phase 6, when pi-ai enters for the tier-2 adapter anyway.
+ * `StringEnum` keeps the resolution schema compatible with providers such as
+ * Google's API that reject Type.Union/Type.Literal schemas.
  */
-export const WATCH_PARAMS = Type.Object({
+type WatchParamsSchema = TObject<{
+	ref: TString;
+	question: TString;
+	budget: TOptional<TInteger>;
+	resolution: TOptional<TUnsafe<"low" | "high">>;
+}>;
+
+export const WATCH_PARAMS: WatchParamsSchema = Type.Object({
 	ref: Type.String({
 		description: "Video reference: local file path or http(s) URL",
 	}),
@@ -69,7 +84,7 @@ export const WATCH_PARAMS = Type.Object({
 		}),
 	),
 	resolution: Type.Optional(
-		Type.Union([Type.Literal("low"), Type.Literal("high")], {
+		StringEnum(["low", "high"] as const, {
 			description:
 				"Optional frame-resolution override; normally the router sets this by question intent.",
 		}),
@@ -80,7 +95,18 @@ export const WATCH_PARAMS = Type.Object({
 export type WatchInput = Static<typeof WATCH_PARAMS>;
 
 /** `watch_batch` tool parameters (TypeBox → static type + runtime schema). */
-export const WATCH_BATCH_PARAMS = Type.Object({
+type WatchBatchItemSchema = TObject<{
+	ref: TString;
+	question: TString;
+}>;
+
+type WatchBatchParamsSchema = TObject<{
+	items: TArray<WatchBatchItemSchema>;
+	budget: TOptional<TInteger>;
+	resolution: TOptional<TUnsafe<"low" | "high">>;
+}>;
+
+export const WATCH_BATCH_PARAMS: WatchBatchParamsSchema = Type.Object({
 	items: Type.Array(
 		Type.Object({
 			ref: Type.String({
@@ -103,7 +129,7 @@ export const WATCH_BATCH_PARAMS = Type.Object({
 		}),
 	),
 	resolution: Type.Optional(
-		Type.Union([Type.Literal("low"), Type.Literal("high")], {
+		StringEnum(["low", "high"] as const, {
 			description:
 				"Shared frame-resolution override for every item; normally the router sets this by question intent.",
 		}),
@@ -117,7 +143,8 @@ const WATCH_DESCRIPTION =
 	"Watch a video (local file or URL) and answer a question about it. Samples " +
 	"frames + best-effort transcript, then routes to the cheapest tier that can " +
 	"answer (transcript → native video → frames-into-context), returning the answer " +
-	"and, for the frames tier, the sampled frames themselves.";
+	"and, for the frames tier, the sampled frames themselves. Tool-result text, " +
+	"including transcripts, is truncated at Pi's 50 KB / 2,000-line output limits.";
 
 
 const WATCH_BATCH_DESCRIPTION =
@@ -200,9 +227,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 			onDiagnostic,
 		});
 
-	// Pin TDetails to a shared record so the success and error branches of
-	// `execute` return a single, consistent details shape (otherwise TS infers
-	// TDetails from the first branch and rejects the other).
+	// Pin TDetails to a shared record for the successful `execute` result.
 	pi.registerTool<typeof WATCH_PARAMS, Record<string, unknown>>({
 		name: "watch",
 		label: "Watch",
@@ -243,12 +268,17 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					question: params.question,
 					runners,
 				});
+				const contentWithHint = withUnconfiguredHint(
+					result.content,
+					result.tier,
+					tier2Diagnostic,
+				);
+				const preservedTrailingParts = contentWithHint.length - result.content.length;
 
 				return {
-					content: withUnconfiguredHint(
-						result.content,
-						result.tier,
-						tier2Diagnostic,
+					content: boundToolResultContent(
+						contentWithHint,
+						preservedTrailingParts,
 					),
 					details: withTier2Diagnostic(
 						{
@@ -269,15 +299,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				};
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				const errorPart: WatchContentPart = {
-					type: "text",
-					text: `watch failed for "${params.ref}": ${message}`,
-				};
-				return {
-					content: [errorPart],
-					details: { error: message, ref: params.ref },
-					isError: true,
-				};
+				throw new Error(`watch failed for "${params.ref}": ${message}`);
 			}
 		},
 	});
@@ -342,7 +364,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 
 				const result = await runWatchBatch(params.items, { processItem });
 				return {
-					content: result.content,
+					content: boundToolResultContent(result.content),
 					details: {
 						count: params.items.length,
 						tiers: result.items.map((item) => item.tier),

@@ -18,40 +18,40 @@
  *      enabling it in the active loadout, not by code here.
  *
  * "Route, don't answer": all escalation/answer logic lives in the router + tier
- * runners; this file only wires effects to the pure core and degrades gracefully
- * on failure (a single error TextContent rather than throwing through the host).
+ * runners; this file only wires effects to the pure core and surfaces failures
+ * by throwing a contextual error through the host.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type, type Static } from "typebox";
+import { type Static, type TArray, type TInteger, type TObject, type TOptional, type TString, type TUnsafe } from "typebox";
 import { type Tier } from "../router/index.js";
 import { type WatchContentPart } from "./tier-runner.js";
 import { type Tier2Diagnostic } from "./tier2.js";
 /**
  * `watch` tool parameters (TypeBox → static type + runtime schema).
  *
- * NOTE: `resolution` uses Type.Union of literals to match the project's contract
- * convention (src/contract: ResolutionTier). If a Google-compatible provider is
- * ever targeted, migrate this to `StringEnum` from `@earendil-works/pi-ai`
- * (docs/extensions.md: Type.Union/Type.Literal is rejected by Google's API) —
- * deferred to Phase 6, when pi-ai enters for the tier-2 adapter anyway.
+ * `StringEnum` keeps the resolution schema compatible with providers such as
+ * Google's API that reject Type.Union/Type.Literal schemas.
  */
-export declare const WATCH_PARAMS: Type.TObject<{
-    ref: Type.TString;
-    question: Type.TString;
-    budget: Type.TOptional<Type.TInteger>;
-    resolution: Type.TOptional<Type.TUnion<[Type.TLiteral<"low">, Type.TLiteral<"high">]>>;
+type WatchParamsSchema = TObject<{
+    ref: TString;
+    question: TString;
+    budget: TOptional<TInteger>;
+    resolution: TOptional<TUnsafe<"low" | "high">>;
 }>;
+export declare const WATCH_PARAMS: WatchParamsSchema;
 /** Static input type for the `watch` tool's `execute`. */
 export type WatchInput = Static<typeof WATCH_PARAMS>;
 /** `watch_batch` tool parameters (TypeBox → static type + runtime schema). */
-export declare const WATCH_BATCH_PARAMS: Type.TObject<{
-    items: Type.TArray<Type.TObject<{
-        ref: Type.TString;
-        question: Type.TString;
-    }>>;
-    budget: Type.TOptional<Type.TInteger>;
-    resolution: Type.TOptional<Type.TUnion<[Type.TLiteral<"low">, Type.TLiteral<"high">]>>;
+type WatchBatchItemSchema = TObject<{
+    ref: TString;
+    question: TString;
 }>;
+type WatchBatchParamsSchema = TObject<{
+    items: TArray<WatchBatchItemSchema>;
+    budget: TOptional<TInteger>;
+    resolution: TOptional<TUnsafe<"low" | "high">>;
+}>;
+export declare const WATCH_BATCH_PARAMS: WatchBatchParamsSchema;
 /** Static input type for the `watch_batch` tool's `execute`. */
 export type WatchBatchInput = Static<typeof WATCH_BATCH_PARAMS>;
 /**
@@ -82,4 +82,5 @@ export declare function withUnconfiguredHint(content: WatchContentPart[], finalT
  * `process.env` synchronously is fine; no await is introduced before registration.
  */
 export default function watchExtension(pi: ExtensionAPI): void;
+export {};
 //# sourceMappingURL=extension.d.ts.map

@@ -18,12 +18,13 @@
  *     Fact #1: tool-result images reach the orchestrator), so it needs no external
  *     model call.
  *
- * The tier-walk core in this file is intentionally pure and pi-free: it imports
- * the contract/router shapes as TYPES only and defines a local content union
- * mirroring pi's tool-result shape, so it is unit-testable without the pi runtime
- * or ffmpeg. It consumes the routing decision as given ("route, don't answer") —
- * no routing, sampling, or OpenAI-wire serialization happens here. The only
- * network/env effects (tier 2) are isolated in tier2.ts.
+ * The tier-walk core imports the contract/router shapes as TYPES only and defines
+ * a local content union mirroring pi's tool-result shape. It uses pi's shared
+ * transcript truncation utility for the documented output limits, while remaining
+ * unit-testable without the pi runtime or ffmpeg. It consumes the routing decision
+ * as given ("route, don't answer") — no routing, sampling, or OpenAI-wire
+ * serialization happens here. The only network/env effects (tier 2) are isolated
+ * in tier2.ts.
  */
 import type { Tier, RoutingDecision } from "../router/index.js";
 import type { WatchedFrameSet } from "../contract/index.js";
@@ -59,6 +60,12 @@ export type TierRunner = (args: {
     decision: RoutingDecision;
     question: string;
 }) => Promise<TierResult | null>;
+/**
+ * Bound final aggregate tool text while preserving normal multipart ordering.
+ * `preserveTrailingParts` reserves required trailing guidance such as the
+ * unconfigured-tier hint before earlier text is truncated.
+ */
+export declare function boundToolResultContent(content: WatchContentPart[], preserveTrailingParts?: number): WatchContentPart[];
 /**
  * Build the tier-3 tool-result content: the sampled frames handed back to the
  * orchestrator as image parts on a shared timeline.

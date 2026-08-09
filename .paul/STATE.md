@@ -13,9 +13,9 @@ Milestone: Awaiting next milestone
 Version: v0.3.0
 Phase: None active
 Plan: None
-Status: Milestone v0.3 — Paste and Watch complete — ready for next milestone discovery
-Last activity: 2026-08-09 — Standard Fix 01 completed: long-form scene analysis is bounded and recovers to uniform sampling.
-Next action: Run `/skill:paul-discuss` to explore and define the next milestone.
+Status: Milestone v0.3 — Paste and Watch complete; Standard Fix 02 verified on `fix/pi-spec-compliance`, GitHub Flow completion pending
+Last activity: 2026-08-09 — Standard Fix 02 implemented and verified: Pi package/tool spec compliance, aggregate output bounds, and production package proof.
+Next action: Review Fix 02 changes, then commit, push, and open the GitHub Flow PR.
 
 Progress:
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
@@ -44,6 +44,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Pi Git/local installation uses committed exact `dist/**` output because dev-only build tooling is unavailable in Pi-equivalent production installs.
 - Use Git/local Pi package sources; the unscoped `npm:pi-watch` registry package is unrelated.
 - Live model and YouTube proofs stay opt-in, finite-timeout, and default-skipped so normal tests remain deterministic/offline.
+- Pi-bundled runtime packages remain wildcard peers per Pi package guidance, with pinned development dependencies for reproducible local verification.
+- Apply text limits after final tool-result composition; reserve required trailing guidance, use UTF-8-safe question prefixes, and keep frame-label/image pairs atomic.
 
 ### Deferred Issues
 
@@ -65,19 +67,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | Fix | Scope | Result |
 |-----|-------|--------|
 | Fix 01 (standard) | No active phase — bounded scene analysis for long-form video | Reduced 2 fps / 320px analysis; >10-minute and typed-timeout fallback to uniform frames; 201 tests pass; reported 19m20s URL succeeded in 7.959s. See `.paul/fixes/01-FIX-SUMMARY.md`. |
+| Fix 02 (standard) | No active phase — Pi package/tool spec compliance | Wildcard core peers + pinned dev deps; Google-safe schemas; thrown host errors; aggregate 50 KB/2,000-line bounds; 210 tests pass; packed/local Pi live proofs pass. See `.paul/fixes/02-FIX-SUMMARY.md`. |
 
 ## Session Continuity
 
-Last session: 2026-08-09 — Standard Fix 01 completed after the reported long-form YouTube timeout.
-Stopped at: Fix verified; normal milestone discussion can resume.
-Next action: Resume `/skill:paul-discuss` from the accepted strategic assessment and choose next-milestone features.
-wip_result: not applicable — standard fix loop is complete.
-Resume file: `.paul/fixes/01-FIX-SUMMARY.md`
+Last session: 2026-08-09 — Standard Fix 02 implemented and fully verified on `fix/pi-spec-compliance`.
+Stopped at: Source/tests/generated `dist/**` and PALS fix artifacts are ready; no commit, push, or PR was created because `auto_commit` is disabled.
+Next action: Review Fix 02 changes, then commit, push, and open the GitHub Flow PR.
+wip_result: feature-branch
+Resume file: `.paul/fixes/02-FIX-SUMMARY.md`
 Resume context:
-- The reported 19m20s URL previously failed twice at the 60-second scene-scan timeout; the production registered tool now succeeds in 7.959s with one uniform frame and a duration-skip diagnostic.
-- Full gates: 201 passed, 2 default-skipped; typecheck/build pass; generated `dist/**` is reproducible; audit unchanged at 0 critical / 4 high / 2 moderate.
-- Next-milestone strategic assessment was accepted before the fix and remains at `.paul/assessments/2026-08-09-after-v0.3.md`; feature exploration is still open.
-- Transcript-first reordering and resolver format selection remain outside Fix 01.
+- Full gates pass: 210 tests passed with 2 default-skipped, typecheck/build/diff checks pass, and audit is unchanged at 0 critical / 4 high / 2 moderate.
+- Production-style npm pack/install and direct local-package Pi runs both loaded `watch` and answered the reported YouTube URL.
+- Final adversarial review found no material issues after UTF-8, final-composition, required-hint, and frame-pair boundary hardening.
+- The consumed installation handoff was archived at `.paul/handoffs/archive/HANDOFF-2026-08-09-fix01-merged-install-pending.md`.
+- Next-milestone discovery remains paused; normal loop position is unchanged.
 
 ---
 *STATE.md — Updated after every significant action*
