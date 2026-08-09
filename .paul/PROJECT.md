@@ -9,9 +9,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.2.0 |
-| Status | v0.3 in progress — Phases 14–15 are complete and merged. Supported YouTube refs resolve once into owned local media, then fetch bounded human captions with one automatic-caption fallback; valid WebVTT reaches the existing transcript-first tier while unavailable/invalid captions preserve visual fallback. Phase 16 end-to-end URL UX is ready to plan. |
-| Last Updated | 2026-07-22 |
+| Version | 0.3.0 milestone complete (package remains 0.2.0 until release/tag) |
+| Status | v0.3 complete — supported YouTube URLs resolve into owned local media, prefer bounded human/automatic captions for tier 1, preserve visual fallback, and are proven through the actual registered `watch` tool and `/watch` UX. Git/local installation ships the compiled extension plus full setup/troubleshooting guidance. |
+| Last Updated | 2026-08-09 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -29,12 +29,13 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 13 (2026-07-10):** Tier-2 **config UX** closes v0.2. A shared, secret-free `TIER2_UNCONFIGURED_HINT` is appended by the pure `withUnconfiguredHint` helper only to single-video `watch` results when tier 2 was unconfigured and another tier answered. `WATCH_TIER2_LOCAL=1` opt-in resolves the documented localhost `mlx_vlm` endpoint; explicit base URL/model configuration wins, and the default path remains network-free. `watch_batch`, `tier-runner.ts`, the null→tier-3 contract, and dependencies remain unchanged. PR #15 merged; suite 152 passed / 1 skipped.
 - **Phase 14 (2026-07-10):** YouTube-first source resolution shipped behind a generic sampler seam. Supported watch/short-link/shorts URLs canonicalize and download once through bounded argv-only `yt-dlp --ignore-config` into resolver-owned temporary storage; `sample()` uses local `mediaRef` for ffprobe/ffmpeg while preserving caller `originalRef` for transcript lookup and `WatchedFrameSet.source.ref`. Caller paths are never deleted, owned cleanup is idempotent across success/failure, and dual failures preserve both causes. Offline TDD coverage raised the suite to 171 passing tests; no npm dependency or watch/router/contract change.
 - **Phase 15 (2026-07-22):** The caption transcript pipeline is shipped. Supported YouTube refs use bounded subtitle-only `yt-dlp` with human captions preferred and one automatic-caption fallback; a pure WebVTT parser emits timestamped `TranscriptSegment`s on the existing shared timeline. All failure paths return `none` for unchanged visual fallback, owned temporary storage is cleaned exactly once, VTT candidates are confined/ordered and capped at 16 MiB before read, and cues outside media duration are dropped. Final verification: 189 passing, 0 failing, 1 default-skipped live test; typecheck/build pass; no dependency or public-contract change.
+- **Phase 16 (2026-08-09):** The end-to-end pasted-URL UX is shipped. Deterministic tests capture the real extension registrations and prove caption-backed tier 1, offline tier 3, structured resolver errors, and `/watch` steering. A default-off, finite-timeout live smoke passed through the production resolver/sampler/tool path with an explicit public URL after the default fixture became unavailable. `README.md` and `docs/YOUTUBE-SETUP.md` document Git/local Pi installation, supported URL forms, prerequisites, cleanup/fallback, smoke reproduction, and troubleshooting; exact committed `dist/**` output keeps Pi Git installs loadable when dev tooling is omitted. Final gates: 194 passed, 2 opt-in tests skipped by default, typecheck/build pass.
 
 ## Scope Snapshot
 ### Completed
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 - v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
-- v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓; Phase 16 end-to-end URL UX remains.
+- v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓ → Phase 16 end-to-end URL UX, live proof, distributable, and user documentation ✓. Complete 2026-08-09.
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -50,7 +51,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- ✓ Current baseline: 189 passing tests, 1 default-skipped live test; local-file and tier-2/tier-3 contracts remain stable while supported YouTube URLs resolve into owned media and human/automatic captions can reach tier 1. v0.3 end-to-end URL UX remains in Phase 16.
+- ✓ Current baseline: 194 passing tests, 2 default-skipped opt-in live tests; typecheck/build pass. Supported YouTube URLs resolve into owned media, captions can reach tier 1, absent captions preserve visual fallback, and the registered tool/command plus Git/local installation UX are proven.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
@@ -91,6 +92,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 14) Run external `yt-dlp` once with argv-only bounds and `--ignore-config` | Keeps caller input command-injection-safe and prevents user/system config from adding hooks or output outside the resolver contract | 2026-07-10 | ✓ Validated (Phase 14) |
 | (Phase 15) Prefer human captions, then make at most one automatic-caption fallback; every failure returns transcript source `none` | Makes the cheapest spoken-content tier real without retries, fabricated text, media re-download, or weakening visual fallback | 2026-07-22 | ✓ Validated (Phase 15) |
 | (Phase 15) Bound caption data before shared-timeline assembly | Reject VTT candidates over 16 MiB before read and drop cues beginning at/after media duration so caption data cannot violate memory/timeline invariants | 2026-07-22 | ✓ Validated (Phase 15) |
+| (Phase 16) Commit exact `npm run build` output under `dist/**`; do not add prepare/install hooks or dependencies | Pi Git-package installs omit dev dependencies, so clean installs cannot compile TypeScript even when a prepare hook exists | 2026-08-09 | ✓ Validated (Phase 16) |
+| (Phase 16) Use verified Git/local-path Pi sources and reject `npm:pi-watch` | The unscoped registry package is unrelated; scoped rename/publication is outside v0.3 | 2026-08-09 | Active release constraint |
+| (Phase 16) Keep real YouTube proof opt-in, bounded, and overrideable with a public URL | External fixtures and network availability are unstable, but default tests must remain deterministic/offline | 2026-08-09 | ✓ Validated (Phase 16) |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -100,4 +104,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-07-22 after Phase 15 completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-09 after Phase 16 / v0.3 completion*

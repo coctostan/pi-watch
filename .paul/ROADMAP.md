@@ -5,9 +5,9 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 **v0.3 — Paste and Watch** (v0.3.0)
-Status: 🚧 In Progress
-Phases: 2 of 3 complete (67%)
-Focus: Finalize Phase 16 UNIFY metadata after proving the end-to-end pasted-URL experience, opt-in live YouTube path, Git/local installation, and troubleshooting UX.
+Status: ✅ Complete — ready for milestone completion/release routing
+Phases: 3 of 3 complete (100%)
+Focus: v0.3 product scope is complete: YouTube source resolution, caption-backed tier 1, registered tool/command URL UX, opt-in live proof, Git/local installation, and troubleshooting documentation.
 
 ## Phases
 
@@ -15,9 +15,9 @@ Focus: Finalize Phase 16 UNIFY metadata after proving the end-to-end pasted-URL 
 |-------|------|-------|--------|-----------|
 | 14 | YouTube source resolution | 1/1 | ✅ Complete | 2026-07-10 |
 | 15 | Caption transcript pipeline | 1/1 | ✅ Complete | 2026-07-22 |
-| 16 | End-to-end URL UX | 1/1 | 🟠 UNIFY | - |
+| 16 | End-to-end URL UX | 1/1 | ✅ Complete | 2026-08-09 |
 
-## Phase Details (v0.3 — active)
+## Phase Details (v0.3 — complete)
 
 ### Phase 14: YouTube source resolution
 Focus: Detect and normalize YouTube URLs; resolve/download media through `yt-dlp`; preserve local refs; enforce argv-only process execution, timeouts, explicit temporary-file ownership/cleanup, and legible resolver errors.
@@ -29,7 +29,7 @@ Plans: 1/1 complete — [15-01 PLAN](phases/15-caption-transcript-pipeline/15-01
 
 ### Phase 16: End-to-end URL UX
 Focus: Prove pasted YouTube URLs through the actual `watch` tool and `/watch` command, make clean Pi Git installation build the manifest-referenced extension, add deterministic offline coverage plus an opt-in live YouTube smoke, and document prerequisites, supported scope, cleanup, fallback behavior, and troubleshooting.
-Plans: 1/1 reconciled — [16-01 PLAN](phases/16-end-to-end-url-ux/16-01-PLAN.md) · [SUMMARY](phases/16-end-to-end-url-ux/16-01-SUMMARY.md) · [PR #18](https://github.com/coctostan/pi-watch/pull/18) (implementation merged; lifecycle follow-up pending)
+Plans: 1/1 complete — [16-01 PLAN](phases/16-end-to-end-url-ux/16-01-PLAN.md) · [SUMMARY](phases/16-end-to-end-url-ux/16-01-SUMMARY.md) · implementation [PR #18](https://github.com/coctostan/pi-watch/pull/18) · lifecycle [PR #19](https://github.com/coctostan/pi-watch/pull/19)
 
 ## Completed Milestones
 
@@ -59,4 +59,4 @@ Plans: 1/1 reconciled — [16-01 PLAN](phases/16-end-to-end-url-ux/16-01-PLAN.md
 - Optional Gemini/cloud tier remains non-mandatory.
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 created: 2026-07-10 · Phase 14 completed: 2026-07-10 · Phase 15 completed: 2026-07-22 · Phase 16 planned: 2026-08-07 · Phase 16 plan revised: 2026-08-07 · Phase 16 UNIFY started: 2026-08-09*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 created: 2026-07-10 · Phase 14 completed: 2026-07-10 · Phase 15 completed: 2026-07-22 · Phase 16 completed: 2026-08-09 · v0.3 phase scope completed: 2026-08-09*

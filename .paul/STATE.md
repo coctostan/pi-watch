@@ -2,26 +2,26 @@
 
 ## Project Reference
 
-See: .paul/PROJECT.md (v0.2 release baseline; v0.3 milestone active)
+See: .paul/PROJECT.md (v0.3 milestone completion baseline; release/tag pending)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.3 — Paste and Watch. Phases 14–15 are complete; Phase 16 acceptance criteria are reconciled and UNIFY post-hooks/GitHub Flow closure are in progress.
+**Current focus:** v0.3 — Paste and Watch is 100% complete across Phases 14–16; ready for milestone completion/release routing.
 
 ## Current Position
 
 Milestone: v0.3 — Paste and Watch
-Version: v0.3.0 target (package remains released at 0.2.0 until milestone completion)
+Version: v0.3.0 milestone complete (package remains 0.2.0 until release/tag)
 Phase: 16 of 16 (End-to-end URL UX)
-Plan: 16-01 — `.paul/phases/16-end-to-end-url-ux/16-01-PLAN.md`
-Status: UNIFY in progress — reconciliation complete; post-unify reports and lifecycle merge gate pending
-Last activity: 2026-08-09 — Phase 16 SUMMARY created and final quality gates passed; PR #18 had already merged before UNIFY metadata finalization.
-Next action: Finalize post-unify reports and merge lifecycle artifacts through GitHub Flow.
+Plan: 16-01 complete — `.paul/phases/16-end-to-end-url-ux/16-01-SUMMARY.md`
+Status: Phase 16 complete — all v0.3 phases unified and merged; ready for milestone completion
+Last activity: 2026-08-09 — Phase 16 implementation PR #18 and lifecycle PR #19 merged; final transition completed.
+Next action: Run `/skill:paul-milestone` to complete/archive v0.3 and route release or the next milestone.
 
 Progress:
-- Milestone v0.3: [███████░░░] 67% (2 of 3 phases complete)
+- Milestone v0.3: [██████████] 100% (3 of 3 phases complete)
 - Phase 14: YouTube source resolution — ✅ complete (14-01, PR #16)
 - Phase 15: Caption transcript pipeline — ✅ complete (15-01, PR #17)
-- Phase 16: End-to-end URL UX — 🟠 UNIFY in progress (implementation PR #18 merged; lifecycle closure pending)
+- Phase 16: End-to-end URL UX — ✅ complete (16-01, PR #18 implementation, PR #19 lifecycle)
 - Milestone v0.2: [██████████] 100% ✓
 - Milestone v0.1: [██████████] 100% ✓
 
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [Phase 16: reconciliation complete; post-unify reports and merge gate pending]
+  ✓        ✓        ✓     [Phase 16 complete; v0.3 phase scope 100%]
 ```
 
 ## Accumulated Context
@@ -72,27 +72,26 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Scoped npm package rename/publication for pi-watch; the unscoped registry name currently belongs to an unrelated package.
 
 ### Blockers/Concerns
-- Resolved APPLY concern: prepare-only clean Git installation failed under Pi's `npm install --omit=dev`; user approved committed `dist/**` output with no manifest/dependency/lockfile changes.
-- Resolved by user override: `npm audit --json` is 0 critical / 4 high / 2 moderate versus pre-plan 0/3/2; added `nanoid` advisories are external and in the unchanged dev tree.
-- Phase 16 UNIFY: PR #18 merged before SUMMARY/lifecycle metadata were finalized; close through a follow-up GitHub Flow PR so durable artifacts reach `main`.
+- No Phase 16 blocker remains. Release maintenance concern: `npm audit --json` is 0 critical / 4 high / 2 moderate in the unchanged dev tree.
+- Release distribution constraint: use Git/local Pi sources until a future scoped npm package exists; `npm:pi-watch` remains unrelated.
 
 ## Session Continuity
 
-Last session: 2026-08-09 — Phase 16 UNIFY reconciliation and local quality confirmation completed.
-Stopped at: Post-unify module reports and GitHub Flow lifecycle closure pending; implementation PR #18 is already merged.
-Next action: Finalize post-unify reports and merge lifecycle artifacts through GitHub Flow.
-wip_result: UNIFY artifacts are being finalized on the feature branch; implementation commits are merged in PR #18.
+Last session: 2026-08-09 — Phase 16 UNIFY and final v0.3 phase transition completed.
+Stopped at: v0.3 phase scope complete; ready for milestone completion/release routing.
+Next action: Run `/skill:paul-milestone` to complete/archive v0.3 and route release or the next milestone.
+wip_result: not applicable — implementation and lifecycle artifacts are merged to `main`.
 Resume file: .paul/phases/16-end-to-end-url-ux/16-01-SUMMARY.md
 Resume context:
-- All ACs reconcile PASS; Task 3 remains PASS_WITH_CONCERNS for the approved audit-feed deviation.
-- Final local gates: 194 passed, 2 default-skipped; typecheck/build pass; generated `dist/**` unchanged.
-- Mandatory live smoke passed during APPLY with public override `jNQXAC9IVRw`.
-- PR #18 merged as `b207d66` before UNIFY metadata finalization, requiring a follow-up lifecycle PR.
+- All Phase 16 ACs PASS; Task 3 closed PASS_WITH_CONCERNS for the approved external audit-feed deviation.
+- Final gates: 194 passed, 2 default-skipped; typecheck/build pass; mandatory public YouTube smoke passed during APPLY.
+- PR #18 merged implementation as `b207d66`; PR #19 merged lifecycle artifacts as `e57784d`.
+- Milestone v0.3 is 3/3 phases complete; package/tag release remains pending.
 
 ### Git State
-Implementation merge: PR #18 squash commit `b207d66`; release tag `v0.2.0` remains at `427f5a4`.
-Branch: `feature/16-end-to-end-url-ux`; implementation content is merged to `origin/main`, while UNIFY lifecycle artifacts remain uncommitted. `.codegraph/` remains pre-existing and untouched.
-PR: #18 merged — https://github.com/coctostan/pi-watch/pull/18. Both Socket Security checks passed; a follow-up lifecycle PR is required because UNIFY artifacts were not included before merge.
+Latest lifecycle merge: `e57784d` (PR #19); implementation merge: `b207d66` (PR #18); release tag `v0.2.0` remains at `427f5a4`.
+Branch: `main`, synced with `origin/main`; feature branch deleted. `.codegraph/` remains pre-existing and untouched.
+PRs: #18 and #19 merged with passing Socket Security checks.
 
 ---
 *STATE.md — Updated after every significant action*

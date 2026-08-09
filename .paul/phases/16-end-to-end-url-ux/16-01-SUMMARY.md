@@ -168,7 +168,7 @@ The advisory count moved from 0/3/2 to 0/4/2 (critical/high/moderate) without a 
 
 ### GitHub Flow Ordering
 
-PR #18 passed both Socket Security checks and was merged as `b207d66` on 2026-08-09 before this UNIFY summary and lifecycle metadata were finalized. These artifacts therefore require a small follow-up PR rather than being silently left unmerged.
+PR #18 passed both Socket Security checks and was merged as `b207d66` on 2026-08-09 before this UNIFY summary and lifecycle metadata were finalized. The lifecycle-only follow-up PR #19 then passed both checks and merged as `e57784d`, resolving the ordering deviation without bypassing GitHub Flow.
 
 ## Issues Encountered
 
@@ -177,7 +177,7 @@ PR #18 passed both Socket Security checks and was merged as `b207d66` on 2026-08
 | Pi-equivalent Git installation could not compile with dev dependencies omitted | Committed exact build output after explicit scope approval; clean install retained/imported the extension. |
 | Default public YouTube fixture was unavailable | Used the PLAN-authorized public `WATCH_YOUTUBE_URL` override and obtained the mandatory passing run. |
 | Audit feed added high advisories in unchanged dev dependencies | Preserved exact counts and user override; no dependency files changed. |
-| Implementation PR merged before UNIFY metadata commit | Record the ordering deviation and merge lifecycle artifacts through a follow-up GitHub Flow PR. |
+| Implementation PR merged before UNIFY metadata commit | Recorded the deviation and merged the finalized lifecycle artifacts through follow-up PR #19 with passing checks. |
 
 ## Next Phase Readiness
 
@@ -190,7 +190,7 @@ PR #18 passed both Socket Security checks and was merged as `b207d66` on 2026-08
 - Dependency audit maintenance remains separate work: current advisory counts are 0 critical / 4 high / 2 moderate in the unchanged dev tree.
 - The unscoped npm package name remains unavailable; release installation must continue using Git/local sources unless a scoped package is introduced later.
 
-**Blockers:** None for Phase 16 acceptance criteria. Lifecycle metadata must still pass the follow-up GitHub Flow merge gate.
+**Blockers:** None. Phase 16 implementation and lifecycle artifacts are merged; v0.3 is ready for milestone completion/release routing.
 
 ---
 *Phase: 16-end-to-end-url-ux, Plan: 01*
