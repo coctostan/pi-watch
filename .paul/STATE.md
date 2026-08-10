@@ -2,22 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (v0.3 shipped baseline)
+See: `.paul/PROJECT.md` (v0.3 shipped baseline; v0.4 active scope is in `.paul/ROADMAP.md`)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.3 — Paste and Watch is complete; awaiting definition of the next milestone.
+**Current focus:** v0.4 — Listen Locally: bounded, explicitly enabled local ASR for English speech when captions are unavailable.
 
 ## Current Position
 
-Milestone: Awaiting next milestone
-Version: v0.3.0
-Phase: None active
-Plan: None
-Status: Milestone v0.3 — Paste and Watch complete; Standard Fix 02 verified on `fix/pi-spec-compliance`, GitHub Flow completion pending
-Last activity: 2026-08-09 — Standard Fix 02 implemented and verified: Pi package/tool spec compliance, aggregate output bounds, and production package proof.
-Next action: Review Fix 02 changes, then commit, push, and open the GitHub Flow PR.
+Milestone: v0.4 — Listen Locally
+Version: v0.4.0
+Phase: 17 — Bounded ASR foundation (1 of 3)
+Plan: 17-01 (`.paul/phases/17-bounded-asr-foundation/17-01-PLAN.md`)
+Status: APPLY complete — ready to unify
+Last activity: 2026-08-09 — Completed Plan 17-01 runtime research, bounded baseline, and implementation-boundary decision; opened PR #23.
+Next action: `/paul:unify .paul/phases/17-bounded-asr-foundation/17-01-PLAN.md`.
 
 Progress:
+- Milestone v0.4: [░░░░░░░░░░] 0% (Phases 17–19)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
 - Milestone v0.1: [██████████] 100% ✓ (Phases 1–9)
@@ -27,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Milestone complete — awaiting next]
+  ✓        ✓        ○     [APPLY complete — ready to unify]
 ```
 
 ## Accumulated Context
@@ -46,14 +47,16 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Live model and YouTube proofs stay opt-in, finite-timeout, and default-skipped so normal tests remain deterministic/offline.
 - Pi-bundled runtime packages remain wildcard peers per Pi package guidance, with pinned development dependencies for reproducible local verification.
 - Apply text limits after final tool-result composition; reserve required trailing guidance, use UTF-8-safe question prefixes, and keep frame-label/image pairs atomic.
+- v0.4 local speech coverage uses explicitly enabled, on-demand `mlx-whisper` on Apple Silicon; executable and model choices remain configurable.
+- Captions remain preferred; ASR runs only for speech-oriented questions when captions are absent, uses a configurable hard duration cap, and degrades to visual tiers on every failure.
 
 ### Deferred Issues
 
 - Tier-3 batch fan-out for frames across many videos.
 - Optional Gemini/cloud tier.
-- Whisper/local ASR for videos without captions.
-- Optional resolver download filesize/duration caps if runtime evidence warrants them.
-- Focused, test-backed decomposition of `src/sampler/effects.ts`.
+- Advanced ASR features: diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
+- Optional resolver download filesize/duration caps beyond v0.4's ASR-specific policy if runtime evidence warrants them.
+- Focused decomposition of `src/sampler/effects.ts` beyond work directly enabling bounded ASR.
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
 
@@ -71,17 +74,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-09 — Standard Fix 02 implemented and fully verified on `fix/pi-spec-compliance`.
-Stopped at: Source/tests/generated `dist/**` and PALS fix artifacts are ready; no commit, push, or PR was created because `auto_commit` is disabled.
-Next action: Review Fix 02 changes, then commit, push, and open the GitHub Flow PR.
-wip_result: feature-branch
-Resume file: `.paul/fixes/02-FIX-SUMMARY.md`
+Last session: 2026-08-09 — Completed APPLY for Phase 17 Plan 17-01 on `feature/17-bounded-asr-foundation`.
+Stopped at: All three research tasks and post-APPLY gates passed; PR #23 is open and UNIFY is required.
+Next action: `/paul:unify .paul/phases/17-bounded-asr-foundation/17-01-PLAN.md`.
+Resume file: `.paul/phases/17-bounded-asr-foundation/17-01-RESEARCH.md`
 Resume context:
-- Full gates pass: 210 tests passed with 2 default-skipped, typecheck/build/diff checks pass, and audit is unchanged at 0 critical / 4 high / 2 moderate.
-- Production-style npm pack/install and direct local-package Pi runs both loaded `watch` and answered the reported YouTube URL.
-- Final adversarial review found no material issues after UTF-8, final-composition, required-hint, and frame-pair boundary hardening.
-- The consumed installation handoff was archived at `.paul/handoffs/archive/HANDOFF-2026-08-09-fix01-merged-install-pending.md`.
-- Next-milestone discovery remains paused; normal loop position is unchanged.
+- Observed `mlx-whisper 0.4.3` with stable JSON segment timestamps; the global executable was absent, while temporary `uvx` probing succeeded and was fully cleaned.
+- One 9.696-second `mlx-community/whisper-tiny` fixture ran in 5,957 ms cold and 1,158 ms warm, produced a 1,247-byte JSON transcript, and passed timestamp/content checks.
+- Selected extension-boundary spoken-intent gating with captions-first → ASR-second sampler composition, focused `src/sampler/asr.ts`, explicit opt-in, direct external executable ownership, and visual degradation on every failure.
+- Final gates: 210 tests passed / 2 skipped; typecheck/build passed; audit unchanged at 0 critical / 4 high / 2 moderate; production/dependency/generated files unchanged.
+- GitHub Flow: PR #23 (`https://github.com/coctostan/pi-watch/pull/23`) is open; no CI checks were reported at APPLY postflight.
+- Unrelated `feedback.md` and `.codegraph/graph.db` remain preserved in `stash@{0}` from preflight.
 
 ---
 *STATE.md — Updated after every significant action*
