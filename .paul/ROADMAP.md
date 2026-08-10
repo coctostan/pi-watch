@@ -8,15 +8,15 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 **v0.4 — Listen Locally** (v0.4.0)
 Status: 🚧 In Progress
-Phases: 0 of 3 complete
+Phases: 1 of 3 complete
 Goal: Make transcript-first routing work for English speech when captions are unavailable, using bounded, explicitly enabled local ASR while preserving every existing fallback.
 
 ## Phases
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
-| 17 | Bounded ASR foundation | 1 | Planning | - |
-| 18 | Local transcript fallback | TBD | Not started | - |
+| 17 | Bounded ASR foundation | 1/1 | ✅ Complete | 2026-08-09 |
+| 18 | Local transcript fallback | TBD | Ready to plan | - |
 | 19 | Local speech UX and proof | TBD | Not started | - |
 
 ## Phase Details
@@ -24,7 +24,7 @@ Goal: Make transcript-first routing work for English speech when captions are un
 ### Phase 17: Bounded ASR foundation
 
 Focus: Establish the ASR seam, configuration, speech-intent gating, diagnostics, ownership, and resource policies.
-Plans: 1 (`17-01` — bounded `mlx-whisper` runtime research and implementation-boundary decision; approved for APPLY)
+Plans: 1/1 complete (`17-01` — bounded `mlx-whisper` runtime research and implementation-boundary decision; [summary](phases/17-bounded-asr-foundation/17-01-SUMMARY.md))
 
 ### Phase 18: Local transcript fallback
 

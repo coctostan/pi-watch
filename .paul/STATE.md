@@ -11,14 +11,14 @@ See: `.paul/PROJECT.md` (v0.3 shipped baseline; v0.4 active scope is in `.paul/R
 
 Milestone: v0.4 — Listen Locally
 Version: v0.4.0
-Phase: 17 — Bounded ASR foundation (1 of 3)
-Plan: 17-01 (`.paul/phases/17-bounded-asr-foundation/17-01-PLAN.md`)
-Status: APPLY complete — ready to unify
-Last activity: 2026-08-09 — Completed Plan 17-01 runtime research, bounded baseline, and implementation-boundary decision; opened PR #23.
-Next action: `/paul:unify .paul/phases/17-bounded-asr-foundation/17-01-PLAN.md`.
+Phase: 18 — Local transcript fallback (2 of 3)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-09 — Completed Phase 17 bounded ASR foundation and transitioned to Phase 18 local transcript fallback.
+Next action: `/paul:plan` for Phase 18.
 
 Progress:
-- Milestone v0.4: [░░░░░░░░░░] 0% (Phases 17–19)
+- Milestone v0.4: [███░░░░░░░] 33% (1 of 3 phases complete)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
 - Milestone v0.1: [██████████] 100% ✓ (Phases 1–9)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [APPLY complete — ready to unify]
+  ○        ○        ○     [Phase 18 ready to plan]
 ```
 
 ## Accumulated Context
@@ -74,17 +74,16 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-09 — Completed APPLY for Phase 17 Plan 17-01 on `feature/17-bounded-asr-foundation`.
-Stopped at: All three research tasks and post-APPLY gates passed; PR #23 is open and UNIFY is required.
-Next action: `/paul:unify .paul/phases/17-bounded-asr-foundation/17-01-PLAN.md`.
-Resume file: `.paul/phases/17-bounded-asr-foundation/17-01-RESEARCH.md`
+Last session: 2026-08-09 — Completed Phase 17 and prepared Phase 18 planning state.
+Stopped at: Phase 17 complete; Phase 18 ready to plan after the GitHub Flow merge gate.
+Next action: `/paul:plan` for Phase 18.
+Resume file: `.paul/ROADMAP.md`
+Git state: Phase 17 transition metadata is pending commit, push, and PR #23 merge.
 Resume context:
-- Observed `mlx-whisper 0.4.3` with stable JSON segment timestamps; the global executable was absent, while temporary `uvx` probing succeeded and was fully cleaned.
-- One 9.696-second `mlx-community/whisper-tiny` fixture ran in 5,957 ms cold and 1,158 ms warm, produced a 1,247-byte JSON transcript, and passed timestamp/content checks.
-- Selected extension-boundary spoken-intent gating with captions-first → ASR-second sampler composition, focused `src/sampler/asr.ts`, explicit opt-in, direct external executable ownership, and visual degradation on every failure.
-- Final gates: 210 tests passed / 2 skipped; typecheck/build passed; audit unchanged at 0 critical / 4 high / 2 moderate; production/dependency/generated files unchanged.
-- GitHub Flow: PR #23 (`https://github.com/coctostan/pi-watch/pull/23`) is open; no CI checks were reported at APPLY postflight.
-- Unrelated `feedback.md` and `.codegraph/graph.db` remain preserved in `stash@{0}` from preflight.
+- Phase 17 established the observed `mlx-whisper 0.4.3` JSON contract, cleaned 5,957 ms cold / 1,158 ms warm tiny-model baseline, and exact local-transcript implementation inputs.
+- Phase 18 should implement extension-gated spoken intent, captions-first → ASR-second sampling, focused `src/sampler/asr.ts` ownership, bounded diagnostics, and visual fallback on every failure.
+- Final Phase 17 gates passed: 210 tests / 2 skipped, typecheck, build, cleanup, protected files, and unchanged dependency audit.
+- No blocker; unrelated `feedback.md` and `.codegraph/graph.db` remain preserved in `stash@{0}`.
 
 ---
 *STATE.md — Updated after every significant action*
