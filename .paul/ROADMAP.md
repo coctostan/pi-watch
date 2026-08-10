@@ -7,8 +7,8 @@ A pi extension that lets the agent watch videos — answering questions by picki
 ## Current Milestone
 
 **v0.4 — Listen Locally** (v0.4.0)
-Status: 🚧 In Progress
-Phases: 2 of 3 complete
+Status: ✅ Complete — ready for milestone reconciliation/release
+Phases: 3 of 3 complete
 Goal: Make transcript-first routing work for English speech when captions are unavailable, using bounded, explicitly enabled local ASR while preserving every existing fallback.
 
 ## Phases
@@ -17,7 +17,7 @@ Goal: Make transcript-first routing work for English speech when captions are un
 |-------|------|-------|--------|-----------|
 | 17 | Bounded ASR foundation | 1/1 | ✅ Complete | 2026-08-09 |
 | 18 | Local transcript fallback | 1/1 | ✅ Complete | 2026-08-10 |
-| 19 | Local speech UX and proof | TBD | 🔵 Ready to plan | - |
+| 19 | Local speech UX and proof | 1/1 | ✅ Complete | 2026-08-10 |
 
 ## Phase Details
 
@@ -34,7 +34,7 @@ Plans: 1/1 complete (`18-01` — bounded captions-first local ASR fallback; [sum
 ### Phase 19: Local speech UX and proof
 
 Focus: Ship opt-in setup and diagnostics, deterministic English fixtures, an optional bounded live proof, and end-to-end registered-tool validation.
-Plans: TBD (defined during `/paul:plan`)
+Plans: 1/1 complete (`19-01` — local speech operability and installed proof; [summary](phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md))
 
 ## Completed Milestones
 
@@ -57,4 +57,4 @@ Plans: TBD (defined during `/paul:plan`)
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 completed: 2026-08-09 · v0.4 created: 2026-08-09*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 completed: 2026-08-09 · v0.4 created: 2026-08-09 · v0.4 phases completed: 2026-08-10*

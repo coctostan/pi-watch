@@ -6,11 +6,11 @@ It owns one budget-capped sampler and routes each question through three tiers:
 
 | Tier | Path | Typical use |
 |---|---|---|
-| 1 | Caption transcript | Questions about what was said |
+| 1 | Caption transcript or explicitly enabled local English ASR | Questions about what was said |
 | 2 | OpenAI-compatible vision endpoint | Optional local or hosted visual reasoning |
 | 3 | Sampled frames returned as Pi `ImageContent` | Universal visual fallback for the orchestrator |
 
-Cloud access is not required. With tier 2 unconfigured, `pi-watch` stays local except when you explicitly provide a supported YouTube URL; it then uses the local `yt-dlp`, `ffprobe`, and `ffmpeg` executables.
+Cloud access is not required. Tier 2 and local ASR are both optional. A supported YouTube URL uses local `yt-dlp`, `ffprobe`, and `ffmpeg` executables and necessarily contacts YouTube; first-time user-managed ASR setup may also download packages or model weights.
 
 ## Features
 
@@ -18,9 +18,11 @@ Cloud access is not required. With tier 2 unconfigured, `pi-watch` stays local e
 - Local files and three supported YouTube URL forms.
 - Scene-change sampling with gap backfill, frame budgets, and timestamps.
 - Human YouTube captions first, with one automatic-caption fallback.
+- Exact-opt-in, bounded local English speech transcription through a user-managed `mlx_whisper` executable.
 - Explicit tier escalation: transcript → optional vision endpoint → frames.
-- Caller URL preservation and cleanup of resolver-owned temporary files.
-- Default-off live tests, so the normal suite does not require YouTube or a model server.
+- Private typed ASR/tier-2 diagnostics and visual degradation on failure.
+- Caller URL preservation and cleanup limited to adapter/resolver-owned temporary files.
+- Default-off live tests, so the normal suite does not require YouTube, a speech model, or a vision server.
 
 ## Prerequisites
 
@@ -28,6 +30,7 @@ Cloud access is not required. With tier 2 unconfigured, `pi-watch` stays local e
 - [Pi](https://pi.dev/).
 - `ffmpeg` and `ffprobe` on `PATH`.
 - `yt-dlp` on `PATH` for YouTube URLs. Local-file watching does not require it.
+- Optional local speech: Apple Silicon macOS plus a user-managed compatible `mlx_whisper` executable and model. See [Local speech transcription setup](docs/LOCAL-ASR-SETUP.md).
 
 Install Pi using its documented npm command if needed:
 
@@ -52,7 +55,7 @@ Pi packages run with full system access. Review third-party package source befor
 
 ### Clone and install from a local path
 
-For local development or to track the repository checkout directly:
+Use this path for local development or the current v0.4.0 checkout:
 
 ```bash
 git clone https://github.com/coctostan/pi-watch.git
@@ -62,17 +65,19 @@ pi list
 
 A local-path Pi package points at the clone rather than copying it. Restart Pi or run `/reload` after rebuilding or updating the package. If the extension is installed but disabled, use `pi config` to enable it.
 
-### Install the tagged Git release
+### Install a tagged Git release
 
-Install the pinned v0.3 release from Git with:
+The repository commits its compiled `dist/` extension so Pi's Git-package install can load `dist/watch/extension.js` without development-only build tooling.
+
+After the `v0.4.0` tag has actually been published, the pinned command is:
 
 ```bash
-pi install git:github.com/coctostan/pi-watch@v0.3.0
+pi install git:github.com/coctostan/pi-watch@v0.4.0
 ```
 
-The repository commits its compiled `dist/` extension so Pi's default Git-package install can load `dist/watch/extension.js` without development-only build tooling.
+Until that tag exists, use the local/current-checkout workflow above rather than treating the future tag command as released.
 
-> **Do not run `pi install npm:pi-watch`.** The unscoped npm package named `pi-watch` is an unrelated registry project. This repository is currently supported through its Git repository or a local clone; a scoped npm rename/publication is outside v0.3.
+> **Do not run `pi install npm:pi-watch`.** The unscoped npm package named `pi-watch` is an unrelated registry project. This repository is supported through its Git repository or a local clone; a scoped npm rename/publication remains deferred.
 
 ## Usage
 
@@ -114,18 +119,42 @@ The model-facing tool accepts this shape:
 
 If Pi reports that `watch` is unavailable, confirm the package with `pi list`, enable the extension with `pi config`, check any tool allowlist/loadout, and run `/reload` or restart Pi.
 
+## Optional local speech transcription
+
+Local ASR is disabled by default. Install and manage `mlx-whisper` yourself, then opt in exactly:
+
+```bash
+uv tool install mlx-whisper
+export WATCH_ASR_LOCAL=1
+```
+
+A bounded explicit configuration is:
+
+```bash
+export WATCH_ASR_LOCAL=1
+export WATCH_ASR_EXECUTABLE="mlx_whisper"
+export WATCH_ASR_MODEL="mlx-community/whisper-tiny"
+export WATCH_ASR_MAX_DURATION_MS=60000
+export WATCH_ASR_TIMEOUT_MS=300000
+```
+
+Local ASR runs only for spoken-intent questions after captions are unavailable. It receives one resolved local media path, validates English timestamped JSON, and either supplies tier 1 or returns transcript source `none` so tiers 2 and 3 remain available. Visual questions and caption-backed spoken questions do not invoke it.
+
+Failures appear as private typed diagnostics: `duration-limit`, `missing-executable`, `timeout`, `process-error`, `invalid-output`, or `cleanup-error`. See [Local speech transcription setup](docs/LOCAL-ASR-SETUP.md) for defaults and ceilings, every remediation, single/batch diagnostic locations, package/model-cache expectations, ownership/privacy details, and deterministic/live proof commands.
+
 ## How YouTube watching works
 
 For a supported YouTube URL, `pi-watch`:
 
 1. Canonicalizes the URL while retaining the caller's original reference.
 2. Runs one bounded, configuration-isolated `yt-dlp` media download in resolver-owned temporary storage.
-3. Uses `ffprobe` and `ffmpeg` to inspect the video and decode only the selected frame times.
+3. Uses `ffprobe` and `ffmpeg` to inspect the video and decode only selected frame times.
 4. Requests human captions first and makes one automatic-caption fallback attempt.
-5. Routes caption-backed spoken questions to tier 1; caption failure becomes transcript source `none` and preserves visual fallback through tiers 2 and 3.
-6. Removes only resolver- and caption-owned temporary storage after success or failure. Local caller files are never owned or deleted by the sampler.
+5. For an eligible spoken question with exact local-ASR opt-in, may transcribe the already resolver-downloaded media after a caption miss.
+6. Routes a caption/local-ASR transcript to tier 1; transcript failure preserves visual fallback through tiers 2 and 3.
+7. Removes only resolver-, caption-, and adapter-owned temporary storage after success or failure. Local caller files and user-owned package/model caches are never deleted.
 
-Caption availability is not guaranteed. Missing, malformed, or unavailable captions do not fabricate speech and do not block visual analysis.
+Caption availability is not guaranteed. Missing or malformed captions and every local-ASR failure do not fabricate speech or block visual analysis.
 
 ## Optional local tier 2
 
@@ -144,7 +173,7 @@ export WATCH_TIER2_MODEL="mlx-community/Qwen3-VL-8B-Instruct-4bit"
 
 See [Tier 2 local model setup](docs/TIER2-SETUP.md) for the verified `mlx_vlm.server` workflow, diagnostics, and timeout configuration. No Gemini or other cloud provider is mandatory.
 
-## Development
+## Development and proof
 
 Install dependencies and run the offline quality gates:
 
@@ -153,6 +182,20 @@ npm install
 npm test
 npm run typecheck
 npm run build
+```
+
+Run the deterministic local-speech compiled-registration proof:
+
+```bash
+npm run build
+npm test -- test/watch/asr-e2e.test.ts
+```
+
+It validates the committed synthetic English fixture and registered `dist/watch/extension.js` path, proves private `missing-executable` fallback to tier 3, and skips real model work. After intentionally supplying the user-managed prerequisites, the finite optional live proof is:
+
+```bash
+WATCH_ASR_LIVE=1 \
+npm test -- test/watch/asr-e2e.test.ts -t "\[phase19\]\[AC-3\]"
 ```
 
 Run the focused YouTube test in default-safe mode:
@@ -167,21 +210,13 @@ It is skipped unless explicitly enabled. A real public-YouTube run is:
 WATCH_YOUTUBE_LIVE=1 npm test -- test/watch/youtube.live.test.ts
 ```
 
-Public YouTube behavior and the default fixture can change independently of this code. Override the URL and timeout when necessary:
-
-```bash
-WATCH_YOUTUBE_LIVE=1 \
-WATCH_YOUTUBE_URL="https://www.youtube.com/watch?v=jNQXAC9IVRw" \
-WATCH_YOUTUBE_LIVE_TIMEOUT_MS=180000 \
-npm test -- test/watch/youtube.live.test.ts
-```
-
-The live test requires working network access plus current `yt-dlp`, `ffmpeg`, and `ffprobe` installations. It does not use cookies, browser profiles, credentials, or private videos.
+Public YouTube behavior and the default fixture can change independently of this code. Override its supported URL and finite timeout when necessary; see [YouTube setup](docs/YOUTUBE-SETUP.md). The live test does not use cookies, browser profiles, credentials, or private videos.
 
 ## Scope and documentation
 
+- [Local speech transcription setup and diagnostics](docs/LOCAL-ASR-SETUP.md)
 - [YouTube setup and troubleshooting](docs/YOUTUBE-SETUP.md)
 - [Optional tier-2 setup](docs/TIER2-SETUP.md)
 - [High-level design and verified architecture](DESIGN.md)
 
-Not included in v0.3: playlists, channels, embed URLs, private/authenticated videos, arbitrary remote-video hosts, Whisper/local ASR, guaranteed captions, or mandatory cloud services.
+Not included in v0.4: playlists, channels, embed URLs, private/authenticated videos, arbitrary remote-video hosts, guaranteed captions, hidden ASR installation, bundled Python/model runtimes, multilingual guarantees, translation, diarization, subtitle export, streaming/live video, long-media chunking, accuracy/performance guarantees, or mandatory cloud services.
