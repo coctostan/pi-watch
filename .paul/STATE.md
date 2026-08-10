@@ -14,7 +14,7 @@ Version: v0.4.0
 Phase: 19 — Local speech UX and proof (3 of 3)
 Plan: Not started
 Status: Ready to plan (prepared; Phase 18 GitHub Flow merge gate pending)
-Last activity: 2026-08-10 — Completed and unified Phase 18 plan 18-01, evolved project context, and transitioned lifecycle state to Phase 19.
+Last activity: 2026-08-10 — Completed Phase 18 UNIFY and transition in commit `9a8f60b`; Phase 19 lifecycle state is prepared behind the GitHub Flow merge gate.
 Next action: `/paul:plan` for Phase 19.
 
 Progress:
@@ -76,11 +76,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 ## Session Continuity
 
 Last session: 2026-08-10 — Completed Phase 18 UNIFY and prepared the Phase 19 transition.
-Stopped at: Phase 18 complete; lifecycle artifacts finalized; GitHub Flow commit/push/CI/merge gate pending before Phase 19 planning is exposed.
+Stopped at: Phase 18 complete; transition commit `9a8f60b` created; push/CI/merge gate pending before Phase 19 planning is exposed.
 Next action: `/paul:plan` for Phase 19 (prepared; available after the merge gate).
 Resume file: `.paul/ROADMAP.md`
 phase_result: `.paul/phases/18-local-transcript-fallback/18-01-SUMMARY.md` — all acceptance criteria pass; no spec deltas or blockers
-Git state: `feature/18-local-transcript-fallback`; Phase 18 UNIFY/transition artifacts pending commit and push; PR #24 remains the required merge gate.
+Git state: `feature/18-local-transcript-fallback`; transition commit `9a8f60b` created locally; PR #24 push/CI/merge remains the required gate.
 Resume context:
 - Phase 18 shipped bounded captions-first local ASR with exact opt-in, spoken-only eligibility, direct argv execution, hard bounds, private diagnostics, narrow ownership, and visual fallback on every failure.
 - Final verification passed: 245 tests / 2 skipped, typecheck, reproducible build, package dry-run, protected-file checks, whitespace, cleanup, and unchanged audit counts of 0 critical / 4 high / 2 moderate.
