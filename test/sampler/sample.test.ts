@@ -36,6 +36,29 @@ type FetchTranscriptEffect = (ref: string) => Promise<{
 	segments: TranscriptSegment[];
 	source: TranscriptSource | "none";
 }>;
+type LocalAsrPolicy = {
+	executable: string;
+	model: string;
+	maxDurationMs: number;
+	timeoutMs: number;
+};
+type AsrDiagnostic =
+	| { reason: "duration-limit"; durationMs: number; limitMs: number }
+	| { reason: "missing-executable" | "timeout" | "process-error" | "invalid-output" | "cleanup-error" };
+type FetchLocalAsrEffect = (
+	mediaRef: string,
+	durationMs: number,
+	policy: LocalAsrPolicy,
+	deps?: unknown,
+	onDiagnostic?: (diagnostic: AsrDiagnostic) => void,
+) => Promise<{ segments: TranscriptSegment[]; source: "whisper" | "none" }>;
+
+const ASR_POLICY: LocalAsrPolicy = {
+	executable: "mlx_whisper",
+	model: "mlx-community/whisper-tiny",
+	maxDurationMs: 600_000,
+	timeoutMs: 300_000,
+};
 
 const effects = vi.hoisted(() => ({
 	resolveSource: vi.fn<ResolveSourceEffect>(),
@@ -44,8 +67,12 @@ const effects = vi.hoisted(() => ({
 	decodeFramesAt: vi.fn<DecodeFramesEffect>(),
 	fetchTranscript: vi.fn<FetchTranscriptEffect>(),
 }));
+const asrEffects = vi.hoisted(() => ({
+	fetchLocalAsrTranscript: vi.fn<FetchLocalAsrEffect>(),
+}));
 
 vi.mock("../../src/sampler/effects.js", () => effects);
+vi.mock("../../src/sampler/asr.js", () => asrEffects);
 
 import { sample } from "../../src/sampler/sample.js";
 
@@ -68,6 +95,7 @@ function arrangeSuccessfulSampling(): void {
 		timesMs.map((_, index) => ({ imageBase64: `IMAGE_${index}`, mediaType: "image/png" })),
 	);
 	effects.fetchTranscript.mockResolvedValue({ segments: [], source: "none" });
+	asrEffects.fetchLocalAsrTranscript.mockResolvedValue({ segments: [], source: "none" });
 }
 
 beforeEach(() => {
@@ -251,5 +279,80 @@ describe("sample() source resolution lifecycle", () => {
 			true,
 		);
 		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
+	});
+});
+
+
+describe("sample() captions-first local ASR composition", () => {
+	it("uses originalRef for captions and suppresses ASR when captions are usable", async () => {
+		const originalRef = "https://youtu.be/dQw4w9WgXcQ";
+		const mediaRef = "/tmp/owned/video.mp4";
+		effects.resolveSource.mockResolvedValue(
+			makeResolvedSource({ originalRef, mediaRef, ownership: "sampler-temporary" }),
+		);
+		effects.fetchTranscript.mockResolvedValue({
+			segments: [{ startMs: 0, endMs: 1000, text: "caption", source: "captions" }],
+			source: "captions",
+		});
+
+		const result = await sample({ ref: originalRef, localAsr: ASR_POLICY });
+
+		expect(effects.fetchTranscript).toHaveBeenCalledWith(originalRef);
+		expect(asrEffects.fetchLocalAsrTranscript).not.toHaveBeenCalled();
+		expect(result.source.transcriptSource).toBe("captions");
+	});
+
+	it("uses mediaRef and probed duration for ASR only after a caption miss", async () => {
+		const originalRef = "https://youtu.be/dQw4w9WgXcQ";
+		const mediaRef = "/tmp/owned/video.mp4";
+		const resolved = makeResolvedSource({
+			originalRef,
+			mediaRef,
+			ownership: "sampler-temporary",
+		});
+		effects.resolveSource.mockResolvedValue(resolved);
+		asrEffects.fetchLocalAsrTranscript.mockResolvedValue({
+			segments: [{ startMs: 100, endMs: 900, text: "spoken", source: "whisper" }],
+			source: "whisper",
+		});
+		const onAsrDiagnostic = vi.fn<(diagnostic: AsrDiagnostic) => void>();
+
+		const result = await sample({ ref: originalRef, localAsr: ASR_POLICY, onAsrDiagnostic });
+
+		expect(effects.fetchTranscript).toHaveBeenCalledWith(originalRef);
+		expect(asrEffects.fetchLocalAsrTranscript).toHaveBeenCalledWith(
+			mediaRef,
+			3000,
+			ASR_POLICY,
+			undefined,
+			expect.any(Function),
+		);
+		expect(result.source.transcriptSource).toBe("whisper");
+		expect(result.transcript).toEqual([
+			{ startMs: 100, endMs: 900, text: "spoken", source: "whisper" },
+		]);
+		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
+	});
+
+	it("preserves none and resolver ownership when ASR fails", async () => {
+		const resolved = makeResolvedSource({
+			originalRef: "local.mp4",
+			mediaRef: "local.mp4",
+			ownership: "caller",
+		});
+		effects.resolveSource.mockResolvedValue(resolved);
+		asrEffects.fetchLocalAsrTranscript.mockResolvedValue({ segments: [], source: "none" });
+
+		const result = await sample({ ref: "local.mp4", localAsr: ASR_POLICY });
+
+		expect(result.source.transcriptSource).toBe("none");
+		expect(result.transcript).toEqual([]);
+		expect(resolved.cleanup).not.toHaveBeenCalled();
+	});
+
+	it("does not call ASR when no local policy is supplied", async () => {
+		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: "local.mp4" }));
+		await sample({ ref: "local.mp4" });
+		expect(asrEffects.fetchLocalAsrTranscript).not.toHaveBeenCalled();
 	});
 });
