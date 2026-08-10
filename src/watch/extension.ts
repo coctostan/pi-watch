@@ -35,8 +35,12 @@ import {
 	type TUnsafe,
 } from "typebox";
 
-import { sample, type SceneDetectionDiagnostic } from "../sampler/index.js";
-import { route, routeContextFromSet, type Tier } from "../router/index.js";
+import {
+	sample,
+	type AsrDiagnostic,
+	type SceneDetectionDiagnostic,
+} from "../sampler/index.js";
+import { classifyQuestion, route, routeContextFromSet, type Tier } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
@@ -242,6 +246,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		parameters: WATCH_PARAMS,
 		async execute(_toolCallId, params: WatchInput) {
 			let sceneDetectionDiagnostic: SceneDetectionDiagnostic | undefined;
+			let asrDiagnostic: AsrDiagnostic | undefined;
+			const asrEligible =
+				config.localAsr !== null && classifyQuestion(params.question).intent === "spoken";
 			try {
 				const set = await sample({
 					ref: params.ref,
@@ -250,6 +257,14 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					onSceneDetectionDiagnostic: (diagnostic) => {
 						sceneDetectionDiagnostic = diagnostic;
 					},
+					...(asrEligible
+						? {
+								localAsr: config.localAsr!,
+								onAsrDiagnostic: (diagnostic: AsrDiagnostic) => {
+									asrDiagnostic = diagnostic;
+								},
+							}
+						: {}),
 				});
 				const ctx = routeContextFromSet(set);
 				const decision = route({ question: params.question, context: ctx });
@@ -292,6 +307,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 							...(sceneDetectionDiagnostic
 								? { sceneDetection: sceneDetectionDiagnostic }
 								: {}),
+							...(asrEligible && asrDiagnostic ? { asr: asrDiagnostic } : {}),
 						},
 						result.tier,
 						tier2Diagnostic,
@@ -324,11 +340,24 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		parameters: WATCH_BATCH_PARAMS,
 		async execute(_toolCallId, params: WatchBatchInput) {
 			try {
-				const processItem: WatchItemProcessor = async ({ ref, question }) => {
+				const asrDiagnostics: Array<{ index: number; diagnostic: AsrDiagnostic }> = [];
+				const processItem: WatchItemProcessor = async (item) => {
+					const { ref, question } = item;
+					const itemIndex = params.items.indexOf(item);
+					const asrEligible =
+						config.localAsr !== null && classifyQuestion(question).intent === "spoken";
 					const set = await sample({
 						ref,
 						budget: params.budget ?? config.budget,
 						resolution: params.resolution ?? config.resolution,
+						...(asrEligible
+							? {
+									localAsr: config.localAsr!,
+									onAsrDiagnostic: (diagnostic: AsrDiagnostic) => {
+										asrDiagnostics.push({ index: itemIndex, diagnostic });
+									},
+								}
+							: {}),
 					});
 					const ctx = routeContextFromSet(set);
 					const decision = route({ question, context: ctx });
@@ -369,6 +398,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 						count: params.items.length,
 						tiers: result.items.map((item) => item.tier),
 						errors: result.items.filter((item) => item.status === "error").length,
+						...(asrDiagnostics.length > 0
+							? { asr: asrDiagnostics.sort((a, b) => a.index - b.index) }
+							: {}),
 					},
 				};
 			} catch (err) {

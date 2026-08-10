@@ -16,6 +16,7 @@
 import { assembleWatchedFrameSet } from "./assemble.js";
 import { decodeFramesAt, detectSceneCutsMs, fetchTranscript, probeDurationMs, resolveSource, } from "./effects.js";
 import { selectFrameTimes } from "./select-frames.js";
+import { fetchLocalAsrTranscript, } from "./asr.js";
 /**
  * Watch `ref`: produce a validated `WatchedFrameSet` on one shared timeline.
  *
@@ -63,8 +64,21 @@ export async function sample(opts) {
         });
         // 4. Effect: decode exactly the selected times, in order (images[i] ↔ selected[i]).
         const images = await decodeFramesAt(mediaRef, selected.map((s) => s.tMs), resolution);
-        // 5. Effect: best-effort transcript (degrades to "none").
-        const { segments, source } = await fetchTranscript(ref);
+        // 5. Effects: captions first, then optional bounded local ASR on a caption miss.
+        let transcript = await fetchTranscript(resolved.originalRef);
+        if (transcript.source === "none" && opts.localAsr) {
+            const onAsrDiagnostic = opts.onAsrDiagnostic
+                ? (diagnostic) => {
+                    try {
+                        opts.onAsrDiagnostic?.(diagnostic);
+                    }
+                    catch {
+                        /* diagnostics are a best-effort side channel */
+                    }
+                }
+                : undefined;
+            transcript = await fetchLocalAsrTranscript(mediaRef, durationMs, opts.localAsr, undefined, onAsrDiagnostic);
+        }
         // 6. Effective frames-per-second the sampler actually captured.
         const fpsSampled = selected.length > 0 && durationMs > 0 ? selected.length / (durationMs / 1000) : 0;
         // 7. Pure assembly → contract-valid WatchedFrameSet.
@@ -75,8 +89,8 @@ export async function sample(opts) {
             selected,
             images,
             resolution,
-            transcript: segments,
-            transcriptSource: source,
+            transcript: transcript.segments,
+            transcriptSource: transcript.source,
         });
     }
     catch (err) {

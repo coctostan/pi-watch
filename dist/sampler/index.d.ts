@@ -13,5 +13,6 @@
 export { selectFrameTimes, type SelectedFrame, type SelectOptions, } from "./select-frames.js";
 export { formatTimestamp, mergeTranscript, assembleWatchedFrameSet, type FrameImage, type AssembleInput, } from "./assemble.js";
 export { probeDurationMs, detectSceneCutsMs, decodeFramesAt, fetchTranscript, parseDurationMs, parseSceneCutsMs, parseWebVtt, normalizeYouTubeUrl, classifySourceRef, resolveSource, type ResolvedSource, type ResolveSourceDeps, type FetchTranscriptDeps, type CaptionFileEntry, type CaptionFileStat, ProcessTimeoutError, type SceneDetectionDiagnostic, type SceneDetectionDeps, type SceneDetectionOptions, type RunOptions, type RunResult, type SourceClassification, type YouTubeSource, type LocalSource, } from "./effects.js";
+export { fetchLocalAsrTranscript, parseMlxWhisperJson, DEFAULT_LOCAL_ASR_EXECUTABLE, DEFAULT_LOCAL_ASR_MODEL, DEFAULT_LOCAL_ASR_MAX_DURATION_MS, DEFAULT_LOCAL_ASR_TIMEOUT_MS, MAX_LOCAL_ASR_DURATION_MS, MAX_LOCAL_ASR_TIMEOUT_MS, MAX_LOCAL_ASR_OUTPUT_BYTES, type LocalAsrPolicy, type LocalAsrResult, type LocalAsrDeps, type LocalAsrFileStat, type AsrDiagnostic, } from "./asr.js";
 export { sample, type SampleOptions } from "./sample.js";
 //# sourceMappingURL=index.d.ts.map
