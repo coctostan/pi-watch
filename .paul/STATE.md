@@ -5,20 +5,20 @@
 See: `.paul/PROJECT.md` (v0.3 shipped baseline; v0.4 active scope is in `.paul/ROADMAP.md`)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.4 — Listen Locally: bounded, explicitly enabled local ASR for English speech when captions are unavailable.
+**Current focus:** v0.4 — Listen Locally: Phase 19 setup and diagnostics UX, deterministic English fixtures, bounded live proof, and installed end-to-end validation.
 
 ## Current Position
 
 Milestone: v0.4 — Listen Locally
 Version: v0.4.0
-Phase: 18 — Local transcript fallback (2 of 3)
-Plan: 18-01 — Bounded captions-first local ASR fallback
-Status: Applied — awaiting UNIFY
-Last activity: 2026-08-10 — Completed Phase 18 APPLY with bounded captions-first local ASR, verification, and PR #24.
-Next action: `/paul:unify .paul/phases/18-local-transcript-fallback/18-01-PLAN.md`.
+Phase: 19 — Local speech UX and proof (3 of 3)
+Plan: Not started
+Status: Ready to plan (prepared; Phase 18 GitHub Flow merge gate pending)
+Last activity: 2026-08-10 — Completed and unified Phase 18 plan 18-01, evolved project context, and transitioned lifecycle state to Phase 19.
+Next action: `/paul:plan` for Phase 19.
 
 Progress:
-- Milestone v0.4: [███░░░░░░░] 33% (1 of 3 phases complete)
+- Milestone v0.4: [███████░░░] 67% (2 of 3 phases complete)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
 - Milestone v0.1: [██████████] 100% ✓ (Phases 1–9)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [Phase 18 plan 18-01 ready to unify]
+  ✓        ✓        ✓     [Phase 18 complete; Phase 19 ready to plan after merge gate]
 ```
 
 ## Accumulated Context
@@ -49,6 +49,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Apply text limits after final tool-result composition; reserve required trailing guidance, use UTF-8-safe question prefixes, and keep frame-label/image pairs atomic.
 - v0.4 local speech coverage uses explicitly enabled, on-demand `mlx-whisper` on Apple Silicon; executable and model choices remain configurable.
 - Captions remain preferred; ASR runs only for speech-oriented questions when captions are absent, uses a configurable hard duration cap, and degrades to visual tiers on every failure.
+- Local ASR executes configured `mlx_whisper` directly with hard duration/timeout/output bounds, validates unknown JSON in a pure core, owns only adapter-created output, and exposes typed diagnostics without refs, transcript text, stderr, or cache paths.
 
 ### Deferred Issues
 
@@ -74,17 +75,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-10 — Completed Phase 18 APPLY.
-Stopped at: Plan 18-01 implementation and APPLY verification complete; UNIFY not started.
-Next action: `/paul:unify .paul/phases/18-local-transcript-fallback/18-01-PLAN.md`.
-Resume file: `.paul/phases/18-local-transcript-fallback/18-01-PLAN.md`
-wip_result: not needed — RED and GREEN task commits pushed to the feature branch
-Git state: `feature/18-local-transcript-fallback` is 0 behind / 2 ahead `origin/main`; PR #24 open; Socket Security in progress.
+Last session: 2026-08-10 — Completed Phase 18 UNIFY and prepared the Phase 19 transition.
+Stopped at: Phase 18 complete; lifecycle artifacts finalized; GitHub Flow commit/push/CI/merge gate pending before Phase 19 planning is exposed.
+Next action: `/paul:plan` for Phase 19 (prepared; available after the merge gate).
+Resume file: `.paul/ROADMAP.md`
+phase_result: `.paul/phases/18-local-transcript-fallback/18-01-SUMMARY.md` — all acceptance criteria pass; no spec deltas or blockers
+Git state: `feature/18-local-transcript-fallback`; Phase 18 UNIFY/transition artifacts pending commit and push; PR #24 remains the required merge gate.
 Resume context:
-- RED commit `7dd5d41` captured expected parser/config/sampler/extension failures before production edits; GREEN commit `60d5310` passes all focused contracts.
-- Full verification passed: 245 tests / 2 skipped, typecheck, reproducible build, package dry-run, protected-file diff, whitespace, and no residual ASR temp storage.
-- Dependency audit is unchanged at 0 critical / 4 high / 2 moderate; post-apply WALT, DEAN, and TODD enforcement passed.
-- PR #24 is open at `https://github.com/coctostan/pi-watch/pull/24`; CI was in progress when APPLY completed.
+- Phase 18 shipped bounded captions-first local ASR with exact opt-in, spoken-only eligibility, direct argv execution, hard bounds, private diagnostics, narrow ownership, and visual fallback on every failure.
+- Final verification passed: 245 tests / 2 skipped, typecheck, reproducible build, package dry-run, protected-file checks, whitespace, cleanup, and unchanged audit counts of 0 critical / 4 high / 2 moderate.
+- Post-unify WALT, SKIP, CODI, and RUBY reports are durable in the SUMMARY; WALT/CODI histories and the module ledger were updated.
+- Phase 19 is the final v0.4 phase and remains TBD until `/paul:plan`; setup/diagnostics UX, fixtures, bounded live proof, and installed validation are its declared focus.
 
 ---
 *STATE.md — Updated after every significant action*

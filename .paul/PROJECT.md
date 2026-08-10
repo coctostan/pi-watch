@@ -10,8 +10,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.4.0 |
-| Status | v0.4 in progress — bounded local-ASR runtime behavior, resource policy, ownership, spoken-intent gating, captions-first ordering, and implementation boundaries are evidence-backed; Phase 18 local transcript fallback is ready to plan. |
-| Last Updated | 2026-08-09 |
+| Status | v0.4 in progress — bounded captions-first local ASR is shipped and verified; Phase 19 local speech setup, diagnostics UX, fixtures, and installed proof are ready to plan. |
+| Last Updated | 2026-08-10 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -31,13 +31,14 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 15 (2026-07-22):** The caption transcript pipeline is shipped. Supported YouTube refs use bounded subtitle-only `yt-dlp` with human captions preferred and one automatic-caption fallback; a pure WebVTT parser emits timestamped `TranscriptSegment`s on the existing shared timeline. All failure paths return `none` for unchanged visual fallback, owned temporary storage is cleaned exactly once, VTT candidates are confined/ordered and capped at 16 MiB before read, and cues outside media duration are dropped. Final verification: 189 passing, 0 failing, 1 default-skipped live test; typecheck/build pass; no dependency or public-contract change.
 - **Phase 16 (2026-08-09):** The end-to-end pasted-URL UX is shipped. Deterministic tests capture the real extension registrations and prove caption-backed tier 1, offline tier 3, structured resolver errors, and `/watch` steering. A default-off, finite-timeout live smoke passed through the production resolver/sampler/tool path with an explicit public URL after the default fixture became unavailable. `README.md` and `docs/YOUTUBE-SETUP.md` document Git/local Pi installation, supported URL forms, prerequisites, cleanup/fallback, smoke reproduction, and troubleshooting; exact committed `dist/**` output keeps Pi Git installs loadable when dev tooling is omitted. Final gates: 194 passed, 2 opt-in tests skipped by default, typecheck/build pass.
 - **Phase 17 (2026-08-09):** The bounded local-ASR foundation is decision-complete. `mlx-whisper 0.4.3` exposes a usable `mlx_whisper` console contract with timestamped JSON; a 9.696-second deterministic English fixture measured 5,957 ms cold and 1,158 ms warm with `mlx-community/whisper-tiny`. The selected design gates explicitly enabled ASR to spoken intent at the extension, keeps captions first, passes only a narrow policy into `sample`, targets a focused executable boundary, treats package/model caches as user-owned, and preserves visual fallback on every failure.
+- **Phase 18 (2026-08-10):** The bounded local transcript fallback is shipped. Exact opt-in and spoken-intent gating preserve captions first; caption misses can invoke configured `mlx_whisper` through a duration/timeout/output-bounded argv-only effect shell, and validated timestamped JSON reaches tier 1 as `whisper` segments. Missing tools, timeouts, process/output/filesystem/cleanup failures, and diagnostic-consumer errors remain private and degrade to visual tiers. The adapter removes only its own output directory, leaves media and model/package caches untouched, and exposes identical eligibility for `watch` and `watch_batch`. The final offline suite passes 245 tests with 2 opt-in live tests skipped; typecheck, reproducible build, package, protected-file, and dependency gates pass.
 
 ## Scope Snapshot
 ### Completed
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 - v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
 - v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓ → Phase 16 end-to-end URL UX, live proof, distributable, and user documentation ✓. Complete 2026-08-09.
-- v0.4: Phase 17 bounded ASR foundation ✓; Phase 18 local transcript fallback and Phase 19 local speech UX/proof remain.
+- v0.4: Phase 17 bounded ASR foundation ✓ → Phase 18 bounded captions-first local transcript fallback ✓; Phase 19 local speech UX/proof remains.
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -53,7 +54,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- ✓ Current baseline: 210 passing tests, 2 default-skipped opt-in live tests; typecheck/build pass. The v0.3 YouTube/caption/install baseline remains intact, and Phase 17 adds observed `mlx-whisper` runtime evidence plus bounded local-ASR implementation policy without production or dependency changes.
+- ✓ Current baseline: 245 passing tests, 2 default-skipped opt-in live tests; typecheck, reproducible build, and package checks pass. Phase 18 ships bounded captions-first local ASR with deterministic parser/process/config/sampler/extension coverage and no dependency change.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
@@ -97,8 +98,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 16) Commit exact `npm run build` output under `dist/**`; do not add prepare/install hooks or dependencies | Pi Git-package installs omit dev dependencies, so clean installs cannot compile TypeScript even when a prepare hook exists | 2026-08-09 | ✓ Validated (Phase 16) |
 | (Phase 16) Use verified Git/local-path Pi sources and reject `npm:pi-watch` | The unscoped registry package is unrelated; scoped rename/publication is outside v0.3 | 2026-08-09 | Active release constraint |
 | (Phase 16) Keep real YouTube proof opt-in, bounded, and overrideable with a public URL | External fixtures and network availability are unstable, but default tests must remain deterministic/offline | 2026-08-09 | ✓ Validated (Phase 16) |
-| (Phase 17) Gate explicitly enabled local ASR at the extension for spoken intent only; preserve captions-first acquisition and visual fallback on every failure | Keeps question classification pure, avoids unnecessary model work, and maintains cheapest-path discipline without passing question text into sampler effects | 2026-08-09 | ✓ Validated (Phase 17 research) |
-| (Phase 17) Target the direct `mlx_whisper` executable in a focused ASR boundary; user owns package/model caches and the adapter owns only temporary JSON output | The console script emits stable timestamped JSON, while hidden `uvx` package setup measured roughly 2.09 GB before model data | 2026-08-09 | ✓ Validated (Phase 17 research) |
+| (Phase 17→18) Gate explicitly enabled local ASR at the extension for spoken intent only; preserve captions-first acquisition and visual fallback on every failure | Keeps question classification pure, avoids unnecessary model work, and maintains cheapest-path discipline without passing question text into sampler effects | 2026-08-09 | ✓ Validated (Phase 18) |
+| (Phase 17→18) Target the direct `mlx_whisper` executable in a focused ASR boundary; user owns package/model caches and the adapter owns only temporary JSON output | The console script emits stable timestamped JSON, while hidden `uvx` package setup measured roughly 2.09 GB before model data | 2026-08-09 | ✓ Validated (Phase 18) |
+| (Phase 18) Keep local ASR exactly opt-in, hard-bound duration/timeout/output, and expose only typed privacy-safe diagnostics in single and batch results | Model work must stay explicit and finite; refs, transcript text, stderr, cache paths, and credentials are unnecessary for fallback diagnosis | 2026-08-10 | Active |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -108,4 +110,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-09 after Phase 17 completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-10 after Phase 18 completion*

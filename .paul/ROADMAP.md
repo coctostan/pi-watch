@@ -8,7 +8,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 **v0.4 — Listen Locally** (v0.4.0)
 Status: 🚧 In Progress
-Phases: 1 of 3 complete
+Phases: 2 of 3 complete
 Goal: Make transcript-first routing work for English speech when captions are unavailable, using bounded, explicitly enabled local ASR while preserving every existing fallback.
 
 ## Phases
@@ -16,8 +16,8 @@ Goal: Make transcript-first routing work for English speech when captions are un
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 17 | Bounded ASR foundation | 1/1 | ✅ Complete | 2026-08-09 |
-| 18 | Local transcript fallback | 1 | 🚧 Planning | - |
-| 19 | Local speech UX and proof | TBD | Not started | - |
+| 18 | Local transcript fallback | 1/1 | ✅ Complete | 2026-08-10 |
+| 19 | Local speech UX and proof | TBD | 🔵 Ready to plan | - |
 
 ## Phase Details
 
@@ -29,7 +29,7 @@ Plans: 1/1 complete (`17-01` — bounded `mlx-whisper` runtime research and impl
 ### Phase 18: Local transcript fallback
 
 Focus: Add captions-first → ASR-second timestamped transcript acquisition for local files and captionless supported YouTube videos, with visual fallback on every failure.
-Plans: 1 planned (`18-01` — bounded captions-first local ASR fallback; [plan](phases/18-local-transcript-fallback/18-01-PLAN.md))
+Plans: 1/1 complete (`18-01` — bounded captions-first local ASR fallback; [summary](phases/18-local-transcript-fallback/18-01-SUMMARY.md))
 
 ### Phase 19: Local speech UX and proof
 

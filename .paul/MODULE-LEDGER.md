@@ -8,3 +8,7 @@
 | 17-01 | SKIP | NOTE | no | n/a |
 | 17-01 | CODI | PASS | no | n/a |
 | 17-01 | RUBY | SKIP | no | n/a |
+| 18-01 | WALT | PASS | no | n/a |
+| 18-01 | SKIP | NOTE | no | n/a |
+| 18-01 | CODI | SKIP | no | n/a |
+| 18-01 | RUBY | PASS | no | n/a |
