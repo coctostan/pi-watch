@@ -4,6 +4,12 @@ import {
 	DEFAULT_BUDGET,
 	DEFAULT_RESOLUTION,
 	DEFAULT_FETCH_TIMEOUT_MS,
+	DEFAULT_LOCAL_ASR_EXECUTABLE,
+	DEFAULT_LOCAL_ASR_MODEL,
+	DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+	DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+	MAX_LOCAL_ASR_DURATION_MS,
+	MAX_LOCAL_ASR_TIMEOUT_MS,
 	type WatchConfig,
 } from "../../src/config/index.js";
 import type { Tier2Config } from "../../src/watch/index.js";
@@ -28,6 +34,7 @@ describe("resolveWatchConfig — defaults (empty env)", () => {
 		const cfg = resolveWatchConfig({});
 		expect(cfg).toEqual<WatchConfig>({
 			tier2: null,
+			localAsr: null,
 			budget: DEFAULT_BUDGET,
 			resolution: DEFAULT_RESOLUTION,
 			fetchTimeoutMs: DEFAULT_FETCH_TIMEOUT_MS,
@@ -131,5 +138,78 @@ describe("resolveWatchConfig — opt-in local tier2 default (AC-4)", () => {
 
 	it("still honors an explicit tier2: null override over the local default", () => {
 		expect(resolveWatchConfig({ WATCH_TIER2_LOCAL: "1" }, { tier2: null }).tier2).toBeNull();
+	});
+});
+
+
+describe("resolveWatchConfig — local ASR explicit opt-in and bounds", () => {
+	it("keeps local ASR disabled unless WATCH_ASR_LOCAL is exactly 1", () => {
+		for (const value of [undefined, "", "0", "true", " 1 "]) {
+			const env = value === undefined ? {} : { WATCH_ASR_LOCAL: value };
+			expect(resolveWatchConfig(env).localAsr).toBeNull();
+		}
+	});
+
+	it("enables safe defaults only for exact WATCH_ASR_LOCAL=1", () => {
+		expect(resolveWatchConfig({ WATCH_ASR_LOCAL: "1" }).localAsr).toEqual({
+			executable: DEFAULT_LOCAL_ASR_EXECUTABLE,
+			model: DEFAULT_LOCAL_ASR_MODEL,
+			maxDurationMs: DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+			timeoutMs: DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+		});
+	});
+
+	it("maps valid ASR fields and clamps duration and timeout to absolute ceilings", () => {
+		const cfg = resolveWatchConfig({
+			WATCH_ASR_LOCAL: "1",
+			WATCH_ASR_EXECUTABLE: "/opt/tools/mlx_whisper",
+			WATCH_ASR_MODEL: "local/model",
+			WATCH_ASR_MAX_DURATION_MS: "900000",
+			WATCH_ASR_TIMEOUT_MS: "900001",
+		});
+		expect(cfg.localAsr).toEqual({
+			executable: "/opt/tools/mlx_whisper",
+			model: "local/model",
+			maxDurationMs: MAX_LOCAL_ASR_DURATION_MS,
+			timeoutMs: MAX_LOCAL_ASR_TIMEOUT_MS,
+		});
+	});
+
+	it("falls each empty or invalid ASR field back safely without enabling from unrelated fields", () => {
+		expect(
+			resolveWatchConfig({
+				WATCH_ASR_EXECUTABLE: "other",
+				WATCH_ASR_MODEL: "other/model",
+				WATCH_ASR_MAX_DURATION_MS: "10",
+				WATCH_ASR_TIMEOUT_MS: "20",
+			}).localAsr,
+		).toBeNull();
+		expect(
+			resolveWatchConfig({
+				WATCH_ASR_LOCAL: "1",
+				WATCH_ASR_EXECUTABLE: "   ",
+				WATCH_ASR_MODEL: "",
+				WATCH_ASR_MAX_DURATION_MS: "-1",
+				WATCH_ASR_TIMEOUT_MS: "not-a-number",
+			}).localAsr,
+		).toEqual({
+			executable: DEFAULT_LOCAL_ASR_EXECUTABLE,
+			model: DEFAULT_LOCAL_ASR_MODEL,
+			maxDurationMs: DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+			timeoutMs: DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+		});
+	});
+
+	it("lets an explicit localAsr override, including null, win over env", () => {
+		const override = {
+			executable: "custom-whisper",
+			model: "custom-model",
+			maxDurationMs: 12_000,
+			timeoutMs: 34_000,
+		};
+		expect(resolveWatchConfig({ WATCH_ASR_LOCAL: "1" }, { localAsr: override }).localAsr).toEqual(
+			override,
+		);
+		expect(resolveWatchConfig({ WATCH_ASR_LOCAL: "1" }, { localAsr: null }).localAsr).toBeNull();
 	});
 });

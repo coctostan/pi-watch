@@ -23,8 +23,8 @@
  */
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type, } from "typebox";
-import { sample } from "../sampler/index.js";
-import { route, routeContextFromSet } from "../router/index.js";
+import { sample, } from "../sampler/index.js";
+import { classifyQuestion, route, routeContextFromSet } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import { walkTierChain, boundToolResultContent, defaultRunners, } from "./tier-runner.js";
 import { createTier2Runner, TIER2_UNCONFIGURED_HINT, } from "./tier2.js";
@@ -148,6 +148,8 @@ export default function watchExtension(pi) {
         parameters: WATCH_PARAMS,
         async execute(_toolCallId, params) {
             let sceneDetectionDiagnostic;
+            let asrDiagnostic;
+            const asrEligible = config.localAsr !== null && classifyQuestion(params.question).intent === "spoken";
             try {
                 const set = await sample({
                     ref: params.ref,
@@ -156,6 +158,14 @@ export default function watchExtension(pi) {
                     onSceneDetectionDiagnostic: (diagnostic) => {
                         sceneDetectionDiagnostic = diagnostic;
                     },
+                    ...(asrEligible
+                        ? {
+                            localAsr: config.localAsr,
+                            onAsrDiagnostic: (diagnostic) => {
+                                asrDiagnostic = diagnostic;
+                            },
+                        }
+                        : {}),
                 });
                 const ctx = routeContextFromSet(set);
                 const decision = route({ question: params.question, context: ctx });
@@ -188,6 +198,7 @@ export default function watchExtension(pi) {
                         ...(sceneDetectionDiagnostic
                             ? { sceneDetection: sceneDetectionDiagnostic }
                             : {}),
+                        ...(asrEligible && asrDiagnostic ? { asr: asrDiagnostic } : {}),
                     }, result.tier, tier2Diagnostic),
                 };
             }
@@ -215,11 +226,23 @@ export default function watchExtension(pi) {
         parameters: WATCH_BATCH_PARAMS,
         async execute(_toolCallId, params) {
             try {
-                const processItem = async ({ ref, question }) => {
+                const asrDiagnostics = [];
+                const processItem = async (item) => {
+                    const { ref, question } = item;
+                    const itemIndex = params.items.indexOf(item);
+                    const asrEligible = config.localAsr !== null && classifyQuestion(question).intent === "spoken";
                     const set = await sample({
                         ref,
                         budget: params.budget ?? config.budget,
                         resolution: params.resolution ?? config.resolution,
+                        ...(asrEligible
+                            ? {
+                                localAsr: config.localAsr,
+                                onAsrDiagnostic: (diagnostic) => {
+                                    asrDiagnostics.push({ index: itemIndex, diagnostic });
+                                },
+                            }
+                            : {}),
                     });
                     const ctx = routeContextFromSet(set);
                     const decision = route({ question, context: ctx });
@@ -254,6 +277,9 @@ export default function watchExtension(pi) {
                         count: params.items.length,
                         tiers: result.items.map((item) => item.tier),
                         errors: result.items.filter((item) => item.status === "error").length,
+                        ...(asrDiagnostics.length > 0
+                            ? { asr: asrDiagnostics.sort((a, b) => a.index - b.index) }
+                            : {}),
                     },
                 };
             }

@@ -26,6 +26,25 @@ import {
 	type Tier2Config,
 	resolveTier2ConfigFromEnv,
 } from "../watch/tier2.js";
+import {
+	DEFAULT_LOCAL_ASR_EXECUTABLE,
+	DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+	DEFAULT_LOCAL_ASR_MODEL,
+	DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+	MAX_LOCAL_ASR_DURATION_MS,
+	MAX_LOCAL_ASR_TIMEOUT_MS,
+	type LocalAsrPolicy,
+} from "../sampler/asr.js";
+
+export {
+	DEFAULT_LOCAL_ASR_EXECUTABLE,
+	DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+	DEFAULT_LOCAL_ASR_MODEL,
+	DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+	MAX_LOCAL_ASR_DURATION_MS,
+	MAX_LOCAL_ASR_TIMEOUT_MS,
+};
+export type LocalAsrConfig = LocalAsrPolicy;
 
 /** Default frame budget when no per-call override is given (aligns with the sampler's ~16 default). */
 export const DEFAULT_BUDGET = 16;
@@ -41,6 +60,8 @@ export const DEFAULT_FETCH_TIMEOUT_MS = 60000;
 export interface WatchConfig {
 	/** Resolved tier-2 endpoint, or `null` when unconfigured (tier 2 escalates). */
 	tier2: Tier2Config | null;
+	/** Explicitly enabled bounded local ASR policy, or null when disabled. */
+	localAsr: LocalAsrConfig | null;
 	/** Default frame budget applied when a tool call gives no `budget`. */
 	budget: number;
 	/** Default frame resolution applied when a tool call gives no `resolution`. */
@@ -65,6 +86,61 @@ function parseResolution(raw: string | undefined): ResolutionTier | null {
 	return v === "low" || v === "high" ? v : null;
 }
 
+function nonEmpty(raw: string | undefined, fallback: string): string {
+	const value = raw?.trim();
+	return value ? value : fallback;
+}
+
+function boundedPositiveInt(raw: string | undefined, fallback: number, ceiling: number): number {
+	const parsed = parsePositiveInt(raw);
+	return parsed === null ? fallback : Math.min(parsed, ceiling);
+}
+
+function normalizeLocalAsrConfig(value: Partial<LocalAsrConfig>): LocalAsrConfig {
+	return {
+		executable: nonEmpty(value.executable, DEFAULT_LOCAL_ASR_EXECUTABLE),
+		model: nonEmpty(value.model, DEFAULT_LOCAL_ASR_MODEL),
+		maxDurationMs:
+			typeof value.maxDurationMs === "number" &&
+			Number.isInteger(value.maxDurationMs) &&
+			value.maxDurationMs > 0
+				? Math.min(value.maxDurationMs, MAX_LOCAL_ASR_DURATION_MS)
+				: DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+		timeoutMs:
+			typeof value.timeoutMs === "number" &&
+			Number.isInteger(value.timeoutMs) &&
+			value.timeoutMs > 0
+				? Math.min(value.timeoutMs, MAX_LOCAL_ASR_TIMEOUT_MS)
+				: DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+	};
+}
+
+function resolveLocalAsrConfig(
+	env: NodeJS.ProcessEnv,
+	overrides?: Partial<WatchConfig>,
+): LocalAsrConfig | null {
+	if (overrides && "localAsr" in overrides) {
+		return overrides.localAsr === null
+			? null
+			: normalizeLocalAsrConfig(overrides.localAsr ?? {});
+	}
+	if (env.WATCH_ASR_LOCAL !== "1") return null;
+	return {
+		executable: nonEmpty(env.WATCH_ASR_EXECUTABLE, DEFAULT_LOCAL_ASR_EXECUTABLE),
+		model: nonEmpty(env.WATCH_ASR_MODEL, DEFAULT_LOCAL_ASR_MODEL),
+		maxDurationMs: boundedPositiveInt(
+			env.WATCH_ASR_MAX_DURATION_MS,
+			DEFAULT_LOCAL_ASR_MAX_DURATION_MS,
+			MAX_LOCAL_ASR_DURATION_MS,
+		),
+		timeoutMs: boundedPositiveInt(
+			env.WATCH_ASR_TIMEOUT_MS,
+			DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+			MAX_LOCAL_ASR_TIMEOUT_MS,
+		),
+	};
+}
+
 /**
  * Resolve the typed `WatchConfig` from the environment, with optional explicit
  * overrides. Pure and total: reads only `env`, performs no I/O, and never throws
@@ -86,6 +162,7 @@ export function resolveWatchConfig(
 		overrides && "tier2" in overrides
 			? (overrides.tier2 as Tier2Config | null)
 			: resolveTier2ConfigFromEnv(env);
+	const localAsr = resolveLocalAsrConfig(env, overrides);
 
 	const budget =
 		overrides?.budget !== undefined
@@ -102,5 +179,5 @@ export function resolveWatchConfig(
 			? overrides.fetchTimeoutMs
 			: (parsePositiveInt(env.WATCH_TIER2_TIMEOUT_MS) ?? DEFAULT_FETCH_TIMEOUT_MS);
 
-	return { tier2, budget, resolution, fetchTimeoutMs };
+	return { tier2, localAsr, budget, resolution, fetchTimeoutMs };
 }

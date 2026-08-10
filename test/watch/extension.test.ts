@@ -6,7 +6,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 
 import type { WatchedFrame, WatchedFrameSet } from "../../src/contract/index.js";
-import watchExtension, { type WatchInput } from "../../src/watch/extension.js";
+import watchExtension, { type WatchBatchInput, type WatchInput } from "../../src/watch/extension.js";
 import { TIER2_UNCONFIGURED_HINT } from "../../src/watch/tier2.js";
 
 const sampleMock = vi.hoisted(() => vi.fn());
@@ -15,7 +15,7 @@ vi.mock("../../src/sampler/index.js", () => ({ sample: sampleMock }));
 type CapturedTool = {
 	name: string;
 	description: string;
-	execute: (toolCallId: string, params: WatchInput) => Promise<unknown>;
+	execute: (toolCallId: string, params: WatchInput | WatchBatchInput) => Promise<unknown>;
 };
 
 type NotifyLevel = "info" | "warning" | "error";
@@ -41,6 +41,11 @@ const envKeys = [
 	"WATCH_TIER2_API_KEY",
 	"WATCH_TIER2_LOCAL",
 	"WATCH_TIER2_TIMEOUT_MS",
+	"WATCH_ASR_LOCAL",
+	"WATCH_ASR_EXECUTABLE",
+	"WATCH_ASR_MODEL",
+	"WATCH_ASR_MAX_DURATION_MS",
+	"WATCH_ASR_TIMEOUT_MS",
 ] as const;
 
 let savedEnv: Partial<Record<(typeof envKeys)[number], string>>;
@@ -121,6 +126,12 @@ function capturedWatch(harness: ExtensionHarness): CapturedTool {
 	const watch = harness.tools.find((tool) => tool.name === "watch");
 	expect(watch).toBeDefined();
 	return watch!;
+}
+
+function capturedWatchBatch(harness: ExtensionHarness): CapturedTool {
+	const batch = harness.tools.find((tool) => tool.name === "watch_batch");
+	expect(batch).toBeDefined();
+	return batch!;
 }
 
 type CapturedResult = {
@@ -325,6 +336,87 @@ describe("registered watch extension boundary", () => {
 				question: "What is said?",
 			}),
 		).rejects.toThrow(`watch failed for "${ref}": ${error.message}`);
+	});
+});
+
+
+describe("registered local ASR eligibility and diagnostics", () => {
+	it("passes local ASR only for enabled spoken intent and surfaces a private failure diagnostic", async () => {
+		process.env.WATCH_ASR_LOCAL = "1";
+		const ref = "/private/user/spoken.mp4";
+		const diagnostic = { reason: "missing-executable" as const };
+		sampleMock.mockImplementationOnce(
+			async (options: { onAsrDiagnostic?: (value: typeof diagnostic) => void }) => {
+				options.onAsrDiagnostic?.(diagnostic);
+				return makeSet(ref, { transcriptSource: "none" });
+			},
+		);
+
+		const result = await capturedWatch(registerExtension()).execute("call-asr", {
+			ref,
+			question: "What did the speaker say?",
+		});
+
+		expect(sampleMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				ref,
+				localAsr: {
+					executable: "mlx_whisper",
+					model: "mlx-community/whisper-tiny",
+					maxDurationMs: 600_000,
+					timeoutMs: 300_000,
+				},
+				onAsrDiagnostic: expect.any(Function),
+			}),
+		);
+		expect(result).toMatchObject({ details: { asr: diagnostic, transcriptSource: "none" } });
+		expect(JSON.stringify((result as { details: unknown }).details)).not.toContain(ref);
+	});
+
+	it.each([
+		["What happens visually?", "visual"],
+		["What text is shown on screen?", "on-screen-text"],
+	])("does not pass ASR for %s intent", async (question, _intent) => {
+		process.env.WATCH_ASR_LOCAL = "1";
+		sampleMock.mockResolvedValueOnce(makeSet("clip.mp4", { transcriptSource: "none" }));
+
+		const result = await capturedWatch(registerExtension()).execute("call-ineligible", {
+			ref: "clip.mp4",
+			question,
+		});
+
+		const options = sampleMock.mock.calls[0]?.[0] as Record<string, unknown>;
+		expect(options).not.toHaveProperty("localAsr");
+		expect(options).not.toHaveProperty("onAsrDiagnostic");
+		expect((result as { details: Record<string, unknown> }).details).not.toHaveProperty("asr");
+	});
+
+	it("uses identical per-item gating and returns indexed private diagnostics for batch", async () => {
+		process.env.WATCH_ASR_LOCAL = "1";
+		const diagnostic = { reason: "timeout" as const };
+		sampleMock
+			.mockImplementationOnce(
+				async (options: { onAsrDiagnostic?: (value: typeof diagnostic) => void }) => {
+					options.onAsrDiagnostic?.(diagnostic);
+					return makeSet("spoken.mp4", { transcriptSource: "none" });
+				},
+			)
+			.mockResolvedValueOnce(makeSet("visual.mp4", { transcriptSource: "none" }));
+
+		const result = await capturedWatchBatch(registerExtension()).execute("batch-asr", {
+			items: [
+				{ ref: "spoken.mp4", question: "What was said?" },
+				{ ref: "visual.mp4", question: "What happens visually?" },
+			],
+		});
+
+		expect(sampleMock.mock.calls[0]?.[0]).toEqual(
+			expect.objectContaining({ localAsr: expect.any(Object), onAsrDiagnostic: expect.any(Function) }),
+		);
+		expect(sampleMock.mock.calls[1]?.[0]).not.toHaveProperty("localAsr");
+		expect(result).toMatchObject({ details: { asr: [{ index: 0, diagnostic }] } });
+		const detailsText = JSON.stringify((result as { details: unknown }).details);
+		expect(detailsText).not.toMatch(/spoken\.mp4|visual\.mp4|transcript|stderr/i);
 	});
 });
 

@@ -15,6 +15,7 @@
  */
 import type { ResolutionTier, WatchedFrameSet } from "../contract/index.js";
 import { type SceneDetectionDiagnostic } from "./effects.js";
+import { type AsrDiagnostic, type LocalAsrPolicy } from "./asr.js";
 export interface SampleOptions {
     /** Video reference: a local file path or an http(s) URL. */
     ref: string;
@@ -26,6 +27,10 @@ export interface SampleOptions {
     sceneThreshold?: number;
     /** Best-effort side-channel for bounded scene-analysis fallbacks. */
     onSceneDetectionDiagnostic?: (diagnostic: SceneDetectionDiagnostic) => void;
+    /** Optional bounded local ASR policy, selected by the extension's spoken intent gate. */
+    localAsr?: LocalAsrPolicy;
+    /** Best-effort side-channel for eligible local ASR failures. */
+    onAsrDiagnostic?: (diagnostic: AsrDiagnostic) => void;
 }
 /**
  * Watch `ref`: produce a validated `WatchedFrameSet` on one shared timeline.

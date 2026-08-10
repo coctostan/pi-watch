@@ -22,6 +22,9 @@
  */
 import type { ResolutionTier } from "../contract/index.js";
 import { type Tier2Config } from "../watch/tier2.js";
+import { DEFAULT_LOCAL_ASR_EXECUTABLE, DEFAULT_LOCAL_ASR_MAX_DURATION_MS, DEFAULT_LOCAL_ASR_MODEL, DEFAULT_LOCAL_ASR_TIMEOUT_MS, MAX_LOCAL_ASR_DURATION_MS, MAX_LOCAL_ASR_TIMEOUT_MS, type LocalAsrPolicy } from "../sampler/asr.js";
+export { DEFAULT_LOCAL_ASR_EXECUTABLE, DEFAULT_LOCAL_ASR_MAX_DURATION_MS, DEFAULT_LOCAL_ASR_MODEL, DEFAULT_LOCAL_ASR_TIMEOUT_MS, MAX_LOCAL_ASR_DURATION_MS, MAX_LOCAL_ASR_TIMEOUT_MS, };
+export type LocalAsrConfig = LocalAsrPolicy;
 /** Default frame budget when no per-call override is given (aligns with the sampler's ~16 default). */
 export declare const DEFAULT_BUDGET = 16;
 /** Default frame resolution when no per-call override is given (DESIGN §3: low unless OCR-ish). */
@@ -35,6 +38,8 @@ export declare const DEFAULT_FETCH_TIMEOUT_MS = 60000;
 export interface WatchConfig {
     /** Resolved tier-2 endpoint, or `null` when unconfigured (tier 2 escalates). */
     tier2: Tier2Config | null;
+    /** Explicitly enabled bounded local ASR policy, or null when disabled. */
+    localAsr: LocalAsrConfig | null;
     /** Default frame budget applied when a tool call gives no `budget`. */
     budget: number;
     /** Default frame resolution applied when a tool call gives no `resolution`. */

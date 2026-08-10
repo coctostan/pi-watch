@@ -25,6 +25,11 @@ import {
 	type SceneDetectionDiagnostic,
 } from "./effects.js";
 import { selectFrameTimes } from "./select-frames.js";
+import {
+	fetchLocalAsrTranscript,
+	type AsrDiagnostic,
+	type LocalAsrPolicy,
+} from "./asr.js";
 
 export interface SampleOptions {
 	/** Video reference: a local file path or an http(s) URL. */
@@ -37,6 +42,10 @@ export interface SampleOptions {
 	sceneThreshold?: number;
 	/** Best-effort side-channel for bounded scene-analysis fallbacks. */
 	onSceneDetectionDiagnostic?: (diagnostic: SceneDetectionDiagnostic) => void;
+	/** Optional bounded local ASR policy, selected by the extension's spoken intent gate. */
+	localAsr?: LocalAsrPolicy;
+	/** Best-effort side-channel for eligible local ASR failures. */
+	onAsrDiagnostic?: (diagnostic: AsrDiagnostic) => void;
 }
 
 /**
@@ -96,8 +105,26 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 			resolution,
 		);
 
-		// 5. Effect: best-effort transcript (degrades to "none").
-		const { segments, source } = await fetchTranscript(ref);
+		// 5. Effects: captions first, then optional bounded local ASR on a caption miss.
+		let transcript = await fetchTranscript(resolved.originalRef);
+		if (transcript.source === "none" && opts.localAsr) {
+			const onAsrDiagnostic = opts.onAsrDiagnostic
+				? (diagnostic: AsrDiagnostic): void => {
+						try {
+							opts.onAsrDiagnostic?.(diagnostic);
+						} catch {
+							/* diagnostics are a best-effort side channel */
+						}
+					}
+				: undefined;
+			transcript = await fetchLocalAsrTranscript(
+				mediaRef,
+				durationMs,
+				opts.localAsr,
+				undefined,
+				onAsrDiagnostic,
+			);
+		}
 
 		// 6. Effective frames-per-second the sampler actually captured.
 		const fpsSampled =
@@ -111,8 +138,8 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 			selected,
 			images,
 			resolution,
-			transcript: segments,
-			transcriptSource: source,
+			transcript: transcript.segments,
+			transcriptSource: transcript.source,
 		});
 	} catch (err) {
 		samplingFailed = true;
