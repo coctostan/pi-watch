@@ -260,6 +260,107 @@ describe("Phase 19 registered local-ASR proof", () => {
 		expect(serializedDetails.toLowerCase()).not.toContain("credential");
 	});
 
+
+	it("[phase19][AC-4] validates v0.4 package metadata, docs, and packed extension", async () => {
+		const packageJson = JSON.parse(
+			await readFile(resolve(PACKAGE_ROOT, "package.json"), "utf8"),
+		) as Record<string, unknown>;
+		const packageLock = JSON.parse(
+			await readFile(resolve(PACKAGE_ROOT, "package-lock.json"), "utf8"),
+		) as {
+			version: string;
+			lockfileVersion: number;
+			packages: Record<string, Record<string, unknown>>;
+		};
+		const readme = await readFile(resolve(PACKAGE_ROOT, "README.md"), "utf8");
+		const runbook = await readFile(resolve(PACKAGE_ROOT, "docs/LOCAL-ASR-SETUP.md"), "utf8");
+
+		expect(packageJson).toMatchObject({
+			name: "pi-watch",
+			version: "0.4.0",
+			type: "module",
+			main: "dist/contract/index.js",
+			types: "dist/contract/index.d.ts",
+			files: ["dist"],
+			pi: { extensions: ["./dist/watch/extension.js"] },
+			engines: { node: ">=20" },
+			scripts: {
+				build: "tsc -p tsconfig.json",
+				typecheck: "tsc -p tsconfig.test.json",
+				test: "vitest run",
+				"test:watch": "vitest",
+			},
+			peerDependencies: {
+				"@earendil-works/pi-ai": "*",
+				"@earendil-works/pi-coding-agent": "*",
+				typebox: "*",
+			},
+			devDependencies: {
+				"@earendil-works/pi-ai": "^0.79.8",
+				"@earendil-works/pi-coding-agent": "^0.79.8",
+				"@types/node": "^22.10.0",
+				typebox: "^1.2.16",
+				typescript: "^5.7.0",
+				vitest: "^4.1.9",
+			},
+		});
+		expect(packageJson.dependencies).toBeUndefined();
+		expect(packageLock.version).toBe("0.4.0");
+		expect(packageLock.lockfileVersion).toBe(3);
+		expect(packageLock.packages[""]).toMatchObject({
+			name: "pi-watch",
+			version: "0.4.0",
+			engines: packageJson.engines,
+			peerDependencies: packageJson.peerDependencies,
+			devDependencies: packageJson.devDependencies,
+		});
+		expect(packageLock.packages["node_modules/@aws/lambda-invoke-store"]?.version).toBe("0.3.0");
+		await expect(packageExtensionPath()).resolves.toBe(resolve(PACKAGE_ROOT, "dist/watch/extension.js"));
+
+		for (const marker of [
+			"docs/LOCAL-ASR-SETUP.md",
+			"WATCH_ASR_LOCAL=1",
+			"WATCH_ASR_EXECUTABLE",
+			"WATCH_ASR_MODEL",
+			"WATCH_ASR_MAX_DURATION_MS",
+			"WATCH_ASR_TIMEOUT_MS",
+			"npm:pi-watch",
+			"After the `v0.4.0` tag has actually been published",
+		]) {
+			expect(readme).toContain(marker);
+		}
+		for (const marker of [
+			"WATCH_ASR_LOCAL",
+			"WATCH_ASR_EXECUTABLE",
+			"WATCH_ASR_MODEL",
+			"WATCH_ASR_MAX_DURATION_MS",
+			"WATCH_ASR_TIMEOUT_MS",
+			"duration-limit",
+			"missing-executable",
+			"timeout",
+			"process-error",
+			"invalid-output",
+			"cleanup-error",
+			"durationMs",
+			"limitMs",
+			"details.asr",
+			"user-owned",
+			"not uploaded",
+			"WATCH_ASR_LIVE=1",
+			PHRASE,
+		]) {
+			expect(runbook).toContain(marker);
+		}
+
+		const { stdout } = await execFileAsync("npm", ["pack", "--dry-run", "--json"], {
+			cwd: PACKAGE_ROOT,
+			encoding: "utf8",
+			maxBuffer: 4 * 1024 * 1024,
+		});
+		const packResult = JSON.parse(stdout) as Array<{ files: Array<{ path: string }> }>;
+		expect(packResult[0]?.files.map((file) => file.path)).toContain("dist/watch/extension.js");
+	});
+
 	const liveTest = LIVE_ASR_ENABLED ? it : it.skip;
 	liveTest(
 		"[phase19][AC-3] reaches tier 1 through explicitly enabled bounded real local ASR",
