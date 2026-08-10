@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "phrase": "This is a deterministic English speech fixture for pi watch. The quick brown fox jumps over the lazy dog. Local transcription should preserve useful words and timestamps.",
+  "evidenceWords": [
+    "english",
+    "speech",
+    "quick",
+    "brown",
+    "fox",
+    "local",
+    "transcription",
+    "timestamps"
+  ],
+  "media": {
+    "maxDurationMs": 15000,
+    "maxBytes": 512000,
+    "videoStreams": 1,
+    "audioStreams": 1,
+    "audioChannels": 1
+  },
+  "provenance": {
+    "platform": "macOS 26.6",
+    "speechGenerator": "macOS say, Samantha voice at 190 words per minute",
+    "mediaEncoder": "ffmpeg 8.1.2",
+    "speechCommand": "say -v Samantha -r 190 -o $TMPDIR/speech.aiff '<phrase>'",
+    "mediaCommand": "ffmpeg -f lavfi -i color=c=0x18324a:s=320x180:r=1:d=9.25 -i $TMPDIR/speech.aiff -map 0:v:0 -map 1:a:0 -c:v libx264 -preset veryslow -tune stillimage -crf 32 -pix_fmt yuv420p -c:a aac -b:a 48k -ac 1 -ar 16000 -t 9.25 -map_metadata -1 -movflags +faststart english-speech.mp4",
+    "regenerationNote": "The committed SHA-256 is the deterministic fixture identity; byte-for-byte regeneration across tool or OS versions is not guaranteed."
+  },
+  "sha256": "48438512e1960df5f0fb5202d2d4b532507887d729164ec548c238d14f45604d"
+}
