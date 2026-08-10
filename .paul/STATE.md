@@ -5,17 +5,17 @@
 See: `.paul/PROJECT.md` (v0.4 shipped baseline; milestone reconciliation/release remains)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.4 — Listen Locally is phase-complete; reconcile the milestone and release/tag state after the Phase 19 PR merge.
+**Current focus:** v0.4 — Listen Locally is phase-complete; merge the bounded PALS identifier repair, then resume milestone adherence audit and release reconciliation.
 
 ## Current Position
 
-Milestone: v0.4 — Listen Locally
+Milestone: M4 — v0.4 — Listen Locally
 Version: v0.4.0
 Phase: 19 — Local speech UX and proof (3 of 3)
 Plan: 19-01 — Complete
-Status: Milestone phase work complete — GitHub Flow merge gate pending
-Last activity: 2026-08-10 — Completed Phase 19 UNIFY reconciliation and transition preparation: all four acceptance criteria pass, no deltas or blockers remain, and v0.4 is 3 of 3 phases complete.
-Next action: `/paul:milestone` to reconcile and complete v0.4 after the required PR merge gate.
+Status: Milestone phase work complete — Fix 03 GitHub Flow merge gate pending
+Last activity: 2026-08-10 — Completed standard Fix 03: recorded v0.4 as M4 and assigned stable R1–R15 identifiers without changing requirement intent; 248 tests / 3 skipped, typecheck, build, diff, and dependency audit gates pass.
+Next action: Complete the Fix 03 PR merge gate, sync `main`, then resume `/paul:milestone` for the mandatory M4 adherence audit.
 
 Progress:
 - Milestone v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans; milestone reconciliation pending)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Plan 19-01 and Phase 19 complete; merge gate pending]
+  ✓        ✓        ✓     [Plan 19-01 and Phase 19 complete; Fix 03 merge gate pending]
 ```
 
 ## Accumulated Context
@@ -73,20 +73,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 |-----|-------|--------|
 | Fix 01 (standard) | No active phase — bounded scene analysis for long-form video | Reduced 2 fps / 320px analysis; >10-minute and typed-timeout fallback to uniform frames; 201 tests pass; reported 19m20s URL succeeded in 7.959s. See `.paul/fixes/01-FIX-SUMMARY.md`. |
 | Fix 02 (standard) | No active phase — Pi package/tool spec compliance | Wildcard core peers + pinned dev deps; Google-safe schemas; thrown host errors; aggregate 50 KB/2,000-line bounds; 210 tests pass; packed/local Pi live proofs pass. See `.paul/fixes/02-FIX-SUMMARY.md`. |
+| Fix 03 (standard) | M4 milestone-close audit identifier repair; Chain: `R7 — no spec impact` | Recorded M4 consistently in STATE/ROADMAP and assigned stable PRD IDs R1–R15 without intent changes; 248 tests / 3 skipped, typecheck/build/diff pass, audit unchanged. See `.paul/phases/19-local-speech-ux-and-proof/19-02-FIX-SUMMARY.md`. |
 
 ## Session Continuity
 
-Last session: 2026-08-10 — Completed Plan 19-01 reconciliation, module finalization, and Phase 19 transition preparation.
-Stopped at: Phase 19 and all v0.4 phase work complete; GitHub Flow push/CI/merge/base-sync gate remains before milestone routing is exposed.
-Next action: `/paul:milestone` to reconcile and complete v0.4 after the required PR merge gate.
-Resume file: `.paul/phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md`
-phase_result: `.paul/phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md` — AC-1 through AC-4 pass; no spec deltas or blockers
-Git state: Phase 19 lifecycle transition prepared on `feature/19-local-speech-ux-and-proof`; PR #26 merge gate pending finalized UNIFY commit/push and CI recheck.
+Last session: 2026-08-10 — Completed standard Fix 03 and all post-apply/post-unify module reconciliation.
+Stopped at: Fix 03 complete on `fix/03-pals-audit-identifiers`; GitHub Flow push/CI/merge/base-sync gate remains before M4 milestone-close audit resumes.
+Next action: Complete the Fix 03 PR merge gate, sync `main`, then resume `/paul:milestone`.
+Resume file: `.paul/phases/19-local-speech-ux-and-proof/19-02-FIX-SUMMARY.md`
+fix_result: `.paul/phases/19-local-speech-ux-and-proof/19-02-FIX-SUMMARY.md` — M4 and R1–R15 identifiers are canonical; product intent and the main loop are unchanged
+Git state: Fix 03 prepared on `fix/03-pals-audit-identifiers`; push/PR/CI/merge/base-sync gate pending.
 Resume context:
-- Phase 19 shipped a 66,661-byte / 9.149-second synthetic English fixture and registered compiled-extension proof for private missing-executable diagnostics, tier-3 fallback, and an exact-opt-in live-ASR path.
-- README and `docs/LOCAL-ASR-SETUP.md` now cover explicit setup, all configuration keys and typed failure remediation, ownership/privacy, bounded proof, limits, and supported Git/local installation.
-- Final verification passed with 248 tests / 3 skipped, typecheck, build, package dry-run, unchanged `dist/**`, fixture/protected-scope/whitespace checks, and audit at 0 critical / 4 high / 2 moderate / 0 low.
-- Post-unify WALT, SKIP, CODI, and RUBY evidence is durable in the SUMMARY; quality/CODI histories and the module ledger are updated.
+- STATE and ROADMAP now identify the current milestone as M4 — v0.4 — Listen Locally.
+- PRD now assigns exactly one stable identifier each to R1–R15 in existing requirement order and buckets, with no wording or intent change.
+- Verification passed with 248 tests / 3 skipped, typecheck, build, unchanged `dist/**`, whitespace checks, and audit at 0 critical / 4 high / 2 moderate / 0 low.
+- Post-unify WALT, SKIP, CODI, and RUBY evidence is durable in the Fix 03 SUMMARY; quality and CODI histories are updated.
 
 ---
 *STATE.md — Updated after every significant action*
