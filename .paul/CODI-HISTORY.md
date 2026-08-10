@@ -22,3 +22,4 @@ Per-UNIFY codegraph blast-radius outcome appended by CODI (post-unify). One row 
 | 17-01 | 2026-08-09 | injected | 5 | 0 | 14 | fetchTranscript, sample, classifyQuestion, resolveWatchConfig, watchExtension | y |
 | 18-01 | 2026-08-10 | skipped-tool-unavailable | — | — | — | — | n |
 | 19-01 | 2026-08-10 | skipped-tool-unavailable | — | — | — | — | n |
+| fix-03 | 2026-08-10 | no-dispatch-found | — | — | — | — | n |

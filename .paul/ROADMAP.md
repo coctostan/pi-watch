@@ -6,7 +6,7 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 
-**v0.4 — Listen Locally** (v0.4.0)
+**M4 — v0.4 — Listen Locally** (v0.4.0)
 Status: ✅ Complete — ready for milestone reconciliation/release
 Phases: 3 of 3 complete
 Goal: Make transcript-first routing work for English speech when captions are unavailable, using bounded, explicitly enabled local ASR while preserving every existing fallback.

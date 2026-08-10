@@ -36,29 +36,33 @@ Concrete, testable definition of done. "Cheapest path that *works*" needs both a
 ## Target Users and Needs
 The pi agent and its users: they need to answer questions about videos (what's said, temporal/visual reasoning, on-screen text) without manual transcription and without a mandatory cloud key — running locally on Apple Silicon, with hosted backends as an optional upgrade.
 
+## Requirement ID Convention
+
+Every requirement in every bucket has one globally unique `R#` ID. IDs are never renumbered or reused; moving or deferring a requirement preserves its ID.
+
 ## Requirements
 ### Must Have
-- **Tool-activation resolution (spike first)** — confirm a `pi -e ext.ts`-registered `watch` tool actually enters the active tool set and is executable (TUI and/or print mode). This is the one un-de-risked load-bearing assumption; resolve it before building the sampler (see Risks).
-- **Sampler data contract** — the in-memory "watched frame set" type: ordered frames (base64 image blocks + resolution tier), per-frame mm:ss timestamps, aligned transcript segments, source metadata (duration, fps sampled, scene-cut vs backfill origin), on one shared timeline.
-- **Sampler implementation** — ffmpeg scene-change extraction (one frame per cut) + uniform backfill + budget cap (~16 frames default, configurable) + resolution policy (low-res default, high-res for on-screen-text) + paired transcript merge (captions/Whisper) on the same timeline.
-- **Router (tier selection)** — decides which tier answers a given question and how to escalate when a tier is insufficient. v0.1 scope: a defined, testable policy (heuristic and/or question-classification) that (a) routes "what's said" questions to tier 1, (b) routes temporal/visual questions to tier 2/3, (c) escalates tier 1 → 2/3 when transcript is absent or inadequate, and (d) triggers the high-res/OCR path for on-screen-text questions. Routing logic is its own design artifact, not an afterthought of the tool.
-- **`watch` tool primitive** — takes a **video ref** (local file path or URL; URL handling via yt-dlp incl. download lifecycle) + a question, runs the sampler, routes to a tier via the Router, returns an answer.
-- **Tier adapters** — tier 1 (transcript summarize), tier 2 (OpenAI-compat video adapter: local Qwen / hosted Gemini), tier 3 (frames → orchestrator `ImageContent`).
-- **Config surface** — a user-facing way to set per the "config not code" thesis: tier-2 `baseURL` + `model id`, tier order/enablement, frame budget, resolution thresholds, transcript source. Define the schema and where it lives (extension settings) early — adapters and router both depend on it.
-- **`/watch` command** — UX wrapper over the tool.
+- **R1** — **Tool-activation resolution (spike first)** — confirm a `pi -e ext.ts`-registered `watch` tool actually enters the active tool set and is executable (TUI and/or print mode). This is the one un-de-risked load-bearing assumption; resolve it before building the sampler (see Risks).
+- **R2** — **Sampler data contract** — the in-memory "watched frame set" type: ordered frames (base64 image blocks + resolution tier), per-frame mm:ss timestamps, aligned transcript segments, source metadata (duration, fps sampled, scene-cut vs backfill origin), on one shared timeline.
+- **R3** — **Sampler implementation** — ffmpeg scene-change extraction (one frame per cut) + uniform backfill + budget cap (~16 frames default, configurable) + resolution policy (low-res default, high-res for on-screen-text) + paired transcript merge (captions/Whisper) on the same timeline.
+- **R4** — **Router (tier selection)** — decides which tier answers a given question and how to escalate when a tier is insufficient. v0.1 scope: a defined, testable policy (heuristic and/or question-classification) that (a) routes "what's said" questions to tier 1, (b) routes temporal/visual questions to tier 2/3, (c) escalates tier 1 → 2/3 when transcript is absent or inadequate, and (d) triggers the high-res/OCR path for on-screen-text questions. Routing logic is its own design artifact, not an afterthought of the tool.
+- **R5** — **`watch` tool primitive** — takes a **video ref** (local file path or URL; URL handling via yt-dlp incl. download lifecycle) + a question, runs the sampler, routes to a tier via the Router, returns an answer.
+- **R6** — **Tier adapters** — tier 1 (transcript summarize), tier 2 (OpenAI-compat video adapter: local Qwen / hosted Gemini), tier 3 (frames → orchestrator `ImageContent`).
+- **R7** — **Config surface** — a user-facing way to set per the "config not code" thesis: tier-2 `baseURL` + `model id`, tier order/enablement, frame budget, resolution thresholds, transcript source. Define the schema and where it lives (extension settings) early — adapters and router both depend on it.
+- **R8** — **`/watch` command** — UX wrapper over the tool.
 
 ### Should Have / Nice to Have
-- Batching for tiers 1/2 via `Promise.all` (text out).
+- **R9** — Batching for tiers 1/2 via `Promise.all` (text out).
 
 ### Explicitly Deferred
-- Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
-- Optional Gemini tier-2 upgrade (only if a user adds a key).
-- `mlx_vlm.server` native video path (we push our own frames; native is available but unused).
+- **R10** — Tier-3 batch via subagent fan-out (only needed for frames-for-many-videos).
+- **R11** — Optional Gemini tier-2 upgrade (only if a user adds a key).
+- **R12** — `mlx_vlm.server` native video path (we push our own frames; native is available but unused).
 
 ### Out of Scope
-- claude-watch's always-sample-every-frame approach (lossy, expensive).
-- Gemini / cloud as a mandatory dependency.
-- Ollama for native video (image-only — cannot).
+- **R13** — claude-watch's always-sample-every-frame approach (lossy, expensive).
+- **R14** — Gemini / cloud as a mandatory dependency.
+- **R15** — Ollama for native video (image-only — cannot).
 
 ## Constraints & Dependencies
 ### Constraints
