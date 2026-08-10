@@ -12,10 +12,10 @@ See: `.paul/PROJECT.md` (v0.3 shipped baseline; v0.4 active scope is in `.paul/R
 Milestone: v0.4 — Listen Locally
 Version: v0.4.0
 Phase: 19 — Local speech UX and proof (3 of 3)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-10 — Completed Phase 18 UNIFY, merged PR #24 with passing CI, synchronized `main`, and unlocked Phase 19 planning.
-Next action: `/paul:plan` for Phase 19.
+Plan: 19-01 — Local speech operability and installed proof
+Status: APPLY complete — ready for UNIFY
+Last activity: 2026-08-10 — Completed Plan 19-01 APPLY with a bounded synthetic English fixture, compiled registered-tool fallback/default-skipped live proof, local-ASR setup and diagnostic UX, and v0.4.0 package metadata reconciliation; all required checks passed and PR #26 is open.
+Next action: `/paul:unify .paul/phases/19-local-speech-ux-and-proof/19-01-PLAN.md`.
 
 Progress:
 - Milestone v0.4: [███████░░░] 67% (2 of 3 phases complete)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 18 complete; Phase 19 ready to plan]
+  ✓        ✓        ○     [Plan 19-01 APPLY complete; awaiting UNIFY]
 ```
 
 ## Accumulated Context
@@ -75,17 +75,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-10 — Completed Phase 18 UNIFY and GitHub Flow merge gate.
-Stopped at: Phase 18 complete and merged; Phase 19 ready to plan.
-Next action: `/paul:plan` for Phase 19.
-Resume file: `.paul/ROADMAP.md`
-phase_result: `.paul/phases/18-local-transcript-fallback/18-01-SUMMARY.md` — all acceptance criteria pass; no spec deltas or blockers
-Git state: PR #24 merged with both Socket Security checks passing; local `main` synchronized with `origin/main`; Phase 18 feature branch deleted.
+Last session: 2026-08-10 — Completed and parent-verified both Plan 19-01 APPLY tasks; UNIFY has not started.
+Stopped at: APPLY complete with task commits pushed and PR #26 open; no implementation blockers.
+Next action: `/paul:unify .paul/phases/19-local-speech-ux-and-proof/19-01-PLAN.md`.
+Resume file: `.paul/phases/19-local-speech-ux-and-proof/19-01-PLAN.md`
+wip_result: not needed — task commits `d6a5466` and `fded72d` are pushed on the feature branch
+Git state: `feature/19-local-speech-ux-and-proof`, 0 behind / 2 ahead `origin/main`; PR #26 open at `https://github.com/coctostan/pi-watch/pull/26`; no CI checks reported.
 Resume context:
-- Phase 18 shipped bounded captions-first local ASR with exact opt-in, spoken-only eligibility, direct argv execution, hard bounds, private diagnostics, narrow ownership, and visual fallback on every failure.
-- Final verification passed: 245 tests / 2 skipped, typecheck, reproducible build, package dry-run, protected-file checks, whitespace, cleanup, and unchanged audit counts of 0 critical / 4 high / 2 moderate.
-- Post-unify WALT, SKIP, CODI, and RUBY reports are durable in the SUMMARY; WALT/CODI histories and the module ledger were updated.
-- Phase 19 is the final v0.4 phase and remains TBD until `/paul:plan`; setup/diagnostics UX, fixtures, bounded live proof, and installed validation are its declared focus.
+- Task 1 committed a 66,661-byte / 9.149-second synthetic English fixture and manifest plus compiled registered-tool AC-1/AC-2 proof; AC-3 remains exact-opt-in and default-skipped because no user-managed global executable was supplied.
+- Task 2 added `docs/LOCAL-ASR-SETUP.md`, refreshed README local-speech/install UX, reconciled only root package/lock versions to 0.4.0, and added AC-4 packed-extension/docs invariants.
+- Parent verification passed: 248 tests / 3 skipped, typecheck, build, package dry-run, unchanged `dist/**`, whitespace, fixture bounds/hash/probe, protected-file scope, and audit at 0 critical / 4 high / 2 moderate / 0 low with no dependency-tree delta.
+- Post-apply advisory and enforcement dispatches completed with no blockers; WALT, DEAN, and TODD passed.
 
 ---
 *STATE.md — Updated after every significant action*

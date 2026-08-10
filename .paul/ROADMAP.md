@@ -17,7 +17,7 @@ Goal: Make transcript-first routing work for English speech when captions are un
 |-------|------|-------|--------|-----------|
 | 17 | Bounded ASR foundation | 1/1 | ✅ Complete | 2026-08-09 |
 | 18 | Local transcript fallback | 1/1 | ✅ Complete | 2026-08-10 |
-| 19 | Local speech UX and proof | TBD | 🔵 Ready to plan | - |
+| 19 | Local speech UX and proof | 1 planned | 🚧 Planning | - |
 
 ## Phase Details
 
@@ -34,7 +34,7 @@ Plans: 1/1 complete (`18-01` — bounded captions-first local ASR fallback; [sum
 ### Phase 19: Local speech UX and proof
 
 Focus: Ship opt-in setup and diagnostics, deterministic English fixtures, an optional bounded live proof, and end-to-end registered-tool validation.
-Plans: TBD (defined during `/paul:plan`)
+Plans: 1 planned (`19-01` — local speech operability and installed proof; [plan](phases/19-local-speech-ux-and-proof/19-01-PLAN.md))
 
 ## Completed Milestones
 
