@@ -12,10 +12,10 @@ See: `.paul/PROJECT.md` (v0.3 shipped baseline; v0.4 active scope is in `.paul/R
 Milestone: v0.4 — Listen Locally
 Version: v0.4.0
 Phase: 18 — Local transcript fallback (2 of 3)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-09 — Completed Phase 17 bounded ASR foundation and transitioned to Phase 18 local transcript fallback.
-Next action: `/paul:plan` for Phase 18.
+Plan: 18-01 — Bounded captions-first local ASR fallback
+Status: Applied — awaiting UNIFY
+Last activity: 2026-08-10 — Completed Phase 18 APPLY with bounded captions-first local ASR, verification, and PR #24.
+Next action: `/paul:unify .paul/phases/18-local-transcript-fallback/18-01-PLAN.md`.
 
 Progress:
 - Milestone v0.4: [███░░░░░░░] 33% (1 of 3 phases complete)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Phase 18 ready to plan]
+  ✓        ✓        ○     [Phase 18 plan 18-01 ready to unify]
 ```
 
 ## Accumulated Context
@@ -74,16 +74,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-09 — Completed Phase 17 and prepared Phase 18 planning state.
-Stopped at: Phase 17 complete; Phase 18 ready to plan after the GitHub Flow merge gate.
-Next action: `/paul:plan` for Phase 18.
-Resume file: `.paul/ROADMAP.md`
-Git state: Phase 17 transition metadata is pending commit, push, and PR #23 merge.
+Last session: 2026-08-10 — Completed Phase 18 APPLY.
+Stopped at: Plan 18-01 implementation and APPLY verification complete; UNIFY not started.
+Next action: `/paul:unify .paul/phases/18-local-transcript-fallback/18-01-PLAN.md`.
+Resume file: `.paul/phases/18-local-transcript-fallback/18-01-PLAN.md`
+wip_result: not needed — RED and GREEN task commits pushed to the feature branch
+Git state: `feature/18-local-transcript-fallback` is 0 behind / 2 ahead `origin/main`; PR #24 open; Socket Security in progress.
 Resume context:
-- Phase 17 established the observed `mlx-whisper 0.4.3` JSON contract, cleaned 5,957 ms cold / 1,158 ms warm tiny-model baseline, and exact local-transcript implementation inputs.
-- Phase 18 should implement extension-gated spoken intent, captions-first → ASR-second sampling, focused `src/sampler/asr.ts` ownership, bounded diagnostics, and visual fallback on every failure.
-- Final Phase 17 gates passed: 210 tests / 2 skipped, typecheck, build, cleanup, protected files, and unchanged dependency audit.
-- No blocker; unrelated `feedback.md` and `.codegraph/graph.db` remain preserved in `stash@{0}`.
+- RED commit `7dd5d41` captured expected parser/config/sampler/extension failures before production edits; GREEN commit `60d5310` passes all focused contracts.
+- Full verification passed: 245 tests / 2 skipped, typecheck, reproducible build, package dry-run, protected-file diff, whitespace, and no residual ASR temp storage.
+- Dependency audit is unchanged at 0 critical / 4 high / 2 moderate; post-apply WALT, DEAN, and TODD enforcement passed.
+- PR #24 is open at `https://github.com/coctostan/pi-watch/pull/24`; CI was in progress when APPLY completed.
 
 ---
 *STATE.md — Updated after every significant action*

@@ -16,7 +16,7 @@ Goal: Make transcript-first routing work for English speech when captions are un
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 17 | Bounded ASR foundation | 1/1 | ✅ Complete | 2026-08-09 |
-| 18 | Local transcript fallback | TBD | Ready to plan | - |
+| 18 | Local transcript fallback | 1 | 🚧 Planning | - |
 | 19 | Local speech UX and proof | TBD | Not started | - |
 
 ## Phase Details
@@ -29,7 +29,7 @@ Plans: 1/1 complete (`17-01` — bounded `mlx-whisper` runtime research and impl
 ### Phase 18: Local transcript fallback
 
 Focus: Add captions-first → ASR-second timestamped transcript acquisition for local files and captionless supported YouTube videos, with visual fallback on every failure.
-Plans: TBD (defined during `/paul:plan`)
+Plans: 1 planned (`18-01` — bounded captions-first local ASR fallback; [plan](phases/18-local-transcript-fallback/18-01-PLAN.md))
 
 ### Phase 19: Local speech UX and proof
 
