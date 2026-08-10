@@ -6,15 +6,35 @@ A pi extension that lets the agent watch videos — answering questions by picki
 
 ## Current Milestone
 
-**v0.3 — Paste and Watch** (v0.3.0)
-Status: ✅ Complete
-Completed: 2026-08-09
-Outcome: Supported YouTube URLs resolve into owned local media, use bounded captions for transcript-first answers when available, preserve visual fallback, and work through the registered tool/command with verified Git/local installation UX.
-Archive: [archive/roadmap/v0.3.0-paste-and-watch.md](archive/roadmap/v0.3.0-paste-and-watch.md)
+**v0.4 — Listen Locally** (v0.4.0)
+Status: 🚧 In Progress
+Phases: 1 of 3 complete
+Goal: Make transcript-first routing work for English speech when captions are unavailable, using bounded, explicitly enabled local ASR while preserving every existing fallback.
 
-## Next Milestone
+## Phases
 
-Run `/skill:paul-discuss` to explore the next milestone, or `/skill:paul-milestone` to create one directly.
+| Phase | Name | Plans | Status | Completed |
+|-------|------|-------|--------|-----------|
+| 17 | Bounded ASR foundation | 1/1 | ✅ Complete | 2026-08-09 |
+| 18 | Local transcript fallback | TBD | Ready to plan | - |
+| 19 | Local speech UX and proof | TBD | Not started | - |
+
+## Phase Details
+
+### Phase 17: Bounded ASR foundation
+
+Focus: Establish the ASR seam, configuration, speech-intent gating, diagnostics, ownership, and resource policies.
+Plans: 1/1 complete (`17-01` — bounded `mlx-whisper` runtime research and implementation-boundary decision; [summary](phases/17-bounded-asr-foundation/17-01-SUMMARY.md))
+
+### Phase 18: Local transcript fallback
+
+Focus: Add captions-first → ASR-second timestamped transcript acquisition for local files and captionless supported YouTube videos, with visual fallback on every failure.
+Plans: TBD (defined during `/paul:plan`)
+
+### Phase 19: Local speech UX and proof
+
+Focus: Ship opt-in setup and diagnostics, deterministic English fixtures, an optional bounded live proof, and end-to-end registered-tool validation.
+Plans: TBD (defined during `/paul:plan`)
 
 ## Completed Milestones
 
@@ -28,13 +48,13 @@ Run `/skill:paul-discuss` to explore the next milestone, or `/skill:paul-milesto
 
 - Dedicated CI workflow beyond Socket-only PR checks.
 - Tier-3 batch fan-out when frames-for-many-videos becomes necessary.
-- Focused, test-backed decomposition of `src/sampler/effects.ts`.
-- Optional resolver download filesize/duration caps if runtime evidence warrants them.
-- Whisper/local ASR for videos without captions.
+- Focused, test-backed decomposition of `src/sampler/effects.ts` beyond extraction directly required by v0.4.
+- Optional resolver download filesize/duration caps beyond the ASR-specific duration policy if runtime evidence warrants them.
+- Advanced ASR capabilities: speaker diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Richer command/config surfaces and optional TypeBox peer-dependency cleanup.
 - Optional Gemini/cloud tier remains non-mandatory.
 - Scoped npm package rename/publication; until then, use Git/local Pi sources because `npm:pi-watch` is unrelated.
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 completed and archived: 2026-08-09*
+*Roadmap created: 2026-06-18 10:13:09 · v0.1 completed: 2026-06-22 · v0.2 completed: 2026-07-10 · v0.3 completed: 2026-08-09 · v0.4 created: 2026-08-09*

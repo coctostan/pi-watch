@@ -9,8 +9,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.3.0 |
-| Status | v0.3 shipped — supported YouTube URLs resolve into owned local media, prefer bounded human/automatic captions for tier 1, preserve visual fallback, and are proven through the actual registered `watch` tool and `/watch` UX. Git/local installation ships the compiled extension plus full setup/troubleshooting guidance. |
+| Version | 0.4.0 |
+| Status | v0.4 in progress — bounded local-ASR runtime behavior, resource policy, ownership, spoken-intent gating, captions-first ordering, and implementation boundaries are evidence-backed; Phase 18 local transcript fallback is ready to plan. |
 | Last Updated | 2026-08-09 |
 
 **Current system summary:**
@@ -30,12 +30,14 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 14 (2026-07-10):** YouTube-first source resolution shipped behind a generic sampler seam. Supported watch/short-link/shorts URLs canonicalize and download once through bounded argv-only `yt-dlp --ignore-config` into resolver-owned temporary storage; `sample()` uses local `mediaRef` for ffprobe/ffmpeg while preserving caller `originalRef` for transcript lookup and `WatchedFrameSet.source.ref`. Caller paths are never deleted, owned cleanup is idempotent across success/failure, and dual failures preserve both causes. Offline TDD coverage raised the suite to 171 passing tests; no npm dependency or watch/router/contract change.
 - **Phase 15 (2026-07-22):** The caption transcript pipeline is shipped. Supported YouTube refs use bounded subtitle-only `yt-dlp` with human captions preferred and one automatic-caption fallback; a pure WebVTT parser emits timestamped `TranscriptSegment`s on the existing shared timeline. All failure paths return `none` for unchanged visual fallback, owned temporary storage is cleaned exactly once, VTT candidates are confined/ordered and capped at 16 MiB before read, and cues outside media duration are dropped. Final verification: 189 passing, 0 failing, 1 default-skipped live test; typecheck/build pass; no dependency or public-contract change.
 - **Phase 16 (2026-08-09):** The end-to-end pasted-URL UX is shipped. Deterministic tests capture the real extension registrations and prove caption-backed tier 1, offline tier 3, structured resolver errors, and `/watch` steering. A default-off, finite-timeout live smoke passed through the production resolver/sampler/tool path with an explicit public URL after the default fixture became unavailable. `README.md` and `docs/YOUTUBE-SETUP.md` document Git/local Pi installation, supported URL forms, prerequisites, cleanup/fallback, smoke reproduction, and troubleshooting; exact committed `dist/**` output keeps Pi Git installs loadable when dev tooling is omitted. Final gates: 194 passed, 2 opt-in tests skipped by default, typecheck/build pass.
+- **Phase 17 (2026-08-09):** The bounded local-ASR foundation is decision-complete. `mlx-whisper 0.4.3` exposes a usable `mlx_whisper` console contract with timestamped JSON; a 9.696-second deterministic English fixture measured 5,957 ms cold and 1,158 ms warm with `mlx-community/whisper-tiny`. The selected design gates explicitly enabled ASR to spoken intent at the extension, keeps captions first, passes only a narrow policy into `sample`, targets a focused executable boundary, treats package/model caches as user-owned, and preserves visual fallback on every failure.
 
 ## Scope Snapshot
 ### Completed
 - v0.1: sampler data contract ✓ → sampler implementation ✓ → router ✓ → `watch` tool primitive ✓ → tier adapters (1/2/3) ✓ → config surface ✓ → `/watch` command ✓ → batching ✓.
 - v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
 - v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓ → Phase 16 end-to-end URL UX, live proof, distributable, and user documentation ✓. Complete 2026-08-09.
+- v0.4: Phase 17 bounded ASR foundation ✓; Phase 18 local transcript fallback and Phase 19 local speech UX/proof remain.
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -51,7 +53,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- ✓ Current baseline: 194 passing tests, 2 default-skipped opt-in live tests; typecheck/build pass. Supported YouTube URLs resolve into owned media, captions can reach tier 1, absent captions preserve visual fallback, and the registered tool/command plus Git/local installation UX are proven.
+- ✓ Current baseline: 210 passing tests, 2 default-skipped opt-in live tests; typecheck/build pass. The v0.3 YouTube/caption/install baseline remains intact, and Phase 17 adds observed `mlx-whisper` runtime evidence plus bounded local-ASR implementation policy without production or dependency changes.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
@@ -95,6 +97,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 16) Commit exact `npm run build` output under `dist/**`; do not add prepare/install hooks or dependencies | Pi Git-package installs omit dev dependencies, so clean installs cannot compile TypeScript even when a prepare hook exists | 2026-08-09 | ✓ Validated (Phase 16) |
 | (Phase 16) Use verified Git/local-path Pi sources and reject `npm:pi-watch` | The unscoped registry package is unrelated; scoped rename/publication is outside v0.3 | 2026-08-09 | Active release constraint |
 | (Phase 16) Keep real YouTube proof opt-in, bounded, and overrideable with a public URL | External fixtures and network availability are unstable, but default tests must remain deterministic/offline | 2026-08-09 | ✓ Validated (Phase 16) |
+| (Phase 17) Gate explicitly enabled local ASR at the extension for spoken intent only; preserve captions-first acquisition and visual fallback on every failure | Keeps question classification pure, avoids unnecessary model work, and maintains cheapest-path discipline without passing question text into sampler effects | 2026-08-09 | ✓ Validated (Phase 17 research) |
+| (Phase 17) Target the direct `mlx_whisper` executable in a focused ASR boundary; user owns package/model caches and the adapter owns only temporary JSON output | The console script emits stable timestamped JSON, while hidden `uvx` package setup measured roughly 2.09 GB before model data | 2026-08-09 | ✓ Validated (Phase 17 research) |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -104,4 +108,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-09 after v0.3 milestone completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-09 after Phase 17 completion*
