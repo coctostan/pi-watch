@@ -2,23 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (v0.3 shipped baseline; v0.4 active scope is in `.paul/ROADMAP.md`)
+See: `.paul/PROJECT.md` (v0.4 shipped baseline; milestone reconciliation/release remains)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.4 — Listen Locally: Phase 19 setup and diagnostics UX, deterministic English fixtures, bounded live proof, and installed end-to-end validation.
+**Current focus:** v0.4 — Listen Locally is phase-complete; reconcile the milestone and release/tag state after the Phase 19 PR merge.
 
 ## Current Position
 
 Milestone: v0.4 — Listen Locally
 Version: v0.4.0
 Phase: 19 — Local speech UX and proof (3 of 3)
-Plan: 19-01 — Local speech operability and installed proof
-Status: APPLY complete — ready for UNIFY
-Last activity: 2026-08-10 — Completed Plan 19-01 APPLY with a bounded synthetic English fixture, compiled registered-tool fallback/default-skipped live proof, local-ASR setup and diagnostic UX, and v0.4.0 package metadata reconciliation; all required checks passed and PR #26 is open.
-Next action: `/paul:unify .paul/phases/19-local-speech-ux-and-proof/19-01-PLAN.md`.
+Plan: 19-01 — Complete
+Status: Milestone phase work complete — GitHub Flow merge gate pending
+Last activity: 2026-08-10 — Completed Phase 19 UNIFY reconciliation and transition preparation: all four acceptance criteria pass, no deltas or blockers remain, and v0.4 is 3 of 3 phases complete.
+Next action: `/paul:milestone` to reconcile and complete v0.4 after the required PR merge gate.
 
 Progress:
-- Milestone v0.4: [███████░░░] 67% (2 of 3 phases complete)
+- Milestone v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans; milestone reconciliation pending)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
 - Milestone v0.1: [██████████] 100% ✓ (Phases 1–9)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [Plan 19-01 APPLY complete; awaiting UNIFY]
+  ✓        ✓        ✓     [Plan 19-01 and Phase 19 complete; merge gate pending]
 ```
 
 ## Accumulated Context
@@ -50,6 +50,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - v0.4 local speech coverage uses explicitly enabled, on-demand `mlx-whisper` on Apple Silicon; executable and model choices remain configurable.
 - Captions remain preferred; ASR runs only for speech-oriented questions when captions are absent, uses a configurable hard duration cap, and degrades to visual tiers on every failure.
 - Local ASR executes configured `mlx_whisper` directly with hard duration/timeout/output bounds, validates unknown JSON in a pure core, owns only adapter-created output, and exposes typed diagnostics without refs, transcript text, stderr, or cache paths.
+- External-model acceptance uses deterministic failure through the manifest-declared compiled registration by default; real `mlx_whisper` proof remains exact-opt-in, finite, default-skipped, and user-managed.
 
 ### Deferred Issues
 
@@ -75,17 +76,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-10 — Completed and parent-verified both Plan 19-01 APPLY tasks; UNIFY has not started.
-Stopped at: APPLY complete with task commits pushed and PR #26 open; no implementation blockers.
-Next action: `/paul:unify .paul/phases/19-local-speech-ux-and-proof/19-01-PLAN.md`.
-Resume file: `.paul/phases/19-local-speech-ux-and-proof/19-01-PLAN.md`
-wip_result: not needed — task commits `d6a5466` and `fded72d` are pushed on the feature branch
-Git state: `feature/19-local-speech-ux-and-proof`, 0 behind / 2 ahead `origin/main`; PR #26 open at `https://github.com/coctostan/pi-watch/pull/26`; no CI checks reported.
+Last session: 2026-08-10 — Completed Plan 19-01 reconciliation, module finalization, and Phase 19 transition preparation.
+Stopped at: Phase 19 and all v0.4 phase work complete; GitHub Flow push/CI/merge/base-sync gate remains before milestone routing is exposed.
+Next action: `/paul:milestone` to reconcile and complete v0.4 after the required PR merge gate.
+Resume file: `.paul/phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md`
+phase_result: `.paul/phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md` — AC-1 through AC-4 pass; no spec deltas or blockers
+Git state: Phase 19 lifecycle transition prepared on `feature/19-local-speech-ux-and-proof`; PR #26 merge gate pending finalized UNIFY commit/push and CI recheck.
 Resume context:
-- Task 1 committed a 66,661-byte / 9.149-second synthetic English fixture and manifest plus compiled registered-tool AC-1/AC-2 proof; AC-3 remains exact-opt-in and default-skipped because no user-managed global executable was supplied.
-- Task 2 added `docs/LOCAL-ASR-SETUP.md`, refreshed README local-speech/install UX, reconciled only root package/lock versions to 0.4.0, and added AC-4 packed-extension/docs invariants.
-- Parent verification passed: 248 tests / 3 skipped, typecheck, build, package dry-run, unchanged `dist/**`, whitespace, fixture bounds/hash/probe, protected-file scope, and audit at 0 critical / 4 high / 2 moderate / 0 low with no dependency-tree delta.
-- Post-apply advisory and enforcement dispatches completed with no blockers; WALT, DEAN, and TODD passed.
+- Phase 19 shipped a 66,661-byte / 9.149-second synthetic English fixture and registered compiled-extension proof for private missing-executable diagnostics, tier-3 fallback, and an exact-opt-in live-ASR path.
+- README and `docs/LOCAL-ASR-SETUP.md` now cover explicit setup, all configuration keys and typed failure remediation, ownership/privacy, bounded proof, limits, and supported Git/local installation.
+- Final verification passed with 248 tests / 3 skipped, typecheck, build, package dry-run, unchanged `dist/**`, fixture/protected-scope/whitespace checks, and audit at 0 critical / 4 high / 2 moderate / 0 low.
+- Post-unify WALT, SKIP, CODI, and RUBY evidence is durable in the SUMMARY; quality/CODI histories and the module ledger are updated.
 
 ---
 *STATE.md — Updated after every significant action*
