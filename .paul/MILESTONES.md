@@ -4,8 +4,54 @@ Completed milestone log for this project.
 
 | Milestone | Completed | Duration | Stats |
 |-----------|-----------|----------|-------|
+| v0.4 — Listen Locally | 2026-08-11 | 2 days elapsed | 3 phases, 3 plans, 14 key files |
 | v0.3 — Paste and Watch | 2026-08-09 | 30 days elapsed | 3 phases, 3 plans, 83 unique files |
 | v0.2 — Tier 2, For Real | 2026-07-10 | 16 days elapsed | 4 phases, 4 plans, 10 unique files |
+
+---
+
+## ✅ v0.4 — Listen Locally
+
+**Version:** v0.4.0
+**Completed:** 2026-08-11
+**Duration:** 2 days elapsed (phase work began 2026-08-09; milestone finalized 2026-08-11)
+**Release tag:** `v0.4.0` (create after GitHub Flow merge)
+**Roadmap archive:** [archive/roadmap/v0.4.0-listen-locally.md](archive/roadmap/v0.4.0-listen-locally.md)
+**Adherence audit:** [audits/M4-AUDIT.md](audits/M4-AUDIT.md)
+
+### Stats
+
+| Metric | Value |
+|--------|-------|
+| Phases | 3 (17–19) |
+| Plans | 3 |
+| Unique key product/test/doc/research files | 14 |
+| Parent final tests | 248 passed, 3 opt-in tests skipped by default |
+| Final quality | Parent typecheck, build, and diff checks pass; isolated ambient npm-cache failure is routed as F8/R22 |
+| Dependency audit | 0 critical / 4 high / 2 moderate in the unchanged dev tree |
+
+### Key Accomplishments
+
+- Established the observed `mlx_whisper` executable/JSON contract and measured a bounded Apple Silicon baseline.
+- Shipped explicitly enabled captions-first local English ASR with timestamped tier-1 transcript segments.
+- Added duration/timeout/output policy, typed privacy-safe diagnostics, narrow output ownership, and visual fallback across every failure path.
+- Proved the manifest-declared compiled package through deterministic missing-executable execution without hidden model or network setup.
+- Added bounded synthetic speech evidence, an exact-opt-in live-model proof, and complete operator setup/remediation guidance.
+- Finished with a parent result of 248 passing tests / 3 default-skipped opt-in tests and passing typecheck/build gates; isolated review's ambient npm-cache failure remains explicit routed follow-up F8/R22.
+
+### Key Decisions
+
+- Gate explicitly enabled local ASR at the extension for spoken intent only; preserve captions first and visual fallback on every failure.
+- Invoke the configured direct `mlx_whisper` executable; keep package/model installation, caches, and lifecycle user-managed.
+- Own only adapter-created output and expose only typed diagnostics without refs, transcript text, stderr, credentials, or cache paths.
+- Keep default acceptance deterministic through the compiled registration boundary; real-model proof remains exact-opt-in and finite.
+- Reconcile product intent through the mandatory R1–R22 adherence audit without representing F1–F17 routed fixes as already complete.
+
+### Source Summaries
+
+- [Phase 17 — Bounded ASR foundation](phases/17-bounded-asr-foundation/17-01-SUMMARY.md)
+- [Phase 18 — Local transcript fallback](phases/18-local-transcript-fallback/18-01-SUMMARY.md)
+- [Phase 19 — Local speech UX and proof](phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md)
 
 ---
 

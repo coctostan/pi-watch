@@ -10,8 +10,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.4.0 |
-| Status | v0.4 complete — bounded captions-first local ASR, typed fallback diagnostics, deterministic registered-package proof, operator setup UX, and v0.4.0 metadata are shipped and verified. |
-| Last Updated | 2026-08-10 |
+| Status | M4 / v0.4 milestone reconciliation complete — bounded captions-first local ASR and compiled operator proof are shipped; release PR merge and v0.4.0 tag gates remain. |
+| Last Updated | 2026-08-11 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -41,6 +41,14 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓ → Phase 16 end-to-end URL UX, live proof, distributable, and user documentation ✓. Complete 2026-08-09.
 - v0.4: Phase 17 bounded ASR foundation ✓ → Phase 18 bounded captions-first local transcript fallback ✓ → Phase 19 local speech setup, diagnostics, deterministic registered-package proof, and v0.4.0 metadata ✓. Complete 2026-08-10.
 
+### Active / Routed Follow-up
+- [ ] R3 — Make question-derived OCR resolution effective before frame decoding.
+- [ ] R3 — Acquire sufficient transcript evidence before scene detection/frame decoding so tier-1 success avoids frame extraction.
+- [ ] R8 — Support quoted `/watch` local paths containing spaces.
+- [ ] R18 — Enforce absolute ASR duration/timeout ceilings inside the exported adapter boundary.
+- [ ] R22 — Make nested package proof use a test-owned npm cache.
+- [ ] R4/R6 — Reconcile router rationale and sampled-frame/native-video terminology without changing runtime policy.
+
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
 - Subagent fan-out batching for v0.1 (deferred).
@@ -55,7 +63,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- ✓ Current baseline: 248 passing tests, 3 default-skipped opt-in live tests; typecheck, reproducible build, package dry-run, fixture bounds, and registered compiled-extension checks pass. v0.4 ships bounded captions-first local ASR plus deterministic operator/package proof with no production or dependency change in Phase 19.
+- ✓ Parent baseline: 248 passing tests, 3 default-skipped opt-in live tests; typecheck, reproducible build, fixture bounds, and registered compiled-extension checks pass. Isolated review reproduced 247 passed / 3 skipped / 1 failed when nested `npm pack` selected an inaccessible ambient cache; hermetic cache ownership remains routed as F8/R22.
+- ✓ M4 adherence audit: one validated verdict and tagged-evidence/no-test-found record for R1–R22, all document-health lenses, routed F1–F17 findings, explicit author intent re-affirmation after final reconciliation, and passing parent verification.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
 ## Key Decisions
@@ -103,6 +112,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (Phase 17→18) Target the direct `mlx_whisper` executable in a focused ASR boundary; user owns package/model caches and the adapter owns only temporary JSON output | The console script emits stable timestamped JSON, while hidden `uvx` package setup measured roughly 2.09 GB before model data | 2026-08-09 | ✓ Validated (Phase 18) |
 | (Phase 18) Keep local ASR exactly opt-in, hard-bound duration/timeout/output, and expose only typed privacy-safe diagnostics in single and batch results | Model work must stay explicit and finite; refs, transcript text, stderr, cache paths, and credentials are unnecessary for fallback diagnosis | 2026-08-10 | Active |
 | (Phase 19) Prove local speech through deterministic missing-executable execution of the manifest-declared compiled registration; keep real `mlx_whisper` exact-opt-in and default-skipped | The distributable package boundary must be tested without hidden model setup, network work, or machine-specific prerequisites. | 2026-08-10 | ✓ Validated (Phase 19) |
+| (M4 close) Keep stable R1–R22 intent explicit and route known discrepancies without marking them fixed | Mandatory milestone audit reconciled product documentation, preserved author intent, and recorded concrete R3/R4/R6/R8/R18/R22 follow-up chains | 2026-08-11 | Active release constraint |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -112,4 +122,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-10 after Phase 19 completion*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-11 after M4 milestone reconciliation*

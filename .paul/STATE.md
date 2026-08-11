@@ -2,23 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (v0.4 shipped baseline; milestone reconciliation/release remains)
+See: `.paul/PROJECT.md` (M4/v0.4 milestone reconciled; release merge/tag gate remains)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** v0.4 — Listen Locally is phase-complete; merge the bounded PALS identifier repair, then resume milestone adherence audit and release reconciliation.
+**Current focus:** Merge the completed M4 release-reconciliation artifacts through GitHub Flow, sync `main`, and create/push the v0.4.0 tag before defining the next milestone.
 
 ## Current Position
 
 Milestone: M4 — v0.4 — Listen Locally
 Version: v0.4.0
-Phase: 19 — Local speech UX and proof (3 of 3)
-Plan: 19-01 — Complete
-Status: Milestone phase work complete — Fix 03 GitHub Flow merge gate pending
-Last activity: 2026-08-10 — Completed standard Fix 03: recorded v0.4 as M4 and assigned stable R1–R15 identifiers without changing requirement intent; 248 tests / 3 skipped, typecheck, build, diff, and dependency audit gates pass.
-Next action: Complete the Fix 03 PR merge gate, sync `main`, then resume `/paul:milestone` for the mandatory M4 adherence audit.
+Phase: None active (M4 phases 17–19 complete)
+Plan: None
+Status: M4 milestone reconciliation complete — release PR merge and v0.4.0 tag gates pending
+Last activity: 2026-08-11 — Completed the mandatory M4 adherence audit after final reconciliation, archived phases 17–19, and prepared milestone release artifacts; parent verification passes with 248 tests / 3 skipped, typecheck, build, and diff checks, while the isolated ambient-cache failure remains routed as F8/R22.
+Next action: Complete the M4 release PR merge gate, sync `main`, then create and push annotated tag `v0.4.0`.
 
 Progress:
-- Milestone v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans; milestone reconciliation pending)
+- Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans; release merge/tag gate pending)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
 - Milestone v0.1: [██████████] 100% ✓ (Phases 1–9)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Plan 19-01 and Phase 19 complete; Fix 03 merge gate pending]
+  ○        ○        ○     [M4 complete — release merge/tag gate pending]
 ```
 
 ## Accumulated Context
@@ -61,6 +61,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Focused decomposition of `src/sampler/effects.ts` beyond work directly enabling bounded ASR.
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
+- Audit-routed follow-up: R3 OCR resolution composition and transcript-before-frame cost path, R8 quoted `/watch` paths, R18 exported-boundary ASR ceilings, R22 hermetic package proof, and R4/R6 comment/terminology reconciliation.
 
 ### Release Concerns
 
@@ -77,17 +78,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-10 — Completed standard Fix 03 and all post-apply/post-unify module reconciliation.
-Stopped at: Fix 03 complete on `fix/03-pals-audit-identifiers`; GitHub Flow push/CI/merge/base-sync gate remains before M4 milestone-close audit resumes.
-Next action: Complete the Fix 03 PR merge gate, sync `main`, then resume `/paul:milestone`.
-Resume file: `.paul/phases/19-local-speech-ux-and-proof/19-02-FIX-SUMMARY.md`
-fix_result: `.paul/phases/19-local-speech-ux-and-proof/19-02-FIX-SUMMARY.md` — M4 and R1–R15 identifiers are canonical; product intent and the main loop are unchanged
-Git state: Fix 03 prepared on `fix/03-pals-audit-identifiers`; push/PR/CI/merge/base-sync gate pending.
+Last session: 2026-08-11 — Completed M4 milestone adherence audit and release reconciliation after final closure review.
+Stopped at: M4 closure artifacts prepared on `audit/m4-adherence`; GitHub Flow PR/CI/merge/base-sync and v0.4.0 tag gates remain.
+Next action: Complete the M4 release PR merge gate, sync `main`, then create and push annotated tag `v0.4.0`.
+Resume file: `.paul/audits/M4-AUDIT.md`
+Git state: `audit/m4-adherence` contains the completed M4 audit, PRD reconciliation, milestone log/archive, compact roadmap, evolved project state, and release continuity updates; push/PR/CI/merge/base-sync pending.
 Resume context:
-- STATE and ROADMAP now identify the current milestone as M4 — v0.4 — Listen Locally.
-- PRD now assigns exactly one stable identifier each to R1–R15 in existing requirement order and buckets, with no wording or intent change.
-- Verification passed with 248 tests / 3 skipped, typecheck, build, unchanged `dist/**`, whitespace checks, and audit at 0 critical / 4 high / 2 moderate / 0 low.
-- Post-unify WALT, SKIP, CODI, and RUBY evidence is durable in the Fix 03 SUMMARY; quality and CODI histories are updated.
+- `.paul/audits/M4-AUDIT.md` is complete with R1–R22 verdicts, tagged-evidence/no-test-found records, all four document-health lenses, F1–F17 routes, and explicit author intent confirmation after final reconciliation.
+- `.paul/archive/roadmap/v0.4.0-listen-locally.md` is the authoritative completed phase 17–19 archive; live ROADMAP is compact.
+- MILESTONES and PROJECT record M4/v0.4 completion plus routed R3/R4/R6/R8/R18/R22 follow-up without claiming those fixes are complete.
+- Parent verification passes with 248 tests / 3 skipped, typecheck, build, and `git diff --check`; isolated review's 247 passed / 1 failed ambient npm-cache outcome is preserved in the audit and routed through F8/R22.
+- Version alignment is v0.4.0 across PROJECT, ROADMAP, STATE, package metadata, and lock metadata; create the release tag only after the closure PR is merged to `main`.
 
 ---
 *STATE.md — Updated after every significant action*
