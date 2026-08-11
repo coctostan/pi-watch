@@ -2,23 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (M4/v0.4 milestone reconciled; release merge/tag gate remains)
+See: `.paul/PROJECT.md` (M4/v0.4 released baseline; ready for next milestone definition)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Merge the completed M4 release-reconciliation artifacts through GitHub Flow, sync `main`, and create/push the v0.4.0 tag before defining the next milestone.
+**Current focus:** Define the next milestone from the shipped v0.4 baseline and audit-routed follow-up.
 
 ## Current Position
 
-Milestone: M4 — v0.4 — Listen Locally
+Milestone: Awaiting next milestone (M4 — v0.4 — Listen Locally complete)
 Version: v0.4.0
-Phase: None active (M4 phases 17–19 complete)
+Phase: None active
 Plan: None
-Status: M4 milestone reconciliation complete — release PR merge and v0.4.0 tag gates pending
-Last activity: 2026-08-11 — Completed the mandatory M4 adherence audit after final reconciliation, archived phases 17–19, and prepared milestone release artifacts; parent verification passes with 248 tests / 3 skipped, typecheck, build, and diff checks, while the isolated ambient-cache failure remains routed as F8/R22.
-Next action: Complete the M4 release PR merge gate, sync `main`, then create and push annotated tag `v0.4.0`.
+Status: M4 / v0.4.0 complete and released — ready for next milestone
+Last activity: 2026-08-11 — Merged M4 release reconciliation through PR #28, synchronized `main`, finalized release continuity, and created annotated tag `v0.4.0`; parent verification passes while isolated ambient-cache failure remains routed as F8/R22.
+Next action: `/paul:discuss-milestone` to define the next milestone.
 
 Progress:
-- Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans; release merge/tag gate pending)
+- Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
 - Milestone v0.1: [██████████] 100% ✓ (Phases 1–9)
@@ -28,7 +28,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [M4 complete — release merge/tag gate pending]
+  ○        ○        ○     [M4 complete — ready for next milestone]
 ```
 
 ## Accumulated Context
@@ -78,17 +78,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-11 — Completed M4 milestone adherence audit and release reconciliation after final closure review.
-Stopped at: M4 closure artifacts prepared on `audit/m4-adherence`; GitHub Flow PR/CI/merge/base-sync and v0.4.0 tag gates remain.
-Next action: Complete the M4 release PR merge gate, sync `main`, then create and push annotated tag `v0.4.0`.
-Resume file: `.paul/audits/M4-AUDIT.md`
-Git state: `audit/m4-adherence` contains the completed M4 audit, PRD reconciliation, milestone log/archive, compact roadmap, evolved project state, and release continuity updates; push/PR/CI/merge/base-sync pending.
+Last session: 2026-08-11 — Completed and released M4 / v0.4.0 after adherence audit and GitHub Flow reconciliation.
+Stopped at: M4 release complete; no phase or plan active.
+Next action: `/paul:discuss-milestone` to define the next milestone.
+Resume file: `.paul/MILESTONES.md`
+Git state: M4 closure PR #28 merged; release-finalization commit merged to `main`; local `main` synchronized; annotated tag `v0.4.0` created and pushed.
 Resume context:
 - `.paul/audits/M4-AUDIT.md` is complete with R1–R22 verdicts, tagged-evidence/no-test-found records, all four document-health lenses, F1–F17 routes, and explicit author intent confirmation after final reconciliation.
-- `.paul/archive/roadmap/v0.4.0-listen-locally.md` is the authoritative completed phase 17–19 archive; live ROADMAP is compact.
-- MILESTONES and PROJECT record M4/v0.4 completion plus routed R3/R4/R6/R8/R18/R22 follow-up without claiming those fixes are complete.
-- Parent verification passes with 248 tests / 3 skipped, typecheck, build, and `git diff --check`; isolated review's 247 passed / 1 failed ambient npm-cache outcome is preserved in the audit and routed through F8/R22.
-- Version alignment is v0.4.0 across PROJECT, ROADMAP, STATE, package metadata, and lock metadata; create the release tag only after the closure PR is merged to `main`.
+- `.paul/archive/roadmap/v0.4.0-listen-locally.md` is authoritative completed phase 17–19 history; live ROADMAP is compact.
+- Audit-routed R3/R4/R6/R8/R18/R22 work remains follow-up and is not represented as fixed.
+- Parent verification passes with 248 tests / 3 skipped, typecheck, build, and `git diff --check`; isolated ambient npm-cache failure remains documented and routed through F8/R22.
+- Version alignment is v0.4.0 across PROJECT, ROADMAP, STATE, package metadata, lock metadata, and release tag.
 
 ---
 *STATE.md — Updated after every significant action*

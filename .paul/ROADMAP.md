@@ -7,7 +7,7 @@ A Pi extension that watches videos through the cheapest available path—timesta
 ## Current Milestone
 
 **M4 — v0.4 — Listen Locally** (v0.4.0)
-Status: ✅ Complete — GitHub Flow release merge/tag gate pending
+Status: ✅ Complete
 Completed: 2026-08-11
 Phases: 17–19 (3 plans)
 Outcome: Captionless English speech can reach transcript-first routing through explicitly enabled bounded local ASR, with typed private diagnostics, visual fallback, deterministic compiled-package proof, and complete operator guidance.
@@ -16,7 +16,7 @@ Audit: [audits/M4-AUDIT.md](audits/M4-AUDIT.md)
 
 ## Next Milestone
 
-Run `/paul:discuss-milestone` or `/paul:milestone` after the v0.4.0 release merge/tag gate to define the next milestone.
+Run `/paul:discuss-milestone` or `/paul:milestone` to define the next milestone.
 
 ## Completed Milestones
 
@@ -49,4 +49,4 @@ Run `/paul:discuss-milestone` or `/paul:milestone` after the v0.4.0 release merg
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · M4/v0.4 milestone reconciled: 2026-08-11 · Release merge/tag gate pending*
+*Roadmap created: 2026-06-18 10:13:09 · M4/v0.4 milestone completed: 2026-08-11*

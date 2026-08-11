@@ -15,7 +15,7 @@ Completed milestone log for this project.
 **Version:** v0.4.0
 **Completed:** 2026-08-11
 **Duration:** 2 days elapsed (phase work began 2026-08-09; milestone finalized 2026-08-11)
-**Release tag:** `v0.4.0` (create after GitHub Flow merge)
+**Release tag:** `v0.4.0`
 **Roadmap archive:** [archive/roadmap/v0.4.0-listen-locally.md](archive/roadmap/v0.4.0-listen-locally.md)
 **Adherence audit:** [audits/M4-AUDIT.md](audits/M4-AUDIT.md)
 
