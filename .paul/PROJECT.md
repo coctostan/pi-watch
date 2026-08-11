@@ -10,7 +10,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.4.0 |
-| Status | M4 / v0.4 milestone reconciliation complete — bounded captions-first local ASR and compiled operator proof are shipped; release PR merge and v0.4.0 tag gates remain. |
+| Status | M4 / v0.4 complete — bounded captions-first local ASR, compiled operator proof, milestone reconciliation, and v0.4.0 release metadata are shipped and verified. |
 | Last Updated | 2026-08-11 |
 
 **Current system summary:**
