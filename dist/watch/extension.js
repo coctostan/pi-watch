@@ -167,13 +167,13 @@ export default function watchExtension(pi) {
             let sceneDetectionDiagnostic;
             let asrDiagnostic;
             let stagedDecision;
-            const intent = classifyQuestion(params.question).intent;
-            const asrEligible = config.localAsr !== null && isLocalAsrEligible(intent);
+            const questionPolicy = classifyQuestion(params.question);
+            const asrEligible = config.localAsr !== null && isLocalAsrEligible(questionPolicy.intent);
             try {
                 const set = await sample({
                     ref: params.ref,
                     budget: params.budget ?? config.budget,
-                    resolution: params.resolution ?? config.resolution,
+                    resolution: params.resolution ?? (questionPolicy.resolution === "high" ? "high" : config.resolution),
                     ...(params.start === undefined ? {} : { start: params.start }),
                     ...(params.end === undefined ? {} : { end: params.end }),
                     needsVisualEvidence: (context) => {
@@ -268,12 +268,12 @@ export default function watchExtension(pi) {
                     const { ref, question } = item;
                     const itemIndex = params.items.indexOf(item);
                     let stagedDecision;
-                    const intent = classifyQuestion(question).intent;
-                    const asrEligible = config.localAsr !== null && isLocalAsrEligible(intent);
+                    const questionPolicy = classifyQuestion(question);
+                    const asrEligible = config.localAsr !== null && isLocalAsrEligible(questionPolicy.intent);
                     const set = await sample({
                         ref,
                         budget: params.budget ?? config.budget,
-                        resolution: params.resolution ?? config.resolution,
+                        resolution: params.resolution ?? (questionPolicy.resolution === "high" ? "high" : config.resolution),
                         ...(params.start === undefined ? {} : { start: params.start }),
                         ...(params.end === undefined ? {} : { end: params.end }),
                         needsVisualEvidence: (context) => {

@@ -406,14 +406,15 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 	});
 
 	it.each([
-		["What happens after the camera moves?", "visual"],
-		["Read the sign: what does it say?", "on-screen-text"],
-	])("requests visual evidence for %s despite captions", async (question, intent) => {
+		["What happens after the camera moves?", "visual", "low"],
+		["Read the sign: what does it say?", "on-screen-text", "high"],
+	] as const)("requests visual evidence for %s despite captions", async (question, intent, resolution) => {
 		const ref = `${intent}.mp4`;
 		sampleMock.mockImplementationOnce(async (options: {
 			needsVisualEvidence?: (context: { hasTranscript: boolean }) => boolean;
 		}) => {
 			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
+			expect(options).toMatchObject({ resolution });
 			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(true);
 			return makeSet(ref, {
 				transcriptSource: "captions",
@@ -448,27 +449,37 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 		expect(result).toMatchObject({ details: { tier: 3, tiers: [2, 3] } });
 	});
 
-	it("stages each batch item independently and short-circuits broad and mixed items", async () => {
+	it("stages each batch item independently and preserves visual OCR routing", async () => {
 		const items = [
 			{ ref: "broad.mp4", question: "Analyze this video." },
 			{ ref: "mixed.mp4", question: "What did they say while the camera moves?" },
+			{ ref: "ocr.mp4", question: "Read the sign: what does it say?" },
 		];
 		sampleMock.mockImplementation(async (options: {
 			ref: string;
+			resolution: "low" | "high";
 			needsVisualEvidence?: (context: { hasTranscript: boolean }) => boolean;
 		}) => {
 			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
-			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(false);
-			return makeTranscriptOnlySet(options.ref);
+			const isOcr = options.ref === "ocr.mp4";
+			expect(options.resolution).toBe(isOcr ? "high" : "low");
+			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(isOcr);
+			return isOcr
+				? makeSet(options.ref, {
+						transcriptSource: "captions",
+						transcript: makeTranscriptOnlySet(options.ref).transcript,
+					})
+				: makeTranscriptOnlySet(options.ref);
 		});
 
 		const result = await capturedWatchBatch(registerExtension()).execute("phase22-batch", { items });
 		expect(result).toMatchObject({
 			details: {
-				tiers: [1, 1],
+				tiers: [1, 1, 3],
 				evidence: [
 					{ available: { frames: { count: 0 } } },
 					{ available: { frames: { count: 0 } } },
+					{ available: { frames: { count: 1 } } },
 				],
 			},
 		});
