@@ -457,11 +457,7 @@ export default function watchExtension(pi: ExtensionAPI): void {
 						count: params.items.length,
 						tiers: result.items.map((item) => item.tier),
 						errors: result.items.filter((item) => item.status === "error").length,
-						...(result.evidence.some(
-							(item) => item.available.transcript.count > 0,
-						)
-							? { evidence: result.evidence }
-							: {}),
+						evidence: result.evidence,
 						truncation: {
 							aggregate: result.aggregateTruncated,
 							final: bounded.truncated,

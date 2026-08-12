@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import { basename, join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 import { parseWebVtt } from "./captions.js";
+import { parseYouTubeStartSeconds } from "./range.js";
 export { normalizeCaptionSegments, parseWebVtt } from "./captions.js";
 const execFileAsync = promisify(execFile);
 /** Default per-spawn timeout. External tools must never hang the sampler. */
@@ -148,10 +149,12 @@ export function normalizeYouTubeUrl(ref) {
 export function classifySourceRef(ref) {
     if (/^\s*https?:/i.test(ref)) {
         const normalized = normalizeYouTubeUrl(ref);
+        const startSeconds = parseYouTubeStartSeconds(ref);
         return {
             kind: "youtube",
             originalRef: ref,
             ...normalized,
+            ...(startSeconds === undefined ? {} : { startSeconds }),
         };
     }
     return { kind: "local", originalRef: ref, mediaRef: ref };
@@ -230,6 +233,9 @@ export async function resolveSource(ref, deps = DEFAULT_RESOLVE_SOURCE_DEPS) {
             mediaRef,
             ownership: "sampler-temporary",
             cleanup,
+            ...(classification.startSeconds === undefined
+                ? {}
+                : { urlStartSeconds: classification.startSeconds }),
         };
     }
     catch (err) {

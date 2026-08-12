@@ -130,6 +130,12 @@ describe("range transcript and frame transforms", () => {
 			]),
 		).toEqual({ count: 2, firstMs: 2_000, lastMs: 5_000 });
 		expect(summarizeTranscriptCoverage([])).toEqual({ count: 0, firstMs: null, lastMs: null });
+		expect(
+			summarizeTranscriptCoverage([
+				{ startMs: 0, endMs: 10_000, text: "long", source: "captions" },
+				{ startMs: 5_000, endMs: 6_000, text: "nested", source: "captions" },
+			]),
+		).toEqual({ count: 2, firstMs: 0, lastMs: 10_000 });
 		expect(summarizeFrameCoverage([{ tMs: 2_000 }, { tMs: 3_500 }])).toEqual({
 			count: 2,
 			firstMs: 2_000,

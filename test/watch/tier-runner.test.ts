@@ -511,4 +511,86 @@ describe("returned evidence accounting", () => {
 		expect(returned.firstMs).toBe(0);
 		expect(returned.lastMs).toBe(frames[returned.count - 1]?.tMs ?? null);
 	});
+
+	it("counts duplicate transcript lines by retained occurrence rather than string membership", () => {
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, () => ({
+			startMs: 0,
+			endMs: 1_000,
+			text: "duplicate synthetic",
+			source: "captions" as const,
+		}));
+		const original = transcriptToToolResultContent(
+			makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			"What is said?",
+		);
+		const bounded = boundToolResult(
+			[...original, { type: "text", text: "required-tail-" + "x".repeat(30_000) }],
+			1,
+		);
+		const visibleOccurrences = bounded.content
+			.filter((part) => part.type === "text")
+			.flatMap((part) => part.text.split("\n"))
+			.filter((line) => line === "00:00 duplicate synthetic").length;
+
+		expect(bounded.truncated).toBe(true);
+		expect(visibleOccurrences).toBeGreaterThan(0);
+		expect(bounded.returnedEvidence.transcript.count).toBe(visibleOccurrences);
+		expect(visibleOccurrences).toBeLessThan(transcript.length);
+	});
+
+	it("counts only wholly retained multiline transcript segments in tier 1 and tier 3", async () => {
+		const transcript = [
+			{
+				startMs: 0,
+				endMs: 1_000,
+				text: Array.from({ length: DEFAULT_MAX_LINES + 500 }, () => "multiline").join("\n"),
+				source: "captions" as const,
+			},
+			{
+				startMs: 1_000,
+				endMs: 2_000,
+				text: "must be omitted",
+				source: "captions" as const,
+			},
+		];
+		const set = makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript });
+		const tier1 = await tier1Runner({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+		const tier1Returned = (tier1?.details?.returnedEvidence as any).transcript;
+		expect(tier1Returned).toEqual({ count: 0, firstMs: null, lastMs: null });
+		expect(tier1?.content.some((part) => part.type === "text" && part.text.includes("must be omitted"))).toBe(false);
+
+		const tier3Bounded = boundToolResult(framesToToolResultContent(set, "What happens?"));
+		expect(tier3Bounded.returnedEvidence.transcript).toEqual({
+			count: 0,
+			firstMs: null,
+			lastMs: null,
+		});
+		expect(
+			tier3Bounded.content.some(
+				(part) => part.type === "text" && part.text.includes("must be omitted"),
+			),
+		).toBe(false);
+	});
+
+	it("reports tier-3 transcript truncation when cues are omitted", async () => {
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text: `tier3 ${index}`,
+			source: "captions" as const,
+		}));
+		const result = await tier3Runner({
+			set: makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			decision: decision([3]),
+			question: "What happens?",
+		});
+		expect(result!.details?.truncation).toEqual({ transcript: true });
+		expect((result!.details?.returnedEvidence as any).transcript.count).toBeLessThan(
+			transcript.length,
+		);
+	});
 });

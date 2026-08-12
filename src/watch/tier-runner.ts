@@ -96,7 +96,7 @@ function availableEvidence(set: WatchedFrameSet): AvailableEvidence {
 					: {
 							count: set.transcript.length,
 							firstMs: set.transcript[0]!.startMs,
-							lastMs: set.transcript.at(-1)!.endMs,
+							lastMs: Math.max(...set.transcript.map((segment) => segment.endMs)),
 						},
 		}
 	);
@@ -139,7 +139,7 @@ function formatMs(ms: number): string {
 type TranscriptText = {
 	text: string;
 	truncated: boolean;
-	retainedLines: number;
+	retainedSegments: number;
 };
 
 type TextOutputUsage = {
@@ -200,6 +200,26 @@ function formatQuestion(question: string): string {
 	return `${result.text.replace(/\n+$/, "")}${QUESTION_TRUNCATION_NOTICE}`;
 }
 
+function retainedTranscriptSegments(
+	lines: readonly string[],
+	metadataLines: number,
+	content: string,
+): number {
+	let offset = 0;
+	let retained = 0;
+	for (let index = 0; index < lines.length; index += 1) {
+		const line = lines[index]!;
+		if (!content.startsWith(line, offset)) break;
+		const lineEnd = offset + line.length;
+		if (content.length < lineEnd) break;
+		if (index >= metadataLines) retained += 1;
+		if (content.length === lineEnd) break;
+		if (content[lineEnd] !== "\n") break;
+		offset = lineEnd + 1;
+	}
+	return retained;
+}
+
 /** Format transcript lines within pi's total documented text-output limits. */
 function formatTranscriptText(
 	lines: string[],
@@ -221,7 +241,11 @@ function formatTranscriptText(
 	);
 	const truncation = truncateHead(text, { maxBytes, maxLines });
 	if (!truncation.truncated) {
-		return { text, truncated: false, retainedLines: lines.length - metadataLines };
+		return {
+			text,
+			truncated: false,
+			retainedSegments: lines.length - metadataLines,
+		};
 	}
 
 	const retainedTranscriptLines = Math.max(0, truncation.outputLines - metadataLines);
@@ -234,7 +258,11 @@ function formatTranscriptText(
 	return {
 		text: `${truncation.content}\n\n${notice}`,
 		truncated: true,
-		retainedLines: retainedTranscriptLines,
+		retainedSegments: retainedTranscriptSegments(
+			lines,
+			metadataLines,
+			truncation.content,
+		),
 	};
 }
 
@@ -298,10 +326,22 @@ function boundContent(
 			Math.max(0, DEFAULT_MAX_LINES - reservedUsage.lines),
 		);
 		if (prefix.text !== "") {
-			const retainedLines = new Set(prefix.text.split("\n"));
-			const markers = partEvidence(part).filter(
-				(marker) => marker.kind !== "transcript" || retainedLines.has(marker.line),
-			);
+			let nextOffset = 0;
+			const markers = partEvidence(part).filter((marker) => {
+				if (marker.kind !== "transcript") return true;
+				let offset = prefix.text.indexOf(marker.line, nextOffset);
+				while (offset >= 0) {
+					const end = offset + marker.line.length;
+					const startsAtBoundary = offset === 0 || prefix.text[offset - 1] === "\n";
+					const endsAtBoundary = end === prefix.text.length || prefix.text[end] === "\n";
+					if (startsAtBoundary && endsAtBoundary) {
+						nextOffset = end;
+						return true;
+					}
+					offset = prefix.text.indexOf(marker.line, offset + 1);
+				}
+				return false;
+			});
 			boundedCore.push(markEvidence({ ...part, text: prefix.text }, markers));
 			keepNextImage = true;
 		} else {
@@ -350,7 +390,7 @@ export function boundToolResult(
 					: {
 							count: transcript.length,
 							firstMs: transcript[0]!.startMs,
-							lastMs: transcript.at(-1)!.endMs,
+							lastMs: Math.max(...transcript.map((marker) => marker.endMs)),
 						},
 		},
 	};
@@ -423,7 +463,7 @@ export function framesToToolResultContent(
 			textOutputUsage(parts),
 		);
 		const markers = set.transcript
-			.slice(0, transcript.retainedLines)
+			.slice(0, transcript.retainedSegments)
 			.map((segment) => ({
 				kind: "transcript" as const,
 				startMs: segment.startMs,
@@ -471,7 +511,7 @@ export function transcriptToToolResultContent(
 	const transcript = formatTranscriptText(transcriptLines, 0, textOutputUsage(parts));
 	if (transcript.truncated) {
 		const markers = set.transcript
-			.slice(0, transcript.retainedLines)
+			.slice(0, transcript.retainedSegments)
 			.map((segment, index) => ({
 				kind: "transcript" as const,
 				startMs: segment.startMs,
@@ -509,14 +549,18 @@ export function transcriptToToolResultContent(
 export const tier3Runner: TierRunner = async ({ set, question }) => {
 	const content = framesToToolResultContent(set, question);
 	const returned = boundToolResult(content).returnedEvidence;
+	const available = availableEvidence(set);
 	return {
 		tier: 3,
 		content,
 		details: {
 			tier: 3,
 			frameCount: set.frames.length,
-			availableEvidence: availableEvidence(set),
+			availableEvidence: available,
 			returnedEvidence: returned,
+			truncation: {
+				transcript: returned.transcript.count < available.transcript.count,
+			},
 		},
 	};
 };

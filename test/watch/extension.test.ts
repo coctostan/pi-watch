@@ -426,8 +426,26 @@ describe("registered local ASR eligibility and diagnostics", () => {
 		);
 		expect(sampleMock.mock.calls[1]?.[0]).not.toHaveProperty("localAsr");
 		expect(result).toMatchObject({ details: { asr: [{ index: 0, diagnostic }] } });
+		expect(result).toMatchObject({
+			details: {
+				evidence: [
+					{
+						index: 0,
+						available: { frames: { count: 1 } },
+						returned: { frames: { count: 0 } },
+					},
+					{
+						index: 1,
+						available: { frames: { count: 1 } },
+						returned: { frames: { count: 0 } },
+					},
+				],
+			},
+		});
 		const detailsText = JSON.stringify((result as { details: unknown }).details);
-		expect(detailsText).not.toMatch(/spoken\.mp4|visual\.mp4|transcript|stderr/i);
+		expect(detailsText).not.toMatch(
+			/spoken\.mp4|visual\.mp4|What was said|What happens visually|stderr/i,
+		);
 	});
 });
 
@@ -527,5 +545,28 @@ describe("registered range and evidence boundary", () => {
 		);
 		expect(result.details.truncation.final).toBe(true);
 		expect(JSON.stringify(result.details)).not.toMatch(/range\.mp4|synthetic line|What was said/i);
+	});
+
+	it("preserves a complete multiline cue through trailing-guidance re-bounding", async () => {
+		const transcript = [
+			{ startMs: 0, endMs: 1_000, text: "first line\nsecond line", source: "captions" as const },
+			...Array.from({ length: DEFAULT_MAX_LINES + 500 }, (_, index) => ({
+				startMs: (index + 1) * 1_000,
+				endMs: (index + 2) * 1_000,
+				text: `later ${index}`,
+				source: "captions" as const,
+			})),
+		];
+		sampleMock.mockResolvedValueOnce(
+			makeSet("multiline.mp4", { transcriptSource: "captions", transcript }),
+		);
+		const result = (await capturedWatch(registerExtension()).execute("multiline", {
+			ref: "multiline.mp4",
+			question: "What was said?",
+		})) as { details: Record<string, any> };
+
+		expect(result.details.returnedEvidence.transcript.firstMs).toBe(0);
+		expect(result.details.returnedEvidence.transcript.count).toBeGreaterThan(0);
+		expect(result.details.truncation.final).toBe(true);
 	});
 });

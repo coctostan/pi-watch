@@ -201,6 +201,16 @@ describe("range and available-evidence contract", () => {
 		expect(validateWatchedFrameSet(rangedFixture()).ok).toBe(true);
 	});
 
+	it("accepts semantic coverage regardless of property insertion order", () => {
+		const set = rangedFixture();
+		set.source.available!.frames = {
+			firstMs: 0,
+			lastMs: 2_000,
+			count: 3,
+		};
+		expect(validateWatchedFrameSet(set).ok).toBe(true);
+	});
+
 	it("rejects evidence outside the half-open range and inconsistent counts", () => {
 		const outside = rangedFixture();
 		outside.source.range = { startMs: 1_000, endMs: 3_000 };

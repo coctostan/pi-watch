@@ -10,6 +10,7 @@
  * Fully pure: input → output, no I/O, no mutation of inputs. Real frame
  * extraction / transcript fetch live behind the effect boundary in 03-02.
  */
+import { clipTranscriptToRange, summarizeFrameCoverage, summarizeTranscriptCoverage, } from "./range.js";
 /**
  * Format a millisecond offset as mm:ss, switching to h:mm:ss past one hour.
  *
@@ -41,8 +42,8 @@ export function formatTimestamp(ms) {
  * The result satisfies the transcript invariants enforced by
  * `validateWatchedFrameSet`.
  */
-export function mergeTranscript(segments, durationMs) {
-    return segments
+export function mergeTranscript(segments, durationMs, range = { startMs: 0, endMs: durationMs }) {
+    const normalized = segments
         .filter((seg) => seg.text.trim().length > 0 && seg.startMs < durationMs)
         .map((seg) => ({
         startMs: seg.startMs,
@@ -51,6 +52,9 @@ export function mergeTranscript(segments, durationMs) {
         source: seg.source,
     }))
         .sort((a, b) => a.startMs - b.startMs);
+    if (range.startMs === 0 && range.endMs === durationMs)
+        return normalized;
+    return clipTranscriptToRange(normalized, range);
 }
 /**
  * Assemble a `WatchedFrameSet` from selected times + images + transcript + metadata.
@@ -81,13 +85,19 @@ export function assembleWatchedFrameSet(input) {
             origin: sel.origin,
         };
     });
-    const transcript = mergeTranscript(input.transcript, input.durationMs);
+    const range = input.range ?? { startMs: 0, endMs: input.durationMs };
+    const transcript = mergeTranscript(input.transcript, input.durationMs, range);
     const source = {
         ref: input.ref,
         durationMs: input.durationMs,
         fpsSampled: input.fpsSampled,
         frameCount: frames.length,
-        transcriptSource: input.transcriptSource,
+        transcriptSource: transcript.length === 0 ? "none" : input.transcriptSource,
+        range,
+        available: {
+            frames: summarizeFrameCoverage(frames),
+            transcript: summarizeTranscriptCoverage(transcript),
+        },
     };
     return { source, frames, transcript };
 }

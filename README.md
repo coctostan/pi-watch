@@ -17,6 +17,7 @@ Cloud access is not required. Tier 2 and local ASR are both optional. A supporte
 - Real Pi `watch` tool plus a `/watch` convenience command.
 - Local files and three supported YouTube URL forms.
 - Scene-change sampling with gap backfill, frame budgets, and timestamps.
+- Deterministic half-open source ranges from supported YouTube timestamps or explicit whole-second `start` / `end` bounds.
 - Human YouTube captions first, with one automatic-caption fallback.
 - Exact-opt-in, bounded local English speech transcription through a user-managed `mlx_whisper` executable.
 - Explicit tier escalation: transcript → optional vision endpoint → frames.
@@ -99,14 +100,16 @@ The model-facing tool accepts this shape:
 
 ```json
 {
-  "ref": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-  "question": "What happens in the video?",
+  "ref": "https://www.youtube.com/watch?v=jNQXAC9IVRw&t=30s",
+  "question": "What happens in this section?",
+  "start": 45,
+  "end": 90,
   "budget": 8,
   "resolution": "low"
 }
 ```
 
-`budget` and `resolution` are optional. The router normally selects the effective resolution from the question.
+`start`, `end`, `budget`, and `resolution` are optional. `start` is inclusive and `end` is exclusive; both explicit fields are non-negative, conversion-safe whole seconds. An explicit `start` overrides a supported YouTube `start` or `t` timestamp, while an explicit `end` bounds either start source. `watch_batch` accepts the same optional `start` / `end` pair as shared bounds for every item. The router normally selects the effective resolution from the question.
 
 ### Use `/watch`
 
@@ -118,6 +121,8 @@ The model-facing tool accepts this shape:
 ```
 
 If Pi reports that `watch` is unavailable, confirm the package with `pi list`, enable the extension with `pi config`, check any tool allowlist/loadout, and run `/reload` or restart Pi.
+
+Tool-result details report the effective absolute `range`, fixed-size `availableEvidence`, post-bound `returnedEvidence`, and truncation flags. Coverage contains only counts and first/last offsets; it never embeds refs, questions, transcript text, stderr, credentials, environment values, or model/cache paths. Available evidence is measured after range filtering, while returned evidence counts only transcript segments and complete frame-label/image pairs that survive the final output limits.
 
 ## Optional local speech transcription
 
@@ -146,13 +151,14 @@ Failures appear as private typed diagnostics: `duration-limit`, `missing-executa
 
 For a supported YouTube URL, `pi-watch`:
 
-1. Canonicalizes the URL while retaining the caller's original reference.
+1. Canonicalizes the URL while retaining the caller's original reference and any valid start-only timestamp metadata.
 2. Runs one bounded, configuration-isolated `yt-dlp` media download in resolver-owned temporary storage.
-3. Uses `ffprobe` and `ffmpeg` to inspect the video and decode only selected frame times.
-4. Requests human captions first and makes one automatic-caption fallback attempt.
-5. For an eligible spoken question with exact local-ASR opt-in, may transcribe the already resolver-downloaded media after a caption miss.
-6. Routes a caption/local-ASR transcript to tier 1; transcript failure preserves visual fallback through tiers 2 and 3.
-7. Removes only resolver-, caption-, and adapter-owned temporary storage after success or failure. Local caller files and user-owned package/model caches are never deleted.
+3. Uses `ffprobe` to resolve the effective absolute half-open range. Explicit bounds take precedence; an end beyond the source is clamped, while invalid explicit bounds or a start at/after duration fail before scene/frame work.
+4. Runs the existing full-source scene analysis, selects cuts/backfill against range-relative duration, then decodes only budgeted absolute offsets inside the range. Phase 21 does not yet avoid scene analysis or decoding based on route choice.
+5. Requests human captions first and makes one automatic-caption fallback attempt; eligible local ASR remains captions-first and bounded.
+6. Clips intersecting caption or ASR cues only at range boundaries while preserving text, source, stable order, and absolute offsets. An empty in-range transcript records source `none` and preserves visual fallback.
+7. Routes usable range-filtered transcript evidence to tier 1, otherwise continuing through optional tier 2 and universal tier 3.
+8. Removes only resolver-, caption-, and adapter-owned temporary storage after success or failure. Local caller files and user-owned package/model caches are never deleted.
 
 Caption availability is not guaranteed. Missing or malformed captions and every local-ASR failure do not fabricate speech or block visual analysis.
 

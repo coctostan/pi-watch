@@ -6,7 +6,8 @@ import {
 	type BatchItem,
 	type WatchItemProcessor,
 } from "../../src/watch/batch.js";
-import type { TierResult } from "../../src/watch/index.js";
+import { tier1Runner, type TierResult } from "../../src/watch/index.js";
+import type { WatchedFrameSet } from "../../src/contract/index.js";
 import type { Tier } from "../../src/router/index.js";
 
 /**
@@ -35,6 +36,7 @@ function makeTierResult(tier: Tier, textValue = `tier-${tier} answer`): TierResu
 		details: {
 			tier,
 			fixture: true,
+			range: { startMs: 1_000, endMs: 2_000 },
 			availableEvidence: {
 				frames: { count: 0, firstMs: null, lastMs: null },
 				transcript: { count: 1, firstMs: 1_000, lastMs: 2_000 },
@@ -250,6 +252,7 @@ describe("runWatchBatch — range evidence and both aggregate bounds", () => {
 		expect(result.evidence).toHaveLength(8);
 		expect(result.evidence[0]).toEqual({
 			index: 0,
+			range: { startMs: 1_000, endMs: 2_000 },
 			available: {
 				frames: { count: 0, firstMs: null, lastMs: null },
 				transcript: { count: 1, firstMs: 1_000, lastMs: 2_000 },
@@ -260,5 +263,127 @@ describe("runWatchBatch — range evidence and both aggregate bounds", () => {
 			},
 		});
 		expect(JSON.stringify(result.evidence)).not.toMatch(/private-|synthetic question|short/);
+	});
+
+	it("reserves truncation notice capacity across multiple near-limit parts", async () => {
+		const result = await runWatchBatch([ITEMS[0]!], {
+			processItem: async () => ({
+				tier: 2,
+				content: [
+					{ type: "text", text: "a".repeat(WATCH_BATCH_MAX_TEXT_CHARS - 100) },
+					{ type: "text", text: "b".repeat(500) },
+				],
+			}),
+		});
+		const text = contentText(result);
+		const rawChars = result.content.reduce(
+			(sum, part) => sum + (part.type === "text" ? part.text.length : 0),
+			0,
+		);
+		expect(rawChars).toBeLessThanOrEqual(WATCH_BATCH_MAX_TEXT_CHARS);
+		expect(Buffer.byteLength(text, "utf8")).toBeLessThanOrEqual(DEFAULT_MAX_BYTES);
+		expect(text.split("\n").length).toBeLessThanOrEqual(DEFAULT_MAX_LINES);
+		expect(text).toContain("watch_batch output truncated");
+	});
+
+	it("reports the exact visible transcript prefix for a partially retained item", async () => {
+		const transcript = Array.from({ length: 1_500 }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text: `segment ${index}`,
+			source: "captions" as const,
+		}));
+		const set: WatchedFrameSet = {
+			source: {
+				ref: "private.mp4",
+				durationMs: 1_500_000,
+				fpsSampled: 1,
+				frameCount: 0,
+				transcriptSource: "captions",
+				range: { startMs: 0, endMs: 1_500_000 },
+				available: {
+					frames: { count: 0, firstMs: null, lastMs: null },
+					transcript: { count: 1_500, firstMs: 0, lastMs: 1_500_000 },
+				},
+			},
+			frames: [],
+			transcript,
+		};
+		const result = await runWatchBatch([{ ref: "private.mp4", question: "speech?" }], {
+			processItem: async () => {
+				const tierResult = await tier1Runner({
+					set,
+					question: "speech?",
+					decision: {
+						intent: "spoken",
+						resolution: "low",
+						tiers: [1, 2, 3],
+						primaryTier: 1,
+						rationale: "fixture",
+					},
+				});
+				return {
+					...tierResult!,
+					details: { ...tierResult!.details, range: set.source.range },
+				};
+			},
+		});
+		const returned = result.evidence[0]!.returned.transcript;
+		const rendered = contentText(result);
+		expect(returned.count).toBeGreaterThan(0);
+		expect(returned.count).toBeLessThan(transcript.length);
+		expect(returned.firstMs).toBe(0);
+		expect(returned.lastMs).toBe(transcript[returned.count - 1]!.endMs);
+		expect(rendered).toContain("00:00 segment 0");
+		expect(rendered).not.toContain("24:59 segment 1499");
+	});
+
+	it("does not claim a partially bounded multiline segment as returned batch evidence", async () => {
+		const multiline = Array.from({ length: DEFAULT_MAX_LINES + 500 }, () => "multiline").join("\n");
+		const set: WatchedFrameSet = {
+			source: {
+				ref: "private.mp4",
+				durationMs: 2_000,
+				fpsSampled: 1,
+				frameCount: 0,
+				transcriptSource: "captions",
+				range: { startMs: 0, endMs: 2_000 },
+				available: {
+					frames: { count: 0, firstMs: null, lastMs: null },
+					transcript: { count: 2, firstMs: 0, lastMs: 2_000 },
+				},
+			},
+			frames: [],
+			transcript: [
+				{ startMs: 0, endMs: 1_000, text: multiline, source: "captions" },
+				{ startMs: 1_000, endMs: 2_000, text: "must be omitted", source: "captions" },
+			],
+		};
+		const result = await runWatchBatch([{ ref: "private.mp4", question: "speech?" }], {
+			processItem: async () => {
+				const tierResult = await tier1Runner({
+					set,
+					question: "speech?",
+					decision: {
+						intent: "spoken",
+						resolution: "low",
+						tiers: [1, 2, 3],
+						primaryTier: 1,
+						rationale: "fixture",
+					},
+				});
+				return {
+					...tierResult!,
+					details: { ...tierResult!.details, range: set.source.range },
+				};
+			},
+		});
+
+		expect(result.evidence[0]!.returned.transcript).toEqual({
+			count: 0,
+			firstMs: null,
+			lastMs: null,
+		});
+		expect(contentText(result)).not.toContain("must be omitted");
 	});
 });

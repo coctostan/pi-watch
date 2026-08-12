@@ -16,6 +16,7 @@
 import { assembleWatchedFrameSet } from "./assemble.js";
 import { decodeFramesAt, detectSceneCutsMs, fetchTranscript, probeDurationMs, resolveSource, } from "./effects.js";
 import { selectFrameTimes } from "./select-frames.js";
+import { rebaseSelectedFrames, resolveEvidenceRange, sceneCutsWithinRange, } from "./range.js";
 import { fetchLocalAsrTranscript, } from "./asr.js";
 /**
  * Watch `ref`: produce a validated `WatchedFrameSet` on one shared timeline.
@@ -34,6 +35,13 @@ export async function sample(opts) {
         const mediaRef = resolved.mediaRef;
         // 1. Effect: total duration (defines the timeline's upper bound).
         const durationMs = await probeDurationMs(mediaRef);
+        const range = resolveEvidenceRange({
+            durationMs,
+            urlStartSeconds: resolved.urlStartSeconds,
+            startSeconds: opts.start,
+            endSeconds: opts.end,
+        });
+        const rangeDurationMs = range.endMs - range.startMs;
         // 2. Effect: raw scene-change offsets.
         // Keep the callback best-effort even if a custom effect seam does not
         // implement that guarantee itself.
@@ -56,12 +64,13 @@ export async function sample(opts) {
             : sceneDiagnosticOptions === undefined
                 ? await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold)
                 : await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold, sceneDiagnosticOptions);
-        // 3. Pure decision: budget-capped frame times (cuts + gap-gated backfill).
-        const selected = selectFrameTimes({
-            sceneCutsMs,
-            durationMs,
+        // 3. Pure decision: select against the range-relative window, then rebase.
+        const relativeSelected = selectFrameTimes({
+            sceneCutsMs: sceneCutsWithinRange(sceneCutsMs, range),
+            durationMs: rangeDurationMs,
             ...(opts.budget === undefined ? {} : { budget: opts.budget }),
         });
+        const selected = rebaseSelectedFrames(relativeSelected, range);
         // 4. Effect: decode exactly the selected times, in order (images[i] ↔ selected[i]).
         const images = await decodeFramesAt(mediaRef, selected.map((s) => s.tMs), resolution);
         // 5. Effects: captions first, then optional bounded local ASR on a caption miss.
@@ -79,12 +88,15 @@ export async function sample(opts) {
                 : undefined;
             transcript = await fetchLocalAsrTranscript(mediaRef, durationMs, opts.localAsr, undefined, onAsrDiagnostic);
         }
-        // 6. Effective frames-per-second the sampler actually captured.
-        const fpsSampled = selected.length > 0 && durationMs > 0 ? selected.length / (durationMs / 1000) : 0;
+        // 6. Effective frames-per-second over the selected range, not the full source.
+        const fpsSampled = selected.length > 0 && rangeDurationMs > 0
+            ? selected.length / (rangeDurationMs / 1000)
+            : 0;
         // 7. Pure assembly → contract-valid WatchedFrameSet.
         return assembleWatchedFrameSet({
             ref,
             durationMs,
+            range,
             fpsSampled,
             selected,
             images,

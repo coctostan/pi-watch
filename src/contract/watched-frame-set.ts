@@ -274,14 +274,24 @@ export function validateWatchedFrameSet(value: unknown): ValidationResult {
 		const expectedTranscript = {
 			count: set.transcript.length,
 			firstMs: set.transcript[0]?.startMs ?? null,
-			lastMs: set.transcript.at(-1)?.endMs ?? null,
+			lastMs:
+				set.transcript.length === 0
+					? null
+					: Math.max(...set.transcript.map((segment) => segment.endMs)),
 		};
-		if (JSON.stringify(available.frames) !== JSON.stringify(expectedFrames)) {
+		const coverageMatches = (
+			actual: EvidenceCoverage,
+			expected: EvidenceCoverage,
+		): boolean =>
+			actual.count === expected.count &&
+			actual.firstMs === expected.firstMs &&
+			actual.lastMs === expected.lastMs;
+		if (!coverageMatches(available.frames, expectedFrames)) {
 			errors.push("source.available.frames: coverage does not match frames.");
 		}
-		if (JSON.stringify(available.transcript) !== JSON.stringify(expectedTranscript)) {
+		if (!coverageMatches(available.transcript, expectedTranscript)) {
 			errors.push("source.available.transcript: coverage does not match transcript.");
-		}
+	}
 	}
 
 	if (errors.length > 0) {

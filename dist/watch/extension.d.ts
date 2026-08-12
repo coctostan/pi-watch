@@ -37,6 +37,8 @@ type WatchParamsSchema = TObject<{
     question: TString;
     budget: TOptional<TInteger>;
     resolution: TOptional<TUnsafe<"low" | "high">>;
+    start: TOptional<TInteger>;
+    end: TOptional<TInteger>;
 }>;
 export declare const WATCH_PARAMS: WatchParamsSchema;
 /** Static input type for the `watch` tool's `execute`. */
@@ -50,6 +52,8 @@ type WatchBatchParamsSchema = TObject<{
     items: TArray<WatchBatchItemSchema>;
     budget: TOptional<TInteger>;
     resolution: TOptional<TUnsafe<"low" | "high">>;
+    start: TOptional<TInteger>;
+    end: TOptional<TInteger>;
 }>;
 export declare const WATCH_BATCH_PARAMS: WatchBatchParamsSchema;
 /** Static input type for the `watch_batch` tool's `execute`. */

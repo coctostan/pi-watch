@@ -54,6 +54,7 @@ export interface ResolvedSource {
     mediaRef: string;
     ownership: "caller" | "sampler-temporary";
     cleanup: () => Promise<void>;
+    urlStartSeconds?: number;
 }
 export interface RunOptions {
     timeoutMs?: number;
@@ -88,6 +89,7 @@ export interface YouTubeSource {
     originalRef: string;
     videoId: string;
     canonicalUrl: string;
+    startSeconds?: number;
 }
 export interface LocalSource {
     kind: "local";

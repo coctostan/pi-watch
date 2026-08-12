@@ -165,7 +165,7 @@ export function summarizeTranscriptCoverage(
 	return {
 		count: segments.length,
 		firstMs: segments[0]!.startMs,
-		lastMs: segments[segments.length - 1]!.endMs,
+		lastMs: Math.max(...segments.map((segment) => segment.endMs)),
 	};
 }
 
