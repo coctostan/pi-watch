@@ -35,6 +35,10 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { Tier, RoutingDecision } from "../router/index.js";
 import type { WatchedFrameSet } from "../contract/index.js";
+import type {
+	AvailableEvidence,
+	EvidenceCoverage,
+} from "../contract/watched-frame-set.js";
 import { createTier2Runner } from "./tier2.js";
 
 // ── Tool-result content shape (mirrors pi's TextContent | ImageContent) ───────
@@ -47,6 +51,56 @@ export type WatchTextPart = { type: "text"; text: string };
 export type WatchImagePart = { type: "image"; data: string; mimeType: string };
 /** One part of the watch tool's tool-result content. */
 export type WatchContentPart = WatchTextPart | WatchImagePart;
+
+type EvidenceMarker =
+	| { kind: "frame"; tMs: number }
+	| { kind: "transcript"; startMs: number; endMs: number; line: string };
+
+const PART_EVIDENCE = Symbol("pi-watch-part-evidence");
+type EvidencePart = WatchContentPart & { [PART_EVIDENCE]?: readonly EvidenceMarker[] };
+
+function markEvidence<T extends WatchContentPart>(
+	part: T,
+	markers: readonly EvidenceMarker[],
+): T {
+	Object.defineProperty(part, PART_EVIDENCE, {
+		value: markers,
+		enumerable: false,
+		configurable: false,
+	});
+	return part;
+}
+
+function partEvidence(part: WatchContentPart): readonly EvidenceMarker[] {
+	return (part as EvidencePart)[PART_EVIDENCE] ?? [];
+}
+
+function emptyCoverage(): EvidenceCoverage {
+	return { count: 0, firstMs: null, lastMs: null };
+}
+
+function availableEvidence(set: WatchedFrameSet): AvailableEvidence {
+	return (
+		set.source.available ?? {
+			frames:
+				set.frames.length === 0
+					? emptyCoverage()
+					: {
+							count: set.frames.length,
+							firstMs: set.frames[0]!.tMs,
+							lastMs: set.frames.at(-1)!.tMs,
+						},
+			transcript:
+				set.transcript.length === 0
+					? emptyCoverage()
+					: {
+							count: set.transcript.length,
+							firstMs: set.transcript[0]!.startMs,
+							lastMs: set.transcript.at(-1)!.endMs,
+						},
+		}
+	);
+}
 
 /** The outcome of running a single tier. */
 export interface TierResult {
@@ -85,6 +139,7 @@ function formatMs(ms: number): string {
 type TranscriptText = {
 	text: string;
 	truncated: boolean;
+	retainedLines: number;
 };
 
 type TextOutputUsage = {
@@ -166,7 +221,7 @@ function formatTranscriptText(
 	);
 	const truncation = truncateHead(text, { maxBytes, maxLines });
 	if (!truncation.truncated) {
-		return { text, truncated: false };
+		return { text, truncated: false, retainedLines: lines.length - metadataLines };
 	}
 
 	const retainedTranscriptLines = Math.max(0, truncation.outputLines - metadataLines);
@@ -176,7 +231,11 @@ function formatTranscriptText(
 		`${totalTranscriptLines} lines and ${truncation.outputBytes} of ` +
 		`${truncation.totalBytes} bytes ` +
 		`(${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}).]`;
-	return { text: `${truncation.content}\n\n${notice}`, truncated: true };
+	return {
+		text: `${truncation.content}\n\n${notice}`,
+		truncated: true,
+		retainedLines: retainedTranscriptLines,
+	};
 }
 
 /**
@@ -184,13 +243,13 @@ function formatTranscriptText(
  * `preserveTrailingParts` reserves required trailing guidance such as the
  * unconfigured-tier hint before earlier text is truncated.
  */
-export function boundToolResultContent(
+function boundContent(
 	content: WatchContentPart[],
 	preserveTrailingParts = 0,
-): WatchContentPart[] {
+): { content: WatchContentPart[]; truncated: boolean } {
 	const totalUsage = textOutputUsage(content);
 	if (totalUsage.bytes <= DEFAULT_MAX_BYTES && totalUsage.lines <= DEFAULT_MAX_LINES) {
-		return content;
+		return { content, truncated: false };
 	}
 
 	const tailCount = Math.max(0, Math.min(content.length, preserveTrailingParts));
@@ -239,7 +298,11 @@ export function boundToolResultContent(
 			Math.max(0, DEFAULT_MAX_LINES - reservedUsage.lines),
 		);
 		if (prefix.text !== "") {
-			boundedCore.push({ ...part, text: prefix.text });
+			const retainedLines = new Set(prefix.text.split("\n"));
+			const markers = partEvidence(part).filter(
+				(marker) => marker.kind !== "transcript" || retainedLines.has(marker.line),
+			);
+			boundedCore.push(markEvidence({ ...part, text: prefix.text }, markers));
 			keepNextImage = true;
 		} else {
 			keepNextImage = false;
@@ -247,7 +310,57 @@ export function boundToolResultContent(
 		textExhausted = true;
 	}
 
-	return [...boundedCore, noticePart, ...tail];
+	return { content: [...boundedCore, noticePart, ...tail], truncated: true };
+}
+
+export interface BoundedToolResult {
+	content: WatchContentPart[];
+	truncated: boolean;
+	returnedEvidence: AvailableEvidence;
+}
+
+/** Bound final text and report evidence retained in complete returned parts. */
+export function boundToolResult(
+	content: WatchContentPart[],
+	preserveTrailingParts = 0,
+): BoundedToolResult {
+	const bounded = boundContent(content, preserveTrailingParts);
+	const markers = bounded.content.flatMap((part) => partEvidence(part));
+	const frames = markers.filter(
+		(marker): marker is Extract<EvidenceMarker, { kind: "frame" }> => marker.kind === "frame",
+	);
+	const transcript = markers.filter(
+		(marker): marker is Extract<EvidenceMarker, { kind: "transcript" }> =>
+			marker.kind === "transcript",
+	);
+	return {
+		...bounded,
+		returnedEvidence: {
+			frames:
+				frames.length === 0
+					? emptyCoverage()
+					: {
+							count: frames.length,
+							firstMs: frames[0]!.tMs,
+							lastMs: frames.at(-1)!.tMs,
+						},
+			transcript:
+				transcript.length === 0
+					? emptyCoverage()
+					: {
+							count: transcript.length,
+							firstMs: transcript[0]!.startMs,
+							lastMs: transcript.at(-1)!.endMs,
+						},
+		},
+	};
+}
+
+export function boundToolResultContent(
+	content: WatchContentPart[],
+	preserveTrailingParts = 0,
+): WatchContentPart[] {
+	return boundToolResult(content, preserveTrailingParts).content;
 }
 
 /**
@@ -288,11 +401,16 @@ export function framesToToolResultContent(
 			type: "text",
 			text: `Frame ${frame.index} @ ${frame.timestamp} (${frame.origin}):`,
 		});
-		parts.push({
-			type: "image",
-			data: frame.imageBase64,
-			mimeType: frame.mediaType,
-		});
+		parts.push(
+			markEvidence(
+				{
+					type: "image",
+					data: frame.imageBase64,
+					mimeType: frame.mediaType,
+				},
+				[{ kind: "frame", tMs: frame.tMs }],
+			),
+		);
 	}
 
 	if (transcriptSource !== "none" && set.transcript.length > 0) {
@@ -304,10 +422,15 @@ export function framesToToolResultContent(
 			1,
 			textOutputUsage(parts),
 		);
-		parts.push({
-			type: "text",
-			text: transcript.text,
-		});
+		const markers = set.transcript
+			.slice(0, transcript.retainedLines)
+			.map((segment) => ({
+				kind: "transcript" as const,
+				startMs: segment.startMs,
+				endMs: segment.endMs,
+				line: `${formatMs(segment.startMs)} ${segment.text}`,
+			}));
+		parts.push(markEvidence({ type: "text", text: transcript.text }, markers));
 	}
 
 	return parts;
@@ -347,10 +470,32 @@ export function transcriptToToolResultContent(
 	);
 	const transcript = formatTranscriptText(transcriptLines, 0, textOutputUsage(parts));
 	if (transcript.truncated) {
-		parts.push({ type: "text", text: transcript.text });
+		const markers = set.transcript
+			.slice(0, transcript.retainedLines)
+			.map((segment, index) => ({
+				kind: "transcript" as const,
+				startMs: segment.startMs,
+				endMs: segment.endMs,
+				line: transcriptLines[index]!,
+			}));
+		parts.push(markEvidence({ type: "text", text: transcript.text }, markers));
 	} else {
-		for (const line of transcriptLines) {
-			parts.push({ type: "text", text: line });
+		for (let index = 0; index < transcriptLines.length; index += 1) {
+			const segment = set.transcript[index]!;
+			const line = transcriptLines[index]!;
+			parts.push(
+				markEvidence(
+					{ type: "text", text: line },
+					[
+						{
+							kind: "transcript",
+							startMs: segment.startMs,
+							endMs: segment.endMs,
+							line,
+						},
+					],
+				),
+			);
 		}
 	}
 
@@ -361,11 +506,20 @@ export function transcriptToToolResultContent(
  * Tier 3 — frames-into-context. TOTAL: always returns a result (never null);
  * it is the universal terminal fallback every routing chain ends in.
  */
-export const tier3Runner: TierRunner = async ({ set, question }) => ({
-	tier: 3,
-	content: framesToToolResultContent(set, question),
-	details: { tier: 3, frameCount: set.frames.length },
-});
+export const tier3Runner: TierRunner = async ({ set, question }) => {
+	const content = framesToToolResultContent(set, question);
+	const returned = boundToolResult(content).returnedEvidence;
+	return {
+		tier: 3,
+		content,
+		details: {
+			tier: 3,
+			frameCount: set.frames.length,
+			availableEvidence: availableEvidence(set),
+			returnedEvidence: returned,
+		},
+	};
+};
 
 /**
  * Tier 1 — transcript adapter (DESIGN §2: cheapest, model-agnostic). When a
@@ -376,13 +530,21 @@ export const tier1Runner: TierRunner = async ({ set, question }) => {
 	if (set.source.transcriptSource === "none" || set.transcript.length === 0) {
 		return null;
 	}
+	const bounded = boundToolResult(transcriptToToolResultContent(set, question));
+	const available = availableEvidence(set);
 	return {
 		tier: 1,
-		content: transcriptToToolResultContent(set, question),
+		content: bounded.content,
 		details: {
 			tier: 1,
 			transcriptSource: set.source.transcriptSource,
 			segmentCount: set.transcript.length,
+			availableEvidence: available,
+			returnedEvidence: bounded.returnedEvidence,
+			truncation: {
+				transcript:
+					bounded.returnedEvidence.transcript.count < available.transcript.count,
+			},
 		},
 	};
 };

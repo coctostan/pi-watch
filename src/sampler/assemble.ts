@@ -21,6 +21,12 @@ import type {
 	WatchedFrameSet,
 } from "../contract/index.js";
 import type { SelectedFrame } from "./select-frames.js";
+import {
+	clipTranscriptToRange,
+	summarizeFrameCoverage,
+	summarizeTranscriptCoverage,
+	type EvidenceRange,
+} from "./range.js";
 
 /**
  * Format a millisecond offset as mm:ss, switching to h:mm:ss past one hour.
@@ -57,8 +63,9 @@ export function formatTimestamp(ms: number): string {
 export function mergeTranscript(
 	segments: TranscriptSegment[],
 	durationMs: number,
+	range: EvidenceRange = { startMs: 0, endMs: durationMs },
 ): TranscriptSegment[] {
-	return segments
+	const normalized = segments
 		.filter((seg) => seg.text.trim().length > 0 && seg.startMs < durationMs)
 		.map((seg) => ({
 			startMs: seg.startMs,
@@ -67,6 +74,8 @@ export function mergeTranscript(
 			source: seg.source,
 		}))
 		.sort((a, b) => a.startMs - b.startMs);
+	if (range.startMs === 0 && range.endMs === durationMs) return normalized;
+	return clipTranscriptToRange(normalized, range);
 }
 
 /** Decoded image payload aligned 1:1 to a SelectedFrame, in timeline order. */
@@ -80,6 +89,8 @@ export interface AssembleInput {
 	ref: string;
 	/** Total source duration in ms. */
 	durationMs: number;
+	/** Effective absolute half-open evidence range; defaults to the full source. */
+	range?: EvidenceRange;
 	/** Effective frames-per-second the sampler captured. */
 	fpsSampled: number;
 	/** Selected frame times from `selectFrameTimes` (tMs-ascending). */
@@ -127,14 +138,20 @@ export function assembleWatchedFrameSet(input: AssembleInput): WatchedFrameSet {
 		};
 	});
 
-	const transcript = mergeTranscript(input.transcript, input.durationMs);
+	const range = input.range ?? { startMs: 0, endMs: input.durationMs };
+	const transcript = mergeTranscript(input.transcript, input.durationMs, range);
 
 	const source: SourceMetadata = {
 		ref: input.ref,
 		durationMs: input.durationMs,
 		fpsSampled: input.fpsSampled,
 		frameCount: frames.length,
-		transcriptSource: input.transcriptSource,
+		transcriptSource: transcript.length === 0 ? "none" : input.transcriptSource,
+		range,
+		available: {
+			frames: summarizeFrameCoverage(frames),
+			transcript: summarizeTranscriptCoverage(transcript),
+		},
 	};
 
 	return { source, frames, transcript };

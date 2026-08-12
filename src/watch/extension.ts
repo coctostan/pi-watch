@@ -40,11 +40,12 @@ import {
 	type AsrDiagnostic,
 	type SceneDetectionDiagnostic,
 } from "../sampler/index.js";
+import { MAX_RANGE_SECONDS } from "../sampler/range.js";
 import { classifyQuestion, route, routeContextFromSet, type Tier } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
-	boundToolResultContent,
+	boundToolResult,
 	defaultRunners,
 	type TierRunner,
 	type WatchContentPart,
@@ -72,6 +73,8 @@ type WatchParamsSchema = TObject<{
 	question: TString;
 	budget: TOptional<TInteger>;
 	resolution: TOptional<TUnsafe<"low" | "high">>;
+	start: TOptional<TInteger>;
+	end: TOptional<TInteger>;
 }>;
 
 export const WATCH_PARAMS: WatchParamsSchema = Type.Object({
@@ -93,6 +96,20 @@ export const WATCH_PARAMS: WatchParamsSchema = Type.Object({
 				"Optional frame-resolution override; normally the router sets this by question intent.",
 		}),
 	),
+	start: Type.Optional(
+		Type.Integer({
+			minimum: 0,
+			maximum: MAX_RANGE_SECONDS,
+			description: "Inclusive source start in conversion-safe whole seconds",
+		}),
+	),
+	end: Type.Optional(
+		Type.Integer({
+			minimum: 0,
+			maximum: MAX_RANGE_SECONDS,
+			description: "Exclusive source end in conversion-safe whole seconds",
+		}),
+	),
 });
 
 /** Static input type for the `watch` tool's `execute`. */
@@ -108,6 +125,8 @@ type WatchBatchParamsSchema = TObject<{
 	items: TArray<WatchBatchItemSchema>;
 	budget: TOptional<TInteger>;
 	resolution: TOptional<TUnsafe<"low" | "high">>;
+	start: TOptional<TInteger>;
+	end: TOptional<TInteger>;
 }>;
 
 export const WATCH_BATCH_PARAMS: WatchBatchParamsSchema = Type.Object({
@@ -136,6 +155,20 @@ export const WATCH_BATCH_PARAMS: WatchBatchParamsSchema = Type.Object({
 		StringEnum(["low", "high"] as const, {
 			description:
 				"Shared frame-resolution override for every item; normally the router sets this by question intent.",
+		}),
+	),
+	start: Type.Optional(
+		Type.Integer({
+			minimum: 0,
+			maximum: MAX_RANGE_SECONDS,
+			description: "Shared inclusive source start in conversion-safe whole seconds",
+		}),
+	),
+	end: Type.Optional(
+		Type.Integer({
+			minimum: 0,
+			maximum: MAX_RANGE_SECONDS,
+			description: "Shared exclusive source end in conversion-safe whole seconds",
 		}),
 	),
 });
@@ -254,6 +287,8 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					ref: params.ref,
 					budget: params.budget ?? config.budget,
 					resolution: params.resolution ?? config.resolution,
+					...(params.start === undefined ? {} : { start: params.start }),
+					...(params.end === undefined ? {} : { end: params.end }),
 					onSceneDetectionDiagnostic: (diagnostic) => {
 						sceneDetectionDiagnostic = diagnostic;
 					},
@@ -289,12 +324,14 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					tier2Diagnostic,
 				);
 				const preservedTrailingParts = contentWithHint.length - result.content.length;
+				const bounded = boundToolResult(contentWithHint, preservedTrailingParts);
+				const tierTruncation =
+					typeof result.details?.truncation === "object" && result.details.truncation !== null
+						? (result.details.truncation as Record<string, unknown>)
+						: {};
 
 				return {
-					content: boundToolResultContent(
-						contentWithHint,
-						preservedTrailingParts,
-					),
+					content: bounded.content,
 					details: withTier2Diagnostic(
 						{
 							tier: result.tier,
@@ -304,6 +341,15 @@ export default function watchExtension(pi: ExtensionAPI): void {
 							rationale: decision.rationale,
 							frameCount: set.frames.length,
 							transcriptSource: set.source.transcriptSource,
+							...(set.source.range ? { range: set.source.range } : {}),
+							...(set.source.available
+								? { availableEvidence: set.source.available }
+								: {}),
+							returnedEvidence: bounded.returnedEvidence,
+							truncation: {
+								...tierTruncation,
+								final: bounded.truncated || tierTruncation.transcript === true,
+							},
 							...(sceneDetectionDiagnostic
 								? { sceneDetection: sceneDetectionDiagnostic }
 								: {}),
@@ -350,6 +396,8 @@ export default function watchExtension(pi: ExtensionAPI): void {
 						ref,
 						budget: params.budget ?? config.budget,
 						resolution: params.resolution ?? config.resolution,
+						...(params.start === undefined ? {} : { start: params.start }),
+						...(params.end === undefined ? {} : { end: params.end }),
 						...(asrEligible
 							? {
 									localAsr: config.localAsr!,
@@ -378,26 +426,46 @@ export default function watchExtension(pi: ExtensionAPI): void {
 						question,
 						runners: itemRunners,
 					});
-					if (result.tier !== 2 && tier2Diagnostic) {
-						return {
-							...result,
-							details: withTier2Diagnostic(
-								result.details ?? {},
-								result.tier,
-								tier2Diagnostic,
-							),
-						};
-					}
-					return result;
+					const noReturnedEvidence = {
+						frames: { count: 0, firstMs: null, lastMs: null },
+						transcript: { count: 0, firstMs: null, lastMs: null },
+					};
+					const details = {
+						...(result.details ?? {}),
+						...(set.source.range ? { range: set.source.range } : {}),
+						...(set.source.available
+							? { availableEvidence: set.source.available }
+							: {}),
+						returnedEvidence:
+							(result.details?.returnedEvidence as Record<string, unknown> | undefined) ??
+							noReturnedEvidence,
+					};
+					return {
+						...result,
+						details:
+							result.tier !== 2 && tier2Diagnostic
+								? withTier2Diagnostic(details, result.tier, tier2Diagnostic)
+								: details,
+				};
 				};
 
 				const result = await runWatchBatch(params.items, { processItem });
+				const bounded = boundToolResult(result.content);
 				return {
-					content: boundToolResultContent(result.content),
+					content: bounded.content,
 					details: {
 						count: params.items.length,
 						tiers: result.items.map((item) => item.tier),
 						errors: result.items.filter((item) => item.status === "error").length,
+						...(result.evidence.some(
+							(item) => item.available.transcript.count > 0,
+						)
+							? { evidence: result.evidence }
+							: {}),
+						truncation: {
+							aggregate: result.aggregateTruncated,
+							final: bounded.truncated,
+						},
 						...(asrDiagnostics.length > 0
 							? { asr: asrDiagnostics.sort((a, b) => a.index - b.index) }
 							: {}),
