@@ -8,14 +8,14 @@ A Pi extension that watches videos through the cheapest available path—timesta
 
 **M5 — v0.5 — Transcript First** (target v0.5.0)
 Status: 🚧 In Progress
-Phases: 1 of 4 complete
+Phases: 2 of 4 complete
 Theme: Make the cheapest path cheap in practice by normalizing and selecting range-complete transcript evidence before performing expensive visual work.
 Assessment: [after-v0.4 context-efficiency assessment](assessments/2026-08-11-after-v0.4-context-efficiency.md)
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 20 | Normalize and measure | 1/1 | ✅ Complete | 2026-08-12 |
-| 21 | Range-aware evidence | TBD | 🔵 Ready to plan | — |
+| 21 | Range-aware evidence | 1/1 | ✅ Complete | 2026-08-12 |
 | 22 | Route before decoding | TBD | Not started | — |
 | 23 | Harden and prove | TBD | Not started | — |
 
@@ -26,7 +26,8 @@ Serves: R3, R6
 
 ### Phase 21: Range-aware evidence
 Focus: Honor supported YouTube timestamps and explicit `start` / `end` ranges across transcript, eligible ASR, and visual fallback, with bounded coverage and truncation metadata.
-Plans: TBD (defined during `/paul:plan`)
+Plans: 1/1 complete — [21-01: Range-aware transcript and visual evidence](phases/21-range-aware-evidence/21-01-PLAN.md) (complete 2026-08-12)
+Serves: R2, R3, R5, R6
 
 ### Phase 22: Route before decoding
 Focus: Stage transcript acquisition so successful tier-1 calls avoid scene detection and frame decoding, with an explicit broad spoken/visual/mixed question policy and unchanged cleanup/fallback guarantees.
@@ -58,7 +59,7 @@ Plans: TBD (defined during `/paul:plan`)
 ### Deferred product and maintenance work
 - Dedicated CI workflow beyond Socket-only PR checks.
 - Tier-3 batch fan-out when frames-for-many-videos becomes necessary.
-- Focused, test-backed decomposition of `src/sampler/effects.ts` beyond Phase 20's caption-core extraction.
+- Focused, test-backed decomposition of measured hotspots beyond Phase 20's caption-core extraction: `src/sampler/effects.ts` (642 lines), `src/watch/tier-runner.ts` (642), and `src/watch/extension.ts` (493). *(Amended by Phase 21 plan 21-01; provenance: `.paul/phases/21-range-aware-evidence/21-01-SUMMARY.md`.)*
 - Optional resolver-wide download filesize/duration caps if runtime evidence warrants them.
 - Advanced ASR capabilities: speaker diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Richer command/config surfaces and optional TypeBox peer-dependency cleanup.
@@ -67,4 +68,4 @@ Plans: TBD (defined during `/paul:plan`)
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-12 after Phase 20 completion*
+*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-12 after Phase 21 UNIFY*

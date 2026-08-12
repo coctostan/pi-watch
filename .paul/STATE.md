@@ -5,20 +5,20 @@
 See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 21 — honor supported timestamps and explicit ranges across normalized transcript, eligible ASR, and visual fallback evidence.
+**Current focus:** Phase 22 — stage transcript acquisition so successful tier-1 calls avoid scene detection and frame decoding, without weakening cleanup or fallback.
 
 ## Current Position
 
 Milestone: M5 — v0.5 — Transcript First
 Version: v0.5.0 (target)
-Phase: 21 of 4 (Range-aware evidence)
+Phase: 22 of 4 (Route before decoding)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-12 — Unified Phase 20 plan 20-01, passed the PR #30 checks, squash-merged as `d731e28`, synced `main`, and completed configured feature-branch cleanup.
-Next action: `/paul:plan` for Phase 21.
+Last activity: 2026-08-12 — Phase 21 complete: plan 21-01 unified with approved R5/roadmap amendments, module ledger/history rows, and Phase 22 transition writes.
+Next action: `/paul:plan` for Phase 22
 
 Progress:
-- Milestone M5 / v0.5: [██░░░░░░░░] 25% (Phase 20 complete; Phases 21–23 remain)
+- Milestone M5 / v0.5: [█████░░░░░] 50% implementation complete (Phases 20–21 complete; Phases 22–23 remain)
 - Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [M5 Phase 21 — ready to plan]
+  ✓        ✓        ✓     [M5 Phase 21 complete — ready to plan Phase 22]
 ```
 
 ## Accumulated Context
@@ -55,6 +55,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - M5 centers the deterministic, stateless transcript-efficiency path: normalize caption overlap, honor ranges, and acquire transcript evidence before expensive visual work.
 - Persistent transcript handles and internal model-backed synthesis remain deferred pending measured M5 results; M5 adds no dependency or mandatory model/cloud path.
 - Rolling captions normalize only exact case-sensitive overlap of at least three tokens between temporally overlapping adjacent raw cues; work is bounded at 4,096 prior-cue tokens, over-budget cues remain unchanged, and metrics stay corpus-scoped.
+- One absolute half-open `[startMs, endMs)` range governs captions, eligible ASR, and frames; supported URL timestamps contribute start only as a valid conversion-safe singleton, explicit whole-second bounds win, and cue clipping preserves text/source.
+- Returned coverage is computed only after internal, aggregate, and final output bounds, and stays fixed-size and free of refs, questions, or evidence text; available coverage is reported separately.
 
 ### Deferred Issues
 
@@ -62,7 +64,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional Gemini/cloud tier.
 - Advanced ASR features: diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Optional resolver download filesize/duration caps beyond v0.4's ASR-specific policy if runtime evidence warrants them.
-- Focused decomposition of `src/sampler/effects.ts` beyond Phase 20's caption-core extraction; the reduced file remains a measured hotspot.
+- Focused decomposition of measured hotspots beyond Phase 20's caption-core extraction: `src/sampler/effects.ts` (642 lines), `src/watch/tier-runner.ts` (642), and `src/watch/extension.ts` (493).
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
 - Audit-routed follow-up outside M5: R3 question-derived OCR resolution composition; M5 owns transcript-before-frame R3 plus R8, R18, R22, and R4/R6.
@@ -82,17 +84,15 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-12 — Unified Phase 20 plan 20-01, merged PR #30, synced `main`, and completed branch cleanup.
-Stopped at: Phase 20 is complete and merged; Phase 21 is ready to plan.
-Next action: `/paul:plan` for Phase 21.
+Last session: 2026-08-12 — Unified Phase 21 plan 21-01 and executed the Phase 22 transition writes.
+Stopped at: Phase 21 complete; ready to plan Phase 22.
+Next action: `/paul:plan` for Phase 22
 Resume file: `.paul/ROADMAP.md`
-Git state: Phase PR #30 MERGED as `d731e28`; `main` synced with `origin/main`; `feature/20-normalize-and-measure` deleted locally/remotely; closure snapshot reconciled through a follow-up GitHub Flow update.
+Git state: Phase 21 implementation and lifecycle artifacts ship through PR #32, which the UNIFY merge gate squash-merges into `main` with branch cleanup per config.
 Resume context:
-- Phase 20 AC-1 through AC-3 are PASS; SUMMARY: `.paul/phases/20-normalize-and-measure/20-01-SUMMARY.md`.
-- The synthetic corpus measures 301 raw to 235 normalized UTF-8 bytes and 12 to 0 known duplicate tokens under exact adjacent temporal overlap and a 4,096-token work bound.
-- Post-unify WALT, SKIP, CODI, and RUBY reports are durable; no module blocked and Spec Deltas records `No deltas`.
-- The consumed handoff is archived, and accidental `.codegraph/graph.db` tracking from WIP `04c97ad` is removed from PR scope while the local cache remains untracked.
-- Phase 21 owns supported timestamp/start/end range behavior, coverage/truncation metadata, and unchanged transcript/ASR/visual fallback guarantees.
+- Phase 21 evidence: TDD commits RED `2d60e73`, GREEN `7cdb778`, REFACTOR `0695c75`; UNIFY re-verified 309 passed / 3 skipped, typecheck, reproducible `dist/**`, and unchanged 0/4/2/0 audit.
+- Approved UNIFY deltas: R5 amended in `.paul/PRD.md` for optional whole-second `start`/`end` bounds; the ROADMAP deferred-debt entry now names `tier-runner.ts` and `extension.ts` alongside `effects.ts`; the R6 coverage-metadata candidate was discarded without intent edit.
+- Phase 22 must preserve Phase 21 range/coverage semantics while reordering transcript acquisition ahead of scene detection and frame decoding.
 
 ---
 *STATE.md — Updated after every significant action*
