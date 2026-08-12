@@ -16,7 +16,7 @@ Assessment: [after-v0.4 context-efficiency assessment](assessments/2026-08-11-af
 |-------|------|-------|--------|-----------|
 | 20 | Normalize and measure | 1/1 | ✅ Complete | 2026-08-12 |
 | 21 | Range-aware evidence | 1/1 | ✅ Complete | 2026-08-12 |
-| 22 | Route before decoding | TBD | Not started | — |
+| 22 | Route before decoding | TBD | 🔵 Ready to plan | — |
 | 23 | Harden and prove | TBD | Not started | — |
 
 ### Phase 20: Normalize and measure
