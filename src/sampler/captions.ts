@@ -40,33 +40,81 @@ function stripWebVttMarkup(line: string): string {
 		.trim();
 }
 
-function whitespaceTokens(text: string): string[] {
-	return text.match(/\S+/gu) ?? [];
+const MAX_ADJACENT_OVERLAP_TOKENS = 4_096;
+
+interface TokenPrefix {
+	tokens: string[];
+	starts: number[];
+}
+
+function whitespaceTokenPrefix(text: string, limit: number): TokenPrefix {
+	const tokens: string[] = [];
+	const starts: number[] = [];
+	const pattern = /\S+/gu;
+	while (tokens.length < limit) {
+		const match = pattern.exec(text);
+		if (match === null) break;
+		tokens.push(match[0]);
+		starts.push(match.index);
+	}
+	return { tokens, starts };
+}
+
+function longestSuffixPrefixTokenOverlap(
+	previousTokens: readonly string[],
+	currentTokens: readonly string[],
+): number {
+	const maximumOverlap = Math.min(previousTokens.length, currentTokens.length);
+	if (maximumOverlap === 0) return 0;
+
+	const fallback = new Array<number>(maximumOverlap).fill(0);
+	for (let index = 1; index < maximumOverlap; index += 1) {
+		let matched = fallback[index - 1]!;
+		while (matched > 0 && currentTokens[index] !== currentTokens[matched]) {
+			matched = fallback[matched - 1]!;
+		}
+		if (currentTokens[index] === currentTokens[matched]) matched += 1;
+		fallback[index] = matched;
+	}
+
+	let matched = 0;
+	const previousOffset = previousTokens.length - maximumOverlap;
+	for (let index = previousOffset; index < previousTokens.length; index += 1) {
+		const token = previousTokens[index]!;
+		while (
+			matched > 0 &&
+			(matched === maximumOverlap || currentTokens[matched] !== token)
+		) {
+			matched = fallback[matched - 1]!;
+		}
+		if (matched < maximumOverlap && currentTokens[matched] === token) matched += 1;
+	}
+	return matched;
 }
 
 function withoutAdjacentOverlap(previousText: string, currentText: string): string | null {
 	if (currentText === previousText) return null;
 
-	const previousTokens = whitespaceTokens(previousText);
-	const currentTokens = whitespaceTokens(currentText);
-	const maximumOverlap = Math.min(previousTokens.length, currentTokens.length);
-
-	for (let overlap = maximumOverlap; overlap >= 3; overlap -= 1) {
-		const previousOffset = previousTokens.length - overlap;
-		let matches = true;
-		for (let index = 0; index < overlap; index += 1) {
-			if (previousTokens[previousOffset + index] !== currentTokens[index]) {
-				matches = false;
-				break;
-			}
-		}
-		if (!matches) continue;
-
-		const suffix = currentTokens.slice(overlap);
-		return suffix.length === 0 ? null : suffix.join(" ");
+	const previousPrefix = whitespaceTokenPrefix(
+		previousText,
+		MAX_ADJACENT_OVERLAP_TOKENS + 1,
+	);
+	if (
+		previousPrefix.tokens.length < 3 ||
+		previousPrefix.tokens.length > MAX_ADJACENT_OVERLAP_TOKENS
+	) {
+		return currentText;
 	}
 
-	return currentText;
+	const currentPrefix = whitespaceTokenPrefix(currentText, previousPrefix.tokens.length + 1);
+	const overlap = longestSuffixPrefixTokenOverlap(
+		previousPrefix.tokens,
+		currentPrefix.tokens,
+	);
+	if (overlap < 3) return currentText;
+
+	const suffixStart = currentPrefix.starts[overlap];
+	return suffixStart === undefined ? null : currentText.slice(suffixStart);
 }
 
 /**

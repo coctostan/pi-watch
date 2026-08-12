@@ -18,6 +18,7 @@
  */
 import type { ResolutionTier, TranscriptSegment, TranscriptSource } from "../contract/index.js";
 import type { FrameImage } from "./assemble.js";
+export { normalizeCaptionSegments, parseWebVtt } from "./captions.js";
 export interface RunResult {
     stdout: Buffer;
     stderr: Buffer;
@@ -117,8 +118,6 @@ export declare function parseDurationMs(probeStdout: string): number;
  * data.
  */
 export declare function parseSceneCutsMs(ffmpegOutput: string, durationMs: number): number[];
-/** Parse WebVTT cues into stable, ordered caption segments without I/O. */
-export declare function parseWebVtt(input: string): TranscriptSegment[];
 /** Probe the total duration of `ref` in integer milliseconds (AC-1). */
 export declare function probeDurationMs(ref: string): Promise<number>;
 /**

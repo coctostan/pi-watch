@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import type { TranscriptSegment } from "../../src/contract/index.js";
+import { normalizeCaptionSegments } from "../../src/sampler/captions.js";
 import * as samplerEffects from "../../src/sampler/effects.js";
 import {
 	knownRollingOverlapPrefixes,
@@ -10,13 +11,6 @@ import {
 	rollingOverlapVtt,
 } from "../fixtures/captions/rolling-overlap.fixture.js";
 
-type NormalizeCaptionSegments = (
-	segments: readonly TranscriptSegment[],
-) => TranscriptSegment[];
-
-const normalizeCaptionSegments = (
-	samplerEffects as unknown as Record<string, unknown>
-).normalizeCaptionSegments as NormalizeCaptionSegments;
 
 function transcriptBytes(segments: readonly TranscriptSegment[]): number {
 	return Buffer.byteLength(
@@ -54,6 +48,56 @@ describe("normalizeCaptionSegments rolling-caption core", () => {
 		expect(normalized.filter((segment) => segment.startMs >= 8_000)).toEqual(
 			rollingOverlapExpectedSegments.filter((segment) => segment.startMs >= 8_000),
 		);
+	});
+
+	it("preserves long repetitive cues beyond the bounded overlap-token budget", () => {
+		const tokenCount = 128_000;
+		const midpoint = tokenCount / 2;
+		const previousText = new Array<string>(tokenCount).fill("repeat").join(" ");
+		const currentText = [
+			...new Array<string>(midpoint).fill("repeat"),
+			"different",
+			...new Array<string>(midpoint - 1).fill("repeat"),
+		].join(" ");
+
+		const normalized = normalizeCaptionSegments([
+			{ startMs: 0, endMs: 2_000, text: previousText, source: "captions" },
+			{ startMs: 1_000, endMs: 3_000, text: currentText, source: "captions" },
+		]);
+
+		expect(normalized).toHaveLength(2);
+		expect(normalized[1]).toMatchObject({ startMs: 1_000, endMs: 3_000, source: "captions" });
+		expect(normalized[1]?.text).toBe(currentText);
+	});
+
+	it("bounds work for a near-file-limit current cue with a three-token overlap", () => {
+		const captionFileLimitBytes = 16 * 1024 * 1024;
+		const currentText = "bulk ".repeat(Math.floor((14 * 1024 * 1024) / 5));
+		const previous = {
+			startMs: 0,
+			endMs: 2_000,
+			text: "bulk bulk bulk",
+			source: "captions" as const,
+		};
+		const current = {
+			startMs: 1_000,
+			endMs: 3_000,
+			text: currentText,
+			source: "captions" as const,
+		};
+
+		const normalized = normalizeCaptionSegments([previous, current]);
+
+		expect(Buffer.byteLength(currentText, "utf8")).toBeLessThan(captionFileLimitBytes);
+		expect(normalized).toHaveLength(2);
+		expect(normalized[0]).toBe(previous);
+		expect(normalized[1]).toMatchObject({
+			startMs: current.startMs,
+			endMs: current.endMs,
+			source: current.source,
+		});
+		expect(normalized[1]?.text).toHaveLength(currentText.length - "bulk ".repeat(3).length);
+		expect(current.text).toBe(currentText);
 	});
 });
 
