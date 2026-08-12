@@ -6,6 +6,13 @@ import {
 	type Tier,
 	type RouteContext,
 } from "../../src/router/index.js";
+import * as routerModule from "../../src/router/index.js";
+
+const isLocalAsrEligible = (
+	routerModule as unknown as {
+		isLocalAsrEligible: (intent: "spoken" | "visual" | "mixed" | "broad" | "on-screen-text") => boolean;
+	}
+).isLocalAsrEligible;
 import type { WatchedFrameSet } from "../../src/contract/index.js";
 
 /**
@@ -69,6 +76,35 @@ describe("route — tier selection", () => {
 		expect(d.intent).toBe("on-screen-text");
 		expect(d.resolution).toBe("high");
 		expect(d.tiers).toEqual([2, 3]);
+	});
+});
+
+
+describe("[phase22][R3][R4][R5][R6] transcript-first question policy", () => {
+	it.each([
+		["What DID the speaker say?", "spoken", "low", [1, 2, 3], true],
+		["What happens after the camera moves?", "visual", "low", [2, 3], false],
+		["What did they say while the camera moves?", "mixed", "low", [1, 2, 3], true],
+		["Analyze this video.", "broad", "low", [1, 2, 3], false],
+		["READ the sign: what does it say?", "on-screen-text", "high", [2, 3], false],
+	] as const)(
+		"classifies %s as %s and routes deterministically with transcript evidence",
+		(question, intent, resolution, tiers, asrEligible) => {
+			const decision = route({ question, context: WITH_TRANSCRIPT });
+			expect(decision.intent).toBe(intent);
+			expect(decision.resolution).toBe(resolution);
+			expect(decision.tiers).toEqual(tiers);
+			expect(decision.tiers.at(-1)).toBe(3);
+			expect(isLocalAsrEligible(intent)).toBe(asrEligible);
+		},
+	);
+
+	it.each([
+		"What did the speaker say?",
+		"What did they say while the camera moves?",
+		"Analyze this video.",
+	])("routes transcript-first class %s to visual fallback on a transcript miss", (question) => {
+		expect(route({ question, context: NO_TRANSCRIPT }).tiers).toEqual([2, 3]);
 	});
 });
 
