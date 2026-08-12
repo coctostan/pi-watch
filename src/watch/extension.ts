@@ -1,13 +1,9 @@
 /**
  * extension.ts — the `watch` pi custom tool (effect boundary, DESIGN.md §2/§7).
  *
- * This is the effectful seam that composes the three stable surfaces shipped in
- * Phases 2–4 into the load-bearing `watch` primitive:
- *
- *     sample()              → a validated WatchedFrameSet   (ffprobe/ffmpeg + best-effort transcript)
- *     routeContextFromSet() → RouteContext
- *     route()               → an ordered tier escalation chain (RoutingDecision)
- *     walkTierChain()       → the first available tier's TierResult (pure core)
+ * Staged sampling calls the deterministic router with transcript availability,
+ * records one decision per single or batch item, and performs visual attachment
+ * only when that same decision requires it before `walkTierChain()`.
  *
  * Activation recipe (Phase-1 FINDINGS — spikes/01-tool-activation/FINDINGS.md):
  *   1. register `watch` SYNCHRONOUSLY at the top of the factory;
@@ -41,14 +37,7 @@ import {
 	type SceneDetectionDiagnostic,
 } from "../sampler/index.js";
 import { MAX_RANGE_SECONDS } from "../sampler/range.js";
-import {
-	classifyQuestion,
-	isLocalAsrEligible,
-	route,
-	routeContextFromSet,
-	type RoutingDecision,
-	type Tier,
-} from "../router/index.js";
+import { classifyQuestion, isLocalAsrEligible, route, routeContextFromSet, type RoutingDecision, type Tier } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
@@ -380,10 +369,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 	});
 
 
-	// `watch_batch` (Phase 9): a bounded batch wrapper over the same frozen
-	// sample → route → walkTierChain pipeline. Tier-1/2 text results aggregate;
-	// tier-3 frame batches are intentionally deferred to individual `/watch` calls
-	// rather than inlining many videos' frames into one tool result.
+	// `watch_batch` uses the same transcript-stage decision per item. Tier-1/2
+	// text results aggregate; tier-3 frame batches remain deferred to individual
+	// `/watch` calls rather than inlining many videos' frames.
 	pi.registerTool<typeof WATCH_BATCH_PARAMS, Record<string, unknown>>({
 		name: "watch_batch",
 		label: "Watch Batch",

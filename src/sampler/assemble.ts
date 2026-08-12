@@ -111,16 +111,10 @@ export interface FrameAttachmentInput {
 export interface AssembleInput extends TranscriptStageInput, FrameAttachmentInput {}
 
 /**
- * Assemble a `WatchedFrameSet` from selected times + images + transcript + metadata.
+ * Build a transcript-only `WatchedFrameSet` after range filtering.
  *
- * Each `selected[i]` pairs with `images[i]` to produce a `WatchedFrame` with a
- * sequential zero-based index, an mm:ss timestamp derived from its tMs, and the
- * supplied resolution tier. Frames are already tMs-ascending (selectFrameTimes
- * guarantees it). The transcript is merged onto the same timeline and
- * source.frameCount is set to frames.length.
- *
- * Pure: no I/O, no mutation of inputs. Throws on a programmer error
- * (images/selected length mismatch) rather than silently dropping frames.
+ * The stage is contract-valid with zero frame count, FPS, and frame coverage.
+ * Pure: no I/O and no mutation of inputs.
  */
 export function assembleTranscriptStage(input: TranscriptStageInput): WatchedFrameSet {
 	const range = input.range ?? { startMs: 0, endMs: input.durationMs };
@@ -180,6 +174,9 @@ export function attachSampledFrames(
 		transcript: stage.transcript,
 	};
 }
+
+
+/** Compatibility composition for callers that already have transcript and frame evidence. */
 
 export function assembleWatchedFrameSet(input: AssembleInput): WatchedFrameSet {
 	const stage = assembleTranscriptStage(input);

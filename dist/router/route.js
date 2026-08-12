@@ -6,9 +6,9 @@
  * (AGENTS.md): choose the cheapest tier that can answer, and always keep tier 3
  * (frames-into-context) as the universal terminal fallback.
  *
- * Given a question plus the post-sample availability context derived from a
+ * Given a question plus transcript availability from a staged or completed
  * `WatchedFrameSet`, it decides:
- *   1. the question intent ("spoken" / "visual" / "on-screen-text");
+ *   1. the question intent (spoken / mixed / broad / visual / on-screen-text);
  *   2. the frame resolution ("high" only for on-screen-text / OCR questions,
  *      "low" otherwise — DESIGN §3 resolution policy);
  *   3. the ordered escalation chain of tiers to try, terminating in tier 3.
@@ -62,6 +62,27 @@ const SPOKEN_MARKERS = [
     "transcript",
     "according to",
 ];
+/** Explicit visual/temporal markers. Unmarked questions remain broad. */
+const VISUAL_TEMPORAL_MARKERS = [
+    "visual",
+    "visually",
+    "see",
+    "look",
+    "happen",
+    "after",
+    "before",
+    "next",
+    "move",
+    "motion",
+    "camera",
+    "color",
+    "scene",
+    "appear",
+    "action",
+    "gesture",
+    "wearing",
+    "doing",
+];
 function matchesAny(haystack, markers) {
     return markers.some((m) => haystack.includes(m));
 }
@@ -69,8 +90,8 @@ function matchesAny(haystack, markers) {
  * Classify a question into an intent + the frame resolution it implies.
  *
  * Pure and question-only (independent of any RouteContext). Precedence is
- * deliberate: on-screen-text → spoken → visual (default). On-screen-text is
- * matched first because OCR-style phrasing ("read the sign", "what does the
+ * deliberate: on-screen-text → mixed → spoken → visual → broad. On-screen-text
+ * is matched first because OCR-style phrasing ("read the sign", "what does the
  * label say") often embeds spoken keywords, and the high-res path must win.
  */
 export function classifyQuestion(question) {
@@ -78,19 +99,30 @@ export function classifyQuestion(question) {
     if (matchesAny(q, ON_SCREEN_TEXT_MARKERS)) {
         return { intent: "on-screen-text", resolution: "high" };
     }
-    if (matchesAny(q, SPOKEN_MARKERS)) {
+    const hasSpokenMarker = matchesAny(q, SPOKEN_MARKERS);
+    const hasVisualMarker = matchesAny(q, VISUAL_TEMPORAL_MARKERS);
+    if (hasSpokenMarker && hasVisualMarker) {
+        return { intent: "mixed", resolution: "low" };
+    }
+    if (hasSpokenMarker) {
         return { intent: "spoken", resolution: "low" };
     }
-    return { intent: "visual", resolution: "low" };
+    if (hasVisualMarker) {
+        return { intent: "visual", resolution: "low" };
+    }
+    return { intent: "broad", resolution: "low" };
+}
+/** Local ASR is intentionally limited to explicit spoken or mixed intent. */
+export function isLocalAsrEligible(intent) {
+    return intent === "spoken" || intent === "mixed";
 }
 /**
  * Decide the route for a question given the available context.
  *
  * Deterministic tier policy (cheapest tier that works; tier 3 universal fallback):
- *   - spoken + hasTranscript      → [1, 2, 3]  (transcript answers; escalate if not)
- *   - spoken + no transcript      → [2, 3]     (tier 1 can't answer; escalate past it)
- *   - visual                      → [2, 3]     (native video, then frames)
- *   - on-screen-text              → [2, 3]     (a vision tier reads the high-res frames)
+ *   - spoken / mixed / broad + transcript → [1, 2, 3]
+ *   - spoken / mixed / broad + no transcript → [2, 3]
+ *   - visual / on-screen-text → [2, 3] regardless of transcript availability
  *
  * Invariant upheld here: the returned `tiers` is non-empty and its last element
  * is always 3. Inputs are never mutated.
@@ -100,15 +132,16 @@ export function route(args) {
     const hasTranscript = args.context.hasTranscript;
     let tiers;
     let rationale;
-    if (intent === "spoken" && hasTranscript) {
+    const transcriptFirst = intent === "spoken" || intent === "mixed" || intent === "broad";
+    if (transcriptFirst && hasTranscript) {
         tiers = [1, 2, 3];
         rationale =
-            "Spoken-content question with a transcript available → start at tier 1 (transcript), escalate to video tiers if insufficient.";
+            `${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question with a transcript available → start at tier 1 (transcript), escalate to video tiers if insufficient.`;
     }
-    else if (intent === "spoken") {
+    else if (transcriptFirst) {
         tiers = [2, 3];
         rationale =
-            "Spoken-content question but no transcript available → skip tier 1; try tier 2 (native video), fall back to tier 3 (frames).";
+            `${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question but no transcript available → skip tier 1; try tier 2 (native video), fall back to tier 3 (frames).`;
     }
     else if (intent === "on-screen-text") {
         tiers = [2, 3];

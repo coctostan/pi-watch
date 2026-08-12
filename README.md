@@ -6,7 +6,7 @@ It owns one budget-capped sampler and routes each question through three tiers:
 
 | Tier | Path | Typical use |
 |---|---|---|
-| 1 | Caption transcript or explicitly enabled local English ASR | Questions about what was said |
+| 1 | Caption transcript or explicitly enabled local English ASR | Spoken, broad, or mixed questions with usable transcript evidence |
 | 2 | OpenAI-compatible vision endpoint | Optional local or hosted visual reasoning |
 | 3 | Sampled frames returned as Pi `ImageContent` | Universal visual fallback for the orchestrator |
 
@@ -21,6 +21,7 @@ Cloud access is not required. Tier 2 and local ASR are both optional. A supporte
 - Human YouTube captions first, with one automatic-caption fallback.
 - Exact-opt-in, bounded local English speech transcription through a user-managed `mlx_whisper` executable.
 - Explicit tier escalation: transcript → optional vision endpoint → frames.
+- Transcript-first staging: successful caption/eligible-ASR tier-1 calls skip scene detection and frame decoding.
 - Private typed ASR/tier-2 diagnostics and visual degradation on failure.
 - Caller URL preservation and cleanup limited to adapter/resolver-owned temporary files.
 - Default-off live tests, so the normal suite does not require YouTube, a speech model, or a vision server.
@@ -143,7 +144,7 @@ export WATCH_ASR_MAX_DURATION_MS=60000
 export WATCH_ASR_TIMEOUT_MS=300000
 ```
 
-Local ASR runs only for spoken-intent questions after captions are unavailable. It receives one resolved local media path, validates English timestamped JSON, and either supplies tier 1 or returns transcript source `none` so tiers 2 and 3 remain available. Visual questions and caption-backed spoken questions do not invoke it.
+Local ASR runs only for spoken or mixed-intent questions after usable in-range captions are unavailable. It receives one resolved local media path, validates English timestamped JSON, and either supplies tier 1 or returns transcript source `none` so tiers 2 and 3 remain available. Broad-only, visual, on-screen-text, and caption-backed spoken/mixed questions do not invoke it.
 
 Failures appear as private typed diagnostics: `duration-limit`, `missing-executable`, `timeout`, `process-error`, `invalid-output`, or `cleanup-error`. See [Local speech transcription setup](docs/LOCAL-ASR-SETUP.md) for defaults and ceilings, every remediation, single/batch diagnostic locations, package/model-cache expectations, ownership/privacy details, and deterministic/live proof commands.
 
@@ -151,13 +152,13 @@ Failures appear as private typed diagnostics: `duration-limit`, `missing-executa
 
 For a supported YouTube URL, `pi-watch`:
 
-1. Canonicalizes the URL while retaining the caller's original reference and any valid start-only timestamp metadata.
+1. Canonicalizes the URL while retaining the caller's original reference and valid start-only timestamp metadata.
 2. Runs one bounded, configuration-isolated `yt-dlp` media download in resolver-owned temporary storage.
-3. Uses `ffprobe` to resolve the effective absolute half-open range. Explicit bounds take precedence; an end beyond the source is clamped, while invalid explicit bounds or a start at/after duration fail before scene/frame work.
-4. Runs the existing full-source scene analysis, selects cuts/backfill against range-relative duration, then decodes only budgeted absolute offsets inside the range. Phase 21 does not yet avoid scene analysis or decoding based on route choice.
-5. Requests human captions first and makes one automatic-caption fallback attempt; eligible local ASR remains captions-first and bounded.
-6. Clips intersecting caption or ASR cues only at range boundaries while preserving text, source, stable order, and absolute offsets. An empty in-range transcript records source `none` and preserves visual fallback.
-7. Routes usable range-filtered transcript evidence to tier 1, otherwise continuing through optional tier 2 and universal tier 3.
+3. Uses `ffprobe` to resolve the effective absolute half-open range. Explicit bounds take precedence; invalid bounds fail before transcript, scene, or frame work.
+4. Requests human captions first with one automatic-caption fallback, then runs eligible captions-first local ASR only for spoken/mixed intent.
+5. Clips normalized caption or ASR cues to the range while preserving text, source, stable order, and absolute offsets.
+6. Routes spoken, broad, and mixed prompts with usable transcript evidence to tier 1. A successful tier-1 result returns zero frames and performs no scene detection or frame decode.
+7. For explicit visual/temporal or on-screen-text prompts—or any transcript miss—runs scene analysis, range-relative cuts/backfill, and budgeted decode before optional tier 2 and universal tier 3.
 8. Removes only resolver-, caption-, and adapter-owned temporary storage after success or failure. Local caller files and user-owned package/model caches are never deleted.
 
 Caption availability is not guaranteed. Missing or malformed captions and every local-ASR failure do not fabricate speech or block visual analysis.

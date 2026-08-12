@@ -40,13 +40,19 @@ export interface FrameImage {
     imageBase64: string;
     mediaType: MediaType;
 }
-export interface AssembleInput {
+export interface TranscriptStageInput {
     /** Original video reference (local path or URL). */
     ref: string;
     /** Total source duration in ms. */
     durationMs: number;
     /** Effective absolute half-open evidence range; defaults to the full source. */
     range?: EvidenceRange;
+    /** Raw transcript segments to merge onto the timeline. */
+    transcript: TranscriptSegment[];
+    /** Transcript origin, or "none" when there is no transcript. */
+    transcriptSource: TranscriptSource | "none";
+}
+export interface FrameAttachmentInput {
     /** Effective frames-per-second the sampler captured. */
     fpsSampled: number;
     /** Selected frame times from `selectFrameTimes` (tMs-ascending). */
@@ -55,22 +61,18 @@ export interface AssembleInput {
     images: FrameImage[];
     /** Resolution policy for these frames (caller-chosen; see boundaries). */
     resolution: ResolutionTier;
-    /** Raw transcript segments to merge onto the timeline. */
-    transcript: TranscriptSegment[];
-    /** Transcript origin, or "none" when there is no transcript. */
-    transcriptSource: TranscriptSource | "none";
+}
+export interface AssembleInput extends TranscriptStageInput, FrameAttachmentInput {
 }
 /**
- * Assemble a `WatchedFrameSet` from selected times + images + transcript + metadata.
+ * Build a transcript-only `WatchedFrameSet` after range filtering.
  *
- * Each `selected[i]` pairs with `images[i]` to produce a `WatchedFrame` with a
- * sequential zero-based index, an mm:ss timestamp derived from its tMs, and the
- * supplied resolution tier. Frames are already tMs-ascending (selectFrameTimes
- * guarantees it). The transcript is merged onto the same timeline and
- * source.frameCount is set to frames.length.
- *
- * Pure: no I/O, no mutation of inputs. Throws on a programmer error
- * (images/selected length mismatch) rather than silently dropping frames.
+ * The stage is contract-valid with zero frame count, FPS, and frame coverage.
+ * Pure: no I/O and no mutation of inputs.
  */
+export declare function assembleTranscriptStage(input: TranscriptStageInput): WatchedFrameSet;
+/** Attach decoded frames to a transcript stage without reacquiring transcript evidence. */
+export declare function attachSampledFrames(stage: WatchedFrameSet, input: FrameAttachmentInput): WatchedFrameSet;
+/** Compatibility composition for callers that already have transcript and frame evidence. */
 export declare function assembleWatchedFrameSet(input: AssembleInput): WatchedFrameSet;
 //# sourceMappingURL=assemble.d.ts.map

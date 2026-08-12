@@ -115,13 +115,13 @@ Or use the convenience command:
 
 ## What happens during a watch
 
-1. The source classifier validates and canonicalizes the URL while retaining the caller's original reference and any valid start-only timestamp metadata.
+1. The source classifier validates and canonicalizes the URL while retaining the caller's original reference and valid start-only timestamp metadata.
 2. The resolver creates owned temporary storage and performs one bounded `yt-dlp` media download with `--ignore-config` and `--no-playlist`.
-3. `ffprobe` reads duration and resolves explicit/URL bounds to one absolute half-open range before scene/frame work.
-4. The existing full-source `ffmpeg` scene analysis still runs in Phase 21. Cuts and backfill are then selected against range-relative duration and rebased so only absolute offsets inside the range are decoded. Route-before-decode optimization belongs to Phase 22.
-5. Caption lookup uses the original YouTube reference. It requests human captions first and makes at most one automatic-caption fallback attempt using subtitle-only `yt-dlp` operations.
-6. Valid normalized caption cues—or eligible captions-first local ASR cues—are intersected and clipped on the same range without changing text/source. Empty in-range transcript evidence becomes source `none`.
-7. Usable range-filtered transcript can finish at tier 1; otherwise the visual route continues through optional tier 2 and universal tier 3.
+3. `ffprobe` reads duration and resolves explicit/URL bounds to one absolute half-open range.
+4. Caption lookup uses the original YouTube reference, preferring human captions with at most one automatic-caption fallback. Eligible local ASR remains captions-first.
+5. Valid normalized caption or ASR cues are intersected and clipped on the same range without changing text/source. Empty in-range transcript evidence becomes source `none`.
+6. The deterministic policy lets spoken, broad, and mixed prompts with usable transcript evidence finish at tier 1 with zero scene-analysis and frame-decode calls.
+7. Explicit visual/temporal and on-screen-text prompts, plus every transcript miss, run bounded scene selection and budgeted decode before optional tier 2 and universal tier 3.
 8. Resolver-, caption-, and adapter-owned temporary directories are removed after success or failure. Caller-owned local files are never removed.
 
 The media download and caption lookup are separate bounded `yt-dlp` operations: the resolver downloads media once, while caption acquisition uses `--skip-download` and never re-downloads the video.
@@ -135,8 +135,9 @@ Captions are best effort, not a prerequisite for watching:
 - Failure becomes transcript source `none`.
 - Tier 2 remains optional.
 - Tier 3 returns sampled frames to the orchestrator and is the universal visual fallback.
+- Transcript-backed tier-1 success avoids scene detection and frame decoding, but still performs source resolution, duration probing, caption lookup, and any eligible ASR.
 
-Optional local ASR remains exact-opt-in, Apple-Silicon-only, captions-first, duration-bounded, and eligible only for spoken-intent questions. Its timestamped cues use the same requested range; every ASR failure still degrades to visual tiers without fabricated speech.
+Optional local ASR remains exact-opt-in, Apple-Silicon-only, captions-first, duration-bounded, and eligible only for spoken or mixed-intent questions. Broad-only, visual, and on-screen-text prompts do not enable it. Its timestamped cues use the same requested range; every ASR failure still degrades to visual tiers without fabricated speech.
 
 ## Optional tier 2
 

@@ -92,8 +92,8 @@ export const SourceMetadata = Type.Object({
         description: "Total source duration in milliseconds.",
     }),
     fpsSampled: Type.Number({
-        exclusiveMinimum: 0,
-        description: "Effective frames-per-second the sampler captured.",
+        minimum: 0,
+        description: "Effective frames-per-second captured, or zero when no frames were sampled.",
     }),
     frameCount: Type.Integer({
         minimum: 0,

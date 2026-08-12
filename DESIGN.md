@@ -33,7 +33,7 @@
 
 | Tier | Path | When | Cost |
 |------|------|------|------|
-| **1** | **Transcript** — yt-dlp captions, else Whisper | Question is about *what's said* | Cheapest, model-agnostic |
+| **1** | **Transcript** — yt-dlp captions, else eligible local Whisper | Spoken, broad, or mixed question with usable in-range transcript evidence | Cheapest, model-agnostic |
 | **2** | **Native video understanding** — pluggable video model | Question needs *temporal/visual* reasoning | Medium; local or hosted |
 | **3** | **Frames-into-context** — sample frames, hand to the orchestrator model as `ImageContent` | Universal visual fallback (works under any vision LLM) | Most tokens, always available |
 
@@ -47,38 +47,40 @@ Build **one good sampler**; then local-vs-hosted and which-model become
 **config, not code forks**. This is the load-bearing design decision.
 
 ```
-                ┌─────────────────────────────────────────────┐
-   video ─────► │  SAMPLER (ours)                             │
-   + question   │  ffmpeg scene-change + uniform backfill,    │
-                │  budget-capped, timestamps, + transcript    │
-                └───────────────┬─────────────────────────────┘
-                                │  "watched frame set"
-                                │  (frames + mm:ss + transcript, one timeline)
-                ┌───────────────▼─────────────────────────────┐
-   router  ───► │  pick tier                                  │
-                └───┬───────────────┬──────────────────┬──────┘
-                    │ tier 1        │ tier 2           │ tier 3
-                    ▼               ▼                  ▼
-              transcript      OpenAI-compat       ImageContent
-              summarize       video adapter       → orchestrator
-                              (local Qwen /        (Claude/GPT)
-                               hosted Gemini)
+ video + question
+        │
+        ▼
+ resolve source → probe duration → resolve one absolute range
+        │
+        ▼
+ captions → eligible captions-first local ASR → transcript-only frame set
+        │
+        ▼
+ deterministic router (spoken / broad / mixed / visual / on-screen-text)
+        │
+        ├─ tier 1 succeeds ─────────► transcript answer (zero scene/decode work)
+        │
+        └─ visual evidence required ► scene cuts + backfill + budgeted decode
+                                           │
+                                           ├─ tier 2 OpenAI-compatible adapter
+                                           └─ tier 3 ImageContent → orchestrator
 ```
 
 ---
 
 ## 3. The sampler (the heart of it)
 
-**Ideal default sampler:**
-- **ffmpeg scene-change extraction** — one frame per cut (not blind fps).
+**Default staged sampler:**
+- **Transcript first** — resolve/probe/range, then fetch and range-filter captions or eligible local ASR before scene analysis.
+- **Deterministic early route** — spoken, broad, and mixed prompts with usable transcript evidence can finish at tier 1; explicit visual/temporal and on-screen-text prompts still require visual evidence. Broad-only prompts do not enable local ASR.
+- **Zero avoided visual work** — a successful transcript-backed tier-1 result has no scene detection, frame decoding, or frames. Source resolution, duration probing, caption lookup, and eligible ASR still occur.
+- **ffmpeg scene-change extraction** — one frame per cut (not blind fps) only when visual evidence is required.
 - **Uniform backfill** — fill gaps so long static stretches still get coverage.
 - **Budget-capped** — ~16 frames default; configurable.
-- **Resolution policy** — low-res by default; high-res only for on-screen-text
-  questions (OCR-ish).
-- **mm:ss timestamps** per frame.
-- **Paired transcript** on the **same timeline** (captions/Whisper).
+- **Resolution policy** — low-res by default; high-res for on-screen-text questions (OCR-ish).
+- **One timeline** — range-clipped transcript and any selected frames retain absolute timestamps and fixed-size coverage metadata.
 
-Output is a single **"watched frame set"** object — see §6, the next thing to design.
+Output remains one contract-valid **watched frame set**: transcript-only sets report zero frame count/FPS/coverage, while visual sets attach frames without reacquiring transcript evidence.
 
 ---
 

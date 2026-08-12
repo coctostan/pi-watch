@@ -2,16 +2,13 @@
  * sample.ts — the sampler entry point (DESIGN.md §2/§3).
  *
  * `sample()` is the single surface that turns a real video reference into a
- * validated `WatchedFrameSet`. It composes the effect boundary (effects.ts)
- * with the frozen pure core (select-frames.ts / assemble.ts): probe duration →
- * detect scene cuts → pick budget-capped times (pure) → decode those frames →
- * fetch a best-effort transcript → assemble.
+ * validated `WatchedFrameSet`. It composes the effect boundary with the pure
+ * selection/assembly core in stages: resolve + probe + range → captions →
+ * eligible ASR → routing predicate → optional scene selection + frame decode.
  *
- * This is the function the router (Phase 4) and the `watch` tool (Phase 5) will
- * wrap. It owns orchestration only — every spawn / parse detail lives in
- * effects.ts, every decision / assembly rule lives in the pure core. It performs
- * no validation of its own; `assembleWatchedFrameSet` guarantees a contract-valid
- * result (and throws on a programmer error such as a frame/time count mismatch).
+ * Callers that omit the predicate retain visual-sampling compatibility. A false
+ * predicate returns a contract-valid transcript-only set while the same
+ * ownership `finally` handles success and failure on both branches.
  */
 
 import type { ResolutionTier, WatchedFrameSet } from "../contract/index.js";
@@ -62,9 +59,9 @@ export interface SampleOptions {
 /**
  * Watch `ref`: produce a validated `WatchedFrameSet` on one shared timeline.
  *
- * Effects run sequentially at this boundary. Frame decoding scales with the
- * selected budget; scene analysis uses a reduced stream and duration/timeout
- * fallbacks so long media degrades to uniform sampling instead of failing.
+ * Transcript acquisition precedes visual work. When visual evidence is needed,
+ * frame decoding remains budget-capped and scene analysis keeps its bounded
+ * duration/timeout fallbacks.
  */
 export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 	const { ref } = opts;
