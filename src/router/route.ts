@@ -26,7 +26,7 @@ import type { ResolutionTier, WatchedFrameSet } from "../contract/index.js";
 export type Tier = 1 | 2 | 3;
 
 /** What the question is fundamentally asking about — drives tier + resolution. */
-export type QuestionIntent = "spoken" | "visual" | "on-screen-text";
+export type QuestionIntent = "spoken" | "visual" | "mixed" | "broad" | "on-screen-text";
 
 /** Post-sample availability the tier choice depends on (derivable from a WatchedFrameSet). */
 export interface RouteContext {
@@ -91,6 +91,29 @@ const SPOKEN_MARKERS: readonly string[] = [
 	"according to",
 ];
 
+
+/** Explicit visual/temporal markers. Unmarked questions remain broad. */
+const VISUAL_TEMPORAL_MARKERS: readonly string[] = [
+	"visual",
+	"visually",
+	"see",
+	"look",
+	"happen",
+	"after",
+	"before",
+	"next",
+	"move",
+	"motion",
+	"camera",
+	"color",
+	"scene",
+	"appear",
+	"action",
+	"gesture",
+	"wearing",
+	"doing",
+];
+
 function matchesAny(haystack: string, markers: readonly string[]): boolean {
 	return markers.some((m) => haystack.includes(m));
 }
@@ -112,10 +135,23 @@ export function classifyQuestion(question: string): {
 	if (matchesAny(q, ON_SCREEN_TEXT_MARKERS)) {
 		return { intent: "on-screen-text", resolution: "high" };
 	}
-	if (matchesAny(q, SPOKEN_MARKERS)) {
+	const hasSpokenMarker = matchesAny(q, SPOKEN_MARKERS);
+	const hasVisualMarker = matchesAny(q, VISUAL_TEMPORAL_MARKERS);
+	if (hasSpokenMarker && hasVisualMarker) {
+		return { intent: "mixed", resolution: "low" };
+	}
+	if (hasSpokenMarker) {
 		return { intent: "spoken", resolution: "low" };
 	}
-	return { intent: "visual", resolution: "low" };
+	if (hasVisualMarker) {
+		return { intent: "visual", resolution: "low" };
+	}
+	return { intent: "broad", resolution: "low" };
+}
+
+/** Local ASR is intentionally limited to explicit spoken or mixed intent. */
+export function isLocalAsrEligible(intent: QuestionIntent): boolean {
+	return intent === "spoken" || intent === "mixed";
 }
 
 /**
@@ -140,14 +176,15 @@ export function route(args: {
 	let tiers: Tier[];
 	let rationale: string;
 
-	if (intent === "spoken" && hasTranscript) {
+	const transcriptFirst = intent === "spoken" || intent === "mixed" || intent === "broad";
+	if (transcriptFirst && hasTranscript) {
 		tiers = [1, 2, 3];
 		rationale =
-			"Spoken-content question with a transcript available → start at tier 1 (transcript), escalate to video tiers if insufficient.";
-	} else if (intent === "spoken") {
+			`${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question with a transcript available → start at tier 1 (transcript), escalate to video tiers if insufficient.`;
+	} else if (transcriptFirst) {
 		tiers = [2, 3];
 		rationale =
-			"Spoken-content question but no transcript available → skip tier 1; try tier 2 (native video), fall back to tier 3 (frames).";
+			`${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question but no transcript available → skip tier 1; try tier 2 (native video), fall back to tier 3 (frames).`;
 	} else if (intent === "on-screen-text") {
 		tiers = [2, 3];
 		rationale =

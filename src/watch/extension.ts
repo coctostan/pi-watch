@@ -41,7 +41,14 @@ import {
 	type SceneDetectionDiagnostic,
 } from "../sampler/index.js";
 import { MAX_RANGE_SECONDS } from "../sampler/range.js";
-import { classifyQuestion, route, routeContextFromSet, type Tier } from "../router/index.js";
+import {
+	classifyQuestion,
+	isLocalAsrEligible,
+	route,
+	routeContextFromSet,
+	type RoutingDecision,
+	type Tier,
+} from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
@@ -280,8 +287,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		async execute(_toolCallId, params: WatchInput) {
 			let sceneDetectionDiagnostic: SceneDetectionDiagnostic | undefined;
 			let asrDiagnostic: AsrDiagnostic | undefined;
-			const asrEligible =
-				config.localAsr !== null && classifyQuestion(params.question).intent === "spoken";
+			let stagedDecision: RoutingDecision | undefined;
+			const intent = classifyQuestion(params.question).intent;
+			const asrEligible = config.localAsr !== null && isLocalAsrEligible(intent);
 			try {
 				const set = await sample({
 					ref: params.ref,
@@ -289,6 +297,10 @@ export default function watchExtension(pi: ExtensionAPI): void {
 					resolution: params.resolution ?? config.resolution,
 					...(params.start === undefined ? {} : { start: params.start }),
 					...(params.end === undefined ? {} : { end: params.end }),
+					needsVisualEvidence: (context) => {
+						stagedDecision = route({ question: params.question, context });
+						return stagedDecision.primaryTier !== 1;
+					},
 					onSceneDetectionDiagnostic: (diagnostic) => {
 						sceneDetectionDiagnostic = diagnostic;
 					},
@@ -301,8 +313,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 							}
 						: {}),
 				});
-				const ctx = routeContextFromSet(set);
-				const decision = route({ question: params.question, context: ctx });
+				const decision =
+					stagedDecision ??
+					route({ question: params.question, context: routeContextFromSet(set) });
 
 				// Fresh per-call diagnostic collector + tier-2 runner (option-a).
 				let tier2Diagnostic: Tier2Diagnostic | undefined;
@@ -390,14 +403,19 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				const processItem: WatchItemProcessor = async (item) => {
 					const { ref, question } = item;
 					const itemIndex = params.items.indexOf(item);
-					const asrEligible =
-						config.localAsr !== null && classifyQuestion(question).intent === "spoken";
+					let stagedDecision: RoutingDecision | undefined;
+					const intent = classifyQuestion(question).intent;
+					const asrEligible = config.localAsr !== null && isLocalAsrEligible(intent);
 					const set = await sample({
 						ref,
 						budget: params.budget ?? config.budget,
 						resolution: params.resolution ?? config.resolution,
 						...(params.start === undefined ? {} : { start: params.start }),
 						...(params.end === undefined ? {} : { end: params.end }),
+						needsVisualEvidence: (context) => {
+							stagedDecision = route({ question, context });
+							return stagedDecision.primaryTier !== 1;
+						},
 						...(asrEligible
 							? {
 									localAsr: config.localAsr!,
@@ -407,8 +425,8 @@ export default function watchExtension(pi: ExtensionAPI): void {
 								}
 							: {}),
 					});
-					const ctx = routeContextFromSet(set);
-					const decision = route({ question, context: ctx });
+					const decision =
+						stagedDecision ?? route({ question, context: routeContextFromSet(set) });
 
 					// Fresh per-item diagnostic collector + tier-2 runner (option-a);
 					// tier-3 frame batch stays deferred to single-video watch calls.
