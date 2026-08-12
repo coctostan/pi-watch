@@ -185,3 +185,45 @@ describe("toOpenAIContent (AC-3)", () => {
 		expect(JSON.stringify(set)).toBe(before);
 	});
 });
+
+describe("range and available-evidence contract", () => {
+	function rangedFixture(): WatchedFrameSet {
+		const set = rgbFixture();
+		set.source.range = { startMs: 0, endMs: 3_000 };
+		set.source.available = {
+			frames: { count: 3, firstMs: 0, lastMs: 2_000 },
+			transcript: { count: 2, firstMs: 0, lastMs: 2_900 },
+		};
+		return set;
+	}
+
+	it("accepts fixed-size range and available coverage metadata", () => {
+		expect(validateWatchedFrameSet(rangedFixture()).ok).toBe(true);
+	});
+
+	it("rejects evidence outside the half-open range and inconsistent counts", () => {
+		const outside = rangedFixture();
+		outside.source.range = { startMs: 1_000, endMs: 3_000 };
+		const outsideResult = validateWatchedFrameSet(outside);
+		expect(outsideResult.ok).toBe(false);
+		if (!outsideResult.ok) {
+			expect(outsideResult.errors.join("\n")).toMatch(/range/i);
+		}
+
+		const wrongCount = rangedFixture();
+		wrongCount.source.available!.frames.count = 99;
+		const countResult = validateWatchedFrameSet(wrongCount);
+		expect(countResult.ok).toBe(false);
+		if (!countResult.ok) {
+			expect(countResult.errors.join("\n")).toMatch(/available.*frames|count/i);
+		}
+	});
+
+	it("rejects variable or evidence-bearing fields in fixed-size coverage", () => {
+		const bad = rangedFixture() as WatchedFrameSet & {
+			source: WatchedFrameSet["source"] & { available: Record<string, unknown> };
+		};
+		bad.source.available.ref = "private.mp4";
+		expect(validateWatchedFrameSet(bad).ok).toBe(false);
+	});
+});

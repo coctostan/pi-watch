@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES } from "@earendil-works/pi-coding-agent";
 import {
 	runWatchBatch,
 	WATCH_BATCH_MAX_TEXT_CHARS,
@@ -31,7 +32,18 @@ function makeTierResult(tier: Tier, textValue = `tier-${tier} answer`): TierResu
 	return {
 		tier,
 		content: [{ type: "text", text: textValue }],
-		details: { tier, fixture: true },
+		details: {
+			tier,
+			fixture: true,
+			availableEvidence: {
+				frames: { count: 0, firstMs: null, lastMs: null },
+				transcript: { count: 1, firstMs: 1_000, lastMs: 2_000 },
+			},
+			returnedEvidence: {
+				frames: { count: 0, firstMs: null, lastMs: null },
+				transcript: { count: 1, firstMs: 1_000, lastMs: 2_000 },
+			},
+		},
 	};
 }
 
@@ -209,5 +221,44 @@ describe("runWatchBatch — aggregate content (AC-2)", () => {
 
 		expect(result.items).toEqual([]);
 		expect(result.content).toEqual([{ type: "text", text: "watch_batch: no videos were provided." }]);
+	});
+});
+
+describe("runWatchBatch — range evidence and both aggregate bounds", () => {
+	it.each([
+		["byte", "界".repeat(WATCH_BATCH_MAX_TEXT_CHARS), DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES],
+		["line", "line\n".repeat(DEFAULT_MAX_LINES + 500), DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES],
+	])("bounds multibyte or multiline %s output under Pi limits", async (_name, oversized, maxBytes, maxLines) => {
+		const result = await runWatchBatch([ITEMS[0]!], {
+			processItem: async () => makeTierResult(1, oversized as string),
+		});
+		const text = contentText(result);
+		expect(Buffer.byteLength(text, "utf8")).toBeLessThanOrEqual(maxBytes as number);
+		expect(text.split("\n").length).toBeLessThanOrEqual(maxLines as number);
+		expect(result.aggregateTruncated).toBe(true);
+	});
+
+	it("retains at most eight fixed-size private available/returned summaries", async () => {
+		const items = Array.from({ length: 8 }, (_, index) => ({
+			ref: `private-${index}.mp4`,
+			question: `synthetic question ${index}`,
+		}));
+		const result = await runWatchBatch(items, {
+			processItem: async () => makeTierResult(1, "short"),
+		});
+
+		expect(result.evidence).toHaveLength(8);
+		expect(result.evidence[0]).toEqual({
+			index: 0,
+			available: {
+				frames: { count: 0, firstMs: null, lastMs: null },
+				transcript: { count: 1, firstMs: 1_000, lastMs: 2_000 },
+			},
+			returned: {
+				frames: { count: 0, firstMs: null, lastMs: null },
+				transcript: { count: 1, firstMs: 1_000, lastMs: 2_000 },
+			},
+		});
+		expect(JSON.stringify(result.evidence)).not.toMatch(/private-|synthetic question|short/);
 	});
 });

@@ -15,6 +15,7 @@ vi.mock("../../src/sampler/index.js", () => ({ sample: sampleMock }));
 type CapturedTool = {
 	name: string;
 	description: string;
+	parameters: { properties: Record<string, { maximum?: number; minimum?: number }> };
 	execute: (toolCallId: string, params: WatchInput | WatchBatchInput) => Promise<unknown>;
 };
 
@@ -89,6 +90,7 @@ function makeSet(
 	},
 ): WatchedFrameSet {
 	const frames = [frame()];
+	const transcript = opts.transcript ?? [];
 	return {
 		source: {
 			ref,
@@ -96,9 +98,18 @@ function makeSet(
 			fpsSampled: 0.1,
 			frameCount: frames.length,
 			transcriptSource: opts.transcriptSource,
+			range: { startMs: 0, endMs: 10_000 },
+			available: {
+				frames: { count: frames.length, firstMs: 0, lastMs: 0 },
+				transcript: {
+					count: transcript.length,
+					firstMs: transcript[0]?.startMs ?? null,
+					lastMs: transcript.at(-1)?.endMs ?? null,
+				},
+			},
 		},
 		frames,
-		transcript: opts.transcript ?? [],
+		transcript,
 	};
 }
 
@@ -451,5 +462,70 @@ describe("registered /watch command boundary", () => {
 		"Usage: /watch <video-path-or-url> <question>",
 		"warning",
 		);
+	});
+});
+
+describe("registered range and evidence boundary", () => {
+	it("registers conversion-safe whole-second bounds and forwards them to single and batch sampling", async () => {
+		const harness = registerExtension();
+		const watch = capturedWatch(harness);
+		const batch = capturedWatchBatch(harness);
+		const maximum = Math.floor(Number.MAX_SAFE_INTEGER / 1000);
+		expect(watch.parameters.properties.start).toMatchObject({ minimum: 0, maximum });
+		expect(watch.parameters.properties.end).toMatchObject({ minimum: 0, maximum });
+		expect(batch.parameters.properties.start).toMatchObject({ minimum: 0, maximum });
+		expect(batch.parameters.properties.end).toMatchObject({ minimum: 0, maximum });
+
+		sampleMock
+			.mockResolvedValueOnce(makeSet("single.mp4", { transcriptSource: "none" }))
+			.mockResolvedValueOnce(makeSet("batch.mp4", { transcriptSource: "none" }));
+		await watch.execute("range-single", {
+			ref: "single.mp4",
+			question: "What happens visually?",
+			start: 4,
+			end: 8,
+		});
+		await batch.execute("range-batch", {
+			items: [{ ref: "batch.mp4", question: "What happens visually?" }],
+			start: 10,
+			end: 20,
+		});
+
+		expect(sampleMock.mock.calls[0]?.[0]).toEqual(
+			expect.objectContaining({ start: 4, end: 8 }),
+		);
+		expect(sampleMock.mock.calls[1]?.[0]).toEqual(
+			expect.objectContaining({ start: 10, end: 20 }),
+		);
+	});
+
+	it("reports available separately from transcript evidence retained after the final bound", async () => {
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text: `synthetic line ${index}`,
+			source: "captions" as const,
+		}));
+		sampleMock.mockResolvedValueOnce(
+			makeSet("range.mp4", { transcriptSource: "captions", transcript }),
+		);
+
+		const result = (await capturedWatch(registerExtension()).execute("range-truncated", {
+			ref: "range.mp4",
+			question: "What was said?",
+		})) as { details: Record<string, any>; content: Array<{ type: string; text?: string }> };
+
+		expect(result.details.availableEvidence.transcript).toEqual({
+			count: transcript.length,
+			firstMs: 0,
+			lastMs: transcript.at(-1)!.endMs,
+		});
+		expect(result.details.returnedEvidence.transcript.count).toBeLessThan(transcript.length);
+		expect(result.details.returnedEvidence.transcript.firstMs).toBe(0);
+		expect(result.details.returnedEvidence.transcript.lastMs).toBeLessThan(
+			transcript.at(-1)!.endMs,
+		);
+		expect(result.details.truncation.final).toBe(true);
+		expect(JSON.stringify(result.details)).not.toMatch(/range\.mp4|synthetic line|What was said/i);
 	});
 });

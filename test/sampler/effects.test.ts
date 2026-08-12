@@ -736,4 +736,33 @@ describe("fetchTranscript() caption effect (AC-2/AC-3)", () => {
 		});
 		expect(cleanup.deps.rm).toHaveBeenCalledTimes(1);
 	});
+
+	describe("range metadata on supported YouTube refs", () => {
+		it("keeps a conversion-safe timestamp as start-only classification metadata", () => {
+			const classifySourceRef = exportedFunction<ClassifySourceRef>("classifySourceRef");
+			const classified = classifySourceRef(
+				`https://youtu.be/${youtubeId()}?feature=share&t=1h2m3s`,
+			) as SourceClassification & { startSeconds?: number };
+
+			expect(classified).toMatchObject({
+				kind: "youtube",
+				videoId: youtubeId(),
+				startSeconds: 3723,
+				canonicalUrl: `https://www.youtube.com/watch?v=${youtubeId()}`,
+			});
+		});
+
+		it("prefers one valid start key and ignores ambiguous timestamp noise", () => {
+			const classifySourceRef = exportedFunction<ClassifySourceRef>("classifySourceRef");
+			expect(
+				classifySourceRef(`https://youtube.com/watch?v=${youtubeId()}&start=75&t=30`),
+			).toMatchObject({ startSeconds: 75 });
+			expect(
+				classifySourceRef(`https://youtube.com/watch?v=${youtubeId()}&t=30&t=40`),
+			).not.toHaveProperty("startSeconds");
+			expect(
+				classifySourceRef(`https://youtube.com/watch?v=${youtubeId()}&start=bad&t=30`),
+			).not.toHaveProperty("startSeconds");
+		});
+	});
 });
