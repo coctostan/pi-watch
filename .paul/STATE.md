@@ -5,20 +5,20 @@
 See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 20 — establish context-efficiency baselines and conservative timing-preserving rolling-caption normalization.
+**Current focus:** Phase 21 — honor supported timestamps and explicit ranges across normalized transcript, eligible ASR, and visual fallback evidence.
 
 ## Current Position
 
 Milestone: M5 — v0.5 — Transcript First
 Version: v0.5.0 (target)
-Phase: 20 of 4 (Normalize and measure)
-Plan: 20-01 (`.paul/phases/20-normalize-and-measure/20-01-PLAN.md`)
-Status: Implementation complete — ready to unify
-Last activity: 2026-08-11 — Completed Phase 20 plan 20-01 through RED/GREEN/REFACTOR, passed all parent and module gates, pushed three task commits, and opened PR #30.
-Next action: `/paul:unify .paul/phases/20-normalize-and-measure/20-01-PLAN.md`.
+Phase: 21 of 4 (Range-aware evidence)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-12 — Unified Phase 20 plan 20-01, finalized module/reporting evidence, and transitioned lifecycle artifacts to Phase 21 pending the required PR merge gate.
+Next action: `/paul:plan` for Phase 21.
 
 Progress:
-- Milestone M5 / v0.5: [░░░░░░░░░░] 0% (Phases 20–23; Phase 20 APPLY complete, UNIFY pending)
+- Milestone M5 / v0.5: [██░░░░░░░░] 25% (Phase 20 complete; Phases 21–23 remain)
 - Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [M5 Phase 20 — plan 20-01 ready to unify]
+  ○        ○        ○     [M5 Phase 21 — ready to plan after Phase 20 merge gate]
 ```
 
 ## Accumulated Context
@@ -54,6 +54,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - External-model acceptance uses deterministic failure through the manifest-declared compiled registration by default; real `mlx_whisper` proof remains exact-opt-in, finite, default-skipped, and user-managed.
 - M5 centers the deterministic, stateless transcript-efficiency path: normalize caption overlap, honor ranges, and acquire transcript evidence before expensive visual work.
 - Persistent transcript handles and internal model-backed synthesis remain deferred pending measured M5 results; M5 adds no dependency or mandatory model/cloud path.
+- Rolling captions normalize only exact case-sensitive overlap of at least three tokens between temporally overlapping adjacent raw cues; work is bounded at 4,096 prior-cue tokens, over-budget cues remain unchanged, and metrics stay corpus-scoped.
 
 ### Deferred Issues
 
@@ -61,7 +62,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional Gemini/cloud tier.
 - Advanced ASR features: diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Optional resolver download filesize/duration caps beyond v0.4's ASR-specific policy if runtime evidence warrants them.
-- Focused decomposition of `src/sampler/effects.ts` beyond work directly enabling bounded ASR.
+- Focused decomposition of `src/sampler/effects.ts` beyond Phase 20's caption-core extraction; the reduced file remains a measured hotspot.
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
 - Audit-routed follow-up outside M5: R3 question-derived OCR resolution composition; M5 owns transcript-before-frame R3 plus R8, R18, R22, and R4/R6.
@@ -81,21 +82,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-11 — Applied Phase 20 plan 20-01, completed all gates, pushed the task commits, and opened PR #30.
-Stopped at: Phase 20 APPLY is complete; UNIFY reconciliation is next.
-Next action: `/paul:unify .paul/phases/20-normalize-and-measure/20-01-PLAN.md`.
-Resume file: `.paul/phases/20-normalize-and-measure/20-01-PLAN.md`
-Git state: On pushed `feature/20-normalize-and-measure`; PR #30 is OPEN at `https://github.com/coctostan/pi-watch/pull/30`; both Socket Security checks pass; lifecycle/planning artifacts remain local for UNIFY.
+Last session: 2026-08-12 — Unified Phase 20 plan 20-01 and prepared the Phase 21 transition on the feature branch.
+Stopped at: Phase 20 lifecycle transition is complete; finalized artifacts must pass the PR #30 CI/merge gate before Phase 21 planning is exposed.
+Next action: `/paul:plan` for Phase 21.
+Resume file: `.paul/ROADMAP.md`
+Git state: On `feature/20-normalize-and-measure`; PR #30 is open; UNIFY/transition artifacts await commit, push, passing checks, squash merge, base sync, and configured branch cleanup.
 Resume context:
-- TDD commits: RED `e6b2f35`, GREEN `f034821`, REFACTOR `9bd32e4`.
-- The synthetic corpus measures 301 raw UTF-8 transcript bytes to 235 normalized bytes, with known duplicate-token emissions reduced from 12 to 0.
-- Normalization compares only temporally overlapping adjacent raw cues, drops exact duplicates, removes exact case-sensitive overlaps of at least three tokens, and preserves timing/source plus legitimate repetition.
-- The matcher uses a linear prefix function and a 4,096-token work bound; over-budget prior cues remain unchanged, and near-16 MiB current cues avoid full token-array amplification.
-- `src/sampler/effects.ts` shrank from 720 to 634 lines; caption I/O/fallback remains at the effect boundary and pure parsing/normalization lives in `src/sampler/captions.ts`.
-- Parent verification: 255 tests passed / 3 default-skipped; focused 48/48; typecheck, build, clean second-build dist reproduction, and `git diff --check` pass.
-- DEAN remains unchanged at 0 critical / 4 high / 2 moderate / 0 low; no dependency or package metadata changed.
-- Final adversarial review found no material shipping concern; module enforcement passed, with only the pre-existing >500-line effects hotspot retained as an advisory while reduced in size.
-- Phases 21–23 retain range, transcript-before-frame routing, and narrow release-hardening work; the original recovered `feedback.md` remains in `stash@{0}` and must not be popped indiscriminately.
+- Phase 20 AC-1 through AC-3 are PASS; SUMMARY: `.paul/phases/20-normalize-and-measure/20-01-SUMMARY.md`.
+- The synthetic corpus measures 301 raw to 235 normalized UTF-8 bytes and 12 to 0 known duplicate tokens under exact adjacent temporal overlap and a 4,096-token work bound.
+- Post-unify WALT, SKIP, CODI, and RUBY reports are durable; no module blocked and Spec Deltas records `No deltas`.
+- The consumed handoff is archived, and accidental `.codegraph/graph.db` tracking from WIP `04c97ad` is removed from PR scope while the local cache remains untracked.
+- Phase 21 owns supported timestamp/start/end range behavior, coverage/truncation metadata, and unchanged transcript/ASR/visual fallback guarantees.
 
 ---
 *STATE.md — Updated after every significant action*
