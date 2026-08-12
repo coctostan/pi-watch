@@ -108,6 +108,34 @@ export const TranscriptSegment = Type.Object(
 );
 export type TranscriptSegment = Static<typeof TranscriptSegment>;
 
+export const EvidenceRange = Type.Object(
+	{
+		startMs: Type.Integer({ minimum: 0 }),
+		endMs: Type.Integer({ minimum: 0 }),
+	},
+	{ $id: "EvidenceRange", additionalProperties: false },
+);
+export type EvidenceRange = Static<typeof EvidenceRange>;
+
+export const EvidenceCoverage = Type.Object(
+	{
+		count: Type.Integer({ minimum: 0 }),
+		firstMs: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+		lastMs: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+	},
+	{ $id: "EvidenceCoverage", additionalProperties: false },
+);
+export type EvidenceCoverage = Static<typeof EvidenceCoverage>;
+
+export const AvailableEvidence = Type.Object(
+	{
+		frames: EvidenceCoverage,
+		transcript: EvidenceCoverage,
+	},
+	{ $id: "AvailableEvidence", additionalProperties: false },
+);
+export type AvailableEvidence = Static<typeof AvailableEvidence>;
+
 export const SourceMetadata = Type.Object(
 	{
 		ref: Type.String({
@@ -130,6 +158,8 @@ export const SourceMetadata = Type.Object(
 			[TranscriptSource, Type.Literal("none")],
 			{ description: "Transcript origin, or 'none' if no transcript is present." },
 		),
+		range: Type.Optional(EvidenceRange),
+		available: Type.Optional(AvailableEvidence),
 	},
 	{ $id: "SourceMetadata", additionalProperties: false },
 );
@@ -214,6 +244,54 @@ export function validateWatchedFrameSet(value: unknown): ValidationResult {
 		errors.push(
 			`source.frameCount (${set.source.frameCount}) !== frames.length (${set.frames.length}).`,
 		);
+	}
+
+	const { range, available } = set.source;
+	if ((range === undefined) !== (available === undefined)) {
+		errors.push("source: range and available evidence metadata must be provided together.");
+	}
+	if (range && available) {
+		if (range.endMs < range.startMs || range.endMs > set.source.durationMs) {
+			errors.push("source.range: expected 0 <= startMs <= endMs <= durationMs.");
+		}
+		for (const frame of set.frames) {
+			if (frame.tMs < range.startMs || frame.tMs >= range.endMs) {
+				errors.push(`frames[${frame.index}]: tMs is outside source.range.`);
+			}
+		}
+		for (let index = 0; index < set.transcript.length; index += 1) {
+			const segment = set.transcript[index]!;
+			if (segment.startMs < range.startMs || segment.endMs > range.endMs) {
+				errors.push(`transcript[${index}]: segment is outside source.range.`);
+			}
+		}
+
+		const expectedFrames = {
+			count: set.frames.length,
+			firstMs: set.frames[0]?.tMs ?? null,
+			lastMs: set.frames.at(-1)?.tMs ?? null,
+		};
+		const expectedTranscript = {
+			count: set.transcript.length,
+			firstMs: set.transcript[0]?.startMs ?? null,
+			lastMs:
+				set.transcript.length === 0
+					? null
+					: Math.max(...set.transcript.map((segment) => segment.endMs)),
+		};
+		const coverageMatches = (
+			actual: EvidenceCoverage,
+			expected: EvidenceCoverage,
+		): boolean =>
+			actual.count === expected.count &&
+			actual.firstMs === expected.firstMs &&
+			actual.lastMs === expected.lastMs;
+		if (!coverageMatches(available.frames, expectedFrames)) {
+			errors.push("source.available.frames: coverage does not match frames.");
+		}
+		if (!coverageMatches(available.transcript, expectedTranscript)) {
+			errors.push("source.available.transcript: coverage does not match transcript.");
+	}
 	}
 
 	if (errors.length > 0) {

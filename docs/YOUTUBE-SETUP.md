@@ -42,7 +42,24 @@ https://www.youtube.com/shorts/jNQXAC9IVRw
 
 Both `http` and `https` are parsed, but the resolver canonicalizes supported inputs to an HTTPS `youtube.com/watch` URL for `yt-dlp`. The original caller-provided reference remains in the resulting frame-set metadata and tool errors.
 
-### Outside v0.3 scope
+### Supported timestamps and explicit ranges
+
+A supported URL may include one start-only `start` or `t` query value. Accepted values are unsigned integer seconds (`t=90`), integer seconds with `s` (`t=90s`), or ordered compact hours/minutes/seconds (`t=1h2m3s`). One valid singleton `start` takes precedence over one valid singleton `t`. Duplicate, malformed, negative, fractional, conversion-unsafe, or overflowing values are optional query noise: they do not reject an otherwise supported URL and do not reach the canonical media/caption URL. If a `start` key is present but unusable, `t` is not used as a fallback.
+
+The registered `watch` and `watch_batch` tools also accept optional non-negative, conversion-safe whole-second `start` and `end` integers. Explicit `start` overrides URL start metadata; explicit `end` is exclusive and applies with the explicit start, URL start, or zero. Batch bounds are shared by every item; per-item ranges are not supported.
+
+```json
+{
+  "ref": "https://youtu.be/jNQXAC9IVRw?t=30s",
+  "question": "What happens in this section?",
+  "start": 45,
+  "end": 90
+}
+```
+
+The effective range is absolute and half-open: `[startMs, endMs)`. Missing bounds select the full source. An end beyond duration is clamped. Negative, fractional, non-finite, conversion-unsafe, reversed, or empty explicit bounds fail contextually, as does an effective start at or after the probed duration.
+
+### Unsupported URL and access scope
 
 The following are rejected or unsupported:
 
@@ -98,14 +115,14 @@ Or use the convenience command:
 
 ## What happens during a watch
 
-1. The source classifier validates and canonicalizes the URL while retaining the caller's original reference.
+1. The source classifier validates and canonicalizes the URL while retaining the caller's original reference and any valid start-only timestamp metadata.
 2. The resolver creates owned temporary storage and performs one bounded `yt-dlp` media download with `--ignore-config` and `--no-playlist`.
-3. `ffprobe` reads duration; `ffmpeg` detects scene changes and decodes only budget-selected frame times.
-4. Caption lookup uses the original YouTube reference. It requests human captions first and makes at most one automatic-caption fallback attempt using subtitle-only `yt-dlp` operations.
-5. Valid WebVTT cues join the shared frame/transcript timeline with transcript source `captions`.
-6. Any caption absence, parse failure, process error, unsafe path, oversized file, or cleanup problem degrades caption output to transcript source `none`; it does not invent spoken content.
-7. Spoken questions with captions can finish at tier 1. Without usable captions, the existing visual route continues through optional tier 2 and universal tier 3.
-8. Resolver- and caption-owned temporary directories are removed after success or failure. Caller-owned local files are never removed.
+3. `ffprobe` reads duration and resolves explicit/URL bounds to one absolute half-open range before scene/frame work.
+4. The existing full-source `ffmpeg` scene analysis still runs in Phase 21. Cuts and backfill are then selected against range-relative duration and rebased so only absolute offsets inside the range are decoded. Route-before-decode optimization belongs to Phase 22.
+5. Caption lookup uses the original YouTube reference. It requests human captions first and makes at most one automatic-caption fallback attempt using subtitle-only `yt-dlp` operations.
+6. Valid normalized caption cues—or eligible captions-first local ASR cues—are intersected and clipped on the same range without changing text/source. Empty in-range transcript evidence becomes source `none`.
+7. Usable range-filtered transcript can finish at tier 1; otherwise the visual route continues through optional tier 2 and universal tier 3.
+8. Resolver-, caption-, and adapter-owned temporary directories are removed after success or failure. Caller-owned local files are never removed.
 
 The media download and caption lookup are separate bounded `yt-dlp` operations: the resolver downloads media once, while caption acquisition uses `--skip-download` and never re-downloads the video.
 
@@ -119,7 +136,7 @@ Captions are best effort, not a prerequisite for watching:
 - Tier 2 remains optional.
 - Tier 3 returns sampled frames to the orchestrator and is the universal visual fallback.
 
-Whisper/local ASR is not included in v0.3. If a question requires exact speech and the video has no usable captions, the visual tiers may not be able to recover the words.
+Optional local ASR remains exact-opt-in, Apple-Silicon-only, captions-first, duration-bounded, and eligible only for spoken-intent questions. Its timestamped cues use the same requested range; every ASR failure still degrades to visual tiers without fabricated speech.
 
 ## Optional tier 2
 
@@ -201,6 +218,10 @@ Symptoms include `Unsupported YouTube source URL`, an unsupported host, or an in
 - Remove playlist-only, channel, embed, authentication, custom-port, or unrelated-host syntax.
 - Do not add cookies or browser-profile flags; authenticated video support is outside scope.
 
+### Invalid explicit range
+
+`start` and `end` tool fields must be non-negative, conversion-safe whole-second integers. `end` must be greater than the effective start, and start must be before the probed source duration. Remove malformed explicit bounds, use URL `t` / `start` only for the accepted start-only grammar, or choose a range that intersects the source.
+
 ### `yt-dlp` not found
 
 ```bash
@@ -243,6 +264,7 @@ Confirm a current ffmpeg build is available on `PATH`. Retry the public URL dire
 ### Captions unavailable
 
 This is not automatically an error. `pi-watch` tries human captions, then one automatic-caption fallback, then records transcript source `none` and continues visually.
+A caption track can also become unavailable to tier 1 when no normalized cue intersects the requested range; visual fallback remains available.
 
 - Ask a visual question when exact speech is unavailable.
 - Configure optional tier 2 if additional visual reasoning is useful.

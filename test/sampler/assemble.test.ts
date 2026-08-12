@@ -236,3 +236,53 @@ describe("mergeTranscript (AC-5)", () => {
 		expect(JSON.stringify(input)).toBe(before);
 	});
 });
+
+describe("range-aware assembly", () => {
+	it("clips transcript once and records fixed-size available coverage", () => {
+		const selected = [
+			{ tMs: 4_000, origin: "scene-cut" as const },
+			{ tMs: 7_000, origin: "backfill" as const },
+		];
+		const input: AssembleInput = {
+			ref: "range.mp4",
+			durationMs: 10_000,
+			range: { startMs: 4_000, endMs: 8_000 },
+			fpsSampled: 0.5,
+			selected,
+			images: selected.map((_, index) => ({
+				imageBase64: `RANGE_${index}`,
+				mediaType: "image/png" as const,
+			})),
+			resolution: "low",
+			transcript: [
+				{ startMs: 3_000, endMs: 4_500, text: "cross start", source: "captions" },
+				{ startMs: 7_500, endMs: 9_000, text: "cross end", source: "captions" },
+			],
+			transcriptSource: "captions",
+		};
+
+		const set = assembleWatchedFrameSet(input);
+
+		expect(set.transcript).toEqual([
+			{ startMs: 4_000, endMs: 4_500, text: "cross start", source: "captions" },
+			{ startMs: 7_500, endMs: 8_000, text: "cross end", source: "captions" },
+		]);
+		expect(set.source).toMatchObject({
+			range: { startMs: 4_000, endMs: 8_000 },
+			available: {
+				frames: { count: 2, firstMs: 4_000, lastMs: 7_000 },
+				transcript: { count: 2, firstMs: 4_000, lastMs: 8_000 },
+			},
+		});
+		expect(validateWatchedFrameSet(set).ok).toBe(true);
+	});
+
+	it("sets transcriptSource to none when range clipping removes every cue", () => {
+		const merged = mergeTranscript(
+			[{ startMs: 0, endMs: 1_000, text: "outside", source: "captions" }],
+			10_000,
+			{ startMs: 4_000, endMs: 8_000 },
+		);
+		expect(merged).toEqual([]);
+	});
+});

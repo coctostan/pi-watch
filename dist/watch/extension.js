@@ -24,9 +24,10 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type, } from "typebox";
 import { sample, } from "../sampler/index.js";
+import { MAX_RANGE_SECONDS } from "../sampler/range.js";
 import { classifyQuestion, route, routeContextFromSet } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
-import { walkTierChain, boundToolResultContent, defaultRunners, } from "./tier-runner.js";
+import { walkTierChain, boundToolResult, defaultRunners, } from "./tier-runner.js";
 import { createTier2Runner, TIER2_UNCONFIGURED_HINT, } from "./tier2.js";
 import { runWatchCommand } from "./command.js";
 import { runWatchBatch, WATCH_BATCH_MAX_ITEMS, } from "./batch.js";
@@ -43,6 +44,16 @@ export const WATCH_PARAMS = Type.Object({
     })),
     resolution: Type.Optional(StringEnum(["low", "high"], {
         description: "Optional frame-resolution override; normally the router sets this by question intent.",
+    })),
+    start: Type.Optional(Type.Integer({
+        minimum: 0,
+        maximum: MAX_RANGE_SECONDS,
+        description: "Inclusive source start in conversion-safe whole seconds",
+    })),
+    end: Type.Optional(Type.Integer({
+        minimum: 0,
+        maximum: MAX_RANGE_SECONDS,
+        description: "Exclusive source end in conversion-safe whole seconds",
     })),
 });
 export const WATCH_BATCH_PARAMS = Type.Object({
@@ -64,6 +75,16 @@ export const WATCH_BATCH_PARAMS = Type.Object({
     })),
     resolution: Type.Optional(StringEnum(["low", "high"], {
         description: "Shared frame-resolution override for every item; normally the router sets this by question intent.",
+    })),
+    start: Type.Optional(Type.Integer({
+        minimum: 0,
+        maximum: MAX_RANGE_SECONDS,
+        description: "Shared inclusive source start in conversion-safe whole seconds",
+    })),
+    end: Type.Optional(Type.Integer({
+        minimum: 0,
+        maximum: MAX_RANGE_SECONDS,
+        description: "Shared exclusive source end in conversion-safe whole seconds",
     })),
 });
 const WATCH_DESCRIPTION = "Watch a video (local file or URL) and answer a question about it. Samples " +
@@ -155,6 +176,8 @@ export default function watchExtension(pi) {
                     ref: params.ref,
                     budget: params.budget ?? config.budget,
                     resolution: params.resolution ?? config.resolution,
+                    ...(params.start === undefined ? {} : { start: params.start }),
+                    ...(params.end === undefined ? {} : { end: params.end }),
                     onSceneDetectionDiagnostic: (diagnostic) => {
                         sceneDetectionDiagnostic = diagnostic;
                     },
@@ -185,8 +208,12 @@ export default function watchExtension(pi) {
                 });
                 const contentWithHint = withUnconfiguredHint(result.content, result.tier, tier2Diagnostic);
                 const preservedTrailingParts = contentWithHint.length - result.content.length;
+                const bounded = boundToolResult(contentWithHint, preservedTrailingParts);
+                const tierTruncation = typeof result.details?.truncation === "object" && result.details.truncation !== null
+                    ? result.details.truncation
+                    : {};
                 return {
-                    content: boundToolResultContent(contentWithHint, preservedTrailingParts),
+                    content: bounded.content,
                     details: withTier2Diagnostic({
                         tier: result.tier,
                         intent: decision.intent,
@@ -195,6 +222,15 @@ export default function watchExtension(pi) {
                         rationale: decision.rationale,
                         frameCount: set.frames.length,
                         transcriptSource: set.source.transcriptSource,
+                        ...(set.source.range ? { range: set.source.range } : {}),
+                        ...(set.source.available
+                            ? { availableEvidence: set.source.available }
+                            : {}),
+                        returnedEvidence: bounded.returnedEvidence,
+                        truncation: {
+                            ...tierTruncation,
+                            final: bounded.truncated || tierTruncation.transcript === true,
+                        },
                         ...(sceneDetectionDiagnostic
                             ? { sceneDetection: sceneDetectionDiagnostic }
                             : {}),
@@ -235,6 +271,8 @@ export default function watchExtension(pi) {
                         ref,
                         budget: params.budget ?? config.budget,
                         resolution: params.resolution ?? config.resolution,
+                        ...(params.start === undefined ? {} : { start: params.start }),
+                        ...(params.end === undefined ? {} : { end: params.end }),
                         ...(asrEligible
                             ? {
                                 localAsr: config.localAsr,
@@ -262,21 +300,39 @@ export default function watchExtension(pi) {
                         question,
                         runners: itemRunners,
                     });
-                    if (result.tier !== 2 && tier2Diagnostic) {
-                        return {
-                            ...result,
-                            details: withTier2Diagnostic(result.details ?? {}, result.tier, tier2Diagnostic),
-                        };
-                    }
-                    return result;
+                    const noReturnedEvidence = {
+                        frames: { count: 0, firstMs: null, lastMs: null },
+                        transcript: { count: 0, firstMs: null, lastMs: null },
+                    };
+                    const details = {
+                        ...(result.details ?? {}),
+                        ...(set.source.range ? { range: set.source.range } : {}),
+                        ...(set.source.available
+                            ? { availableEvidence: set.source.available }
+                            : {}),
+                        returnedEvidence: result.details?.returnedEvidence ??
+                            noReturnedEvidence,
+                    };
+                    return {
+                        ...result,
+                        details: result.tier !== 2 && tier2Diagnostic
+                            ? withTier2Diagnostic(details, result.tier, tier2Diagnostic)
+                            : details,
+                    };
                 };
                 const result = await runWatchBatch(params.items, { processItem });
+                const bounded = boundToolResult(result.content);
                 return {
-                    content: boundToolResultContent(result.content),
+                    content: bounded.content,
                     details: {
                         count: params.items.length,
                         tiers: result.items.map((item) => item.tier),
                         errors: result.items.filter((item) => item.status === "error").length,
+                        evidence: result.evidence,
+                        truncation: {
+                            aggregate: result.aggregateTruncated,
+                            final: bounded.truncated,
+                        },
                         ...(asrDiagnostics.length > 0
                             ? { asr: asrDiagnostics.sort((a, b) => a.index - b.index) }
                             : {}),

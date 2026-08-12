@@ -12,6 +12,7 @@
  */
 import type { MediaType, ResolutionTier, TranscriptSegment, TranscriptSource, WatchedFrameSet } from "../contract/index.js";
 import type { SelectedFrame } from "./select-frames.js";
+import { type EvidenceRange } from "./range.js";
 /**
  * Format a millisecond offset as mm:ss, switching to h:mm:ss past one hour.
  *
@@ -33,7 +34,7 @@ export declare function formatTimestamp(ms: number): string;
  * The result satisfies the transcript invariants enforced by
  * `validateWatchedFrameSet`.
  */
-export declare function mergeTranscript(segments: TranscriptSegment[], durationMs: number): TranscriptSegment[];
+export declare function mergeTranscript(segments: TranscriptSegment[], durationMs: number, range?: EvidenceRange): TranscriptSegment[];
 /** Decoded image payload aligned 1:1 to a SelectedFrame, in timeline order. */
 export interface FrameImage {
     imageBase64: string;
@@ -44,6 +45,8 @@ export interface AssembleInput {
     ref: string;
     /** Total source duration in ms. */
     durationMs: number;
+    /** Effective absolute half-open evidence range; defaults to the full source. */
+    range?: EvidenceRange;
     /** Effective frames-per-second the sampler captured. */
     fpsSampled: number;
     /** Selected frame times from `selectFrameTimes` (tMs-ascending). */

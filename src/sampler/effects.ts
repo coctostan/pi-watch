@@ -36,6 +36,7 @@ import type {
 } from "../contract/index.js";
 import type { FrameImage } from "./assemble.js";
 import { parseWebVtt } from "./captions.js";
+import { parseYouTubeStartSeconds } from "./range.js";
 
 export { normalizeCaptionSegments, parseWebVtt } from "./captions.js";
 
@@ -87,6 +88,7 @@ export interface ResolvedSource {
 	mediaRef: string;
 	ownership: "caller" | "sampler-temporary";
 	cleanup: () => Promise<void>;
+	urlStartSeconds?: number;
 }
 
 export interface RunOptions {
@@ -180,6 +182,7 @@ export interface YouTubeSource {
 	originalRef: string;
 	videoId: string;
 	canonicalUrl: string;
+	startSeconds?: number;
 }
 
 export interface LocalSource {
@@ -262,10 +265,12 @@ export function normalizeYouTubeUrl(ref: string): { videoId: string; canonicalUr
 export function classifySourceRef(ref: string): SourceClassification {
 	if (/^\s*https?:/i.test(ref)) {
 		const normalized = normalizeYouTubeUrl(ref);
+		const startSeconds = parseYouTubeStartSeconds(ref);
 		return {
 			kind: "youtube",
 			originalRef: ref,
 			...normalized,
+			...(startSeconds === undefined ? {} : { startSeconds }),
 		};
 	}
 	return { kind: "local", originalRef: ref, mediaRef: ref };
@@ -359,6 +364,9 @@ export async function resolveSource(
 			mediaRef,
 			ownership: "sampler-temporary",
 			cleanup,
+			...(classification.startSeconds === undefined
+				? {}
+				: { urlStartSeconds: classification.startSeconds }),
 		};
 	} catch (err) {
 		const primaryError =

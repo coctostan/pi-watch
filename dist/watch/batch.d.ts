@@ -14,7 +14,8 @@
  * stubs.
  */
 import type { Tier } from "../router/index.js";
-import type { TierResult, WatchContentPart } from "./tier-runner.js";
+import type { AvailableEvidence, EvidenceRange } from "../contract/watched-frame-set.js";
+import { type TierResult, type WatchContentPart } from "./tier-runner.js";
 /** Conservative cap for local ffmpeg/model fan-out in one batch call. */
 export declare const WATCH_BATCH_MAX_ITEMS = 8;
 /** Hard cap for aggregate text emitted by one watch_batch call. */
@@ -37,10 +38,18 @@ export interface BatchItemResult {
     details?: Record<string, unknown>;
     error?: string;
 }
+export interface BatchEvidenceSummary {
+    index: number;
+    range: EvidenceRange;
+    available: AvailableEvidence;
+    returned: AvailableEvidence;
+}
 /** The complete batch outcome, including aggregate tool-result content. */
 export interface BatchResult {
     items: BatchItemResult[];
     content: WatchContentPart[];
+    evidence: BatchEvidenceSummary[];
+    aggregateTruncated: boolean;
 }
 /**
  * Fan out over many watch items, isolate per-item failures, and aggregate a

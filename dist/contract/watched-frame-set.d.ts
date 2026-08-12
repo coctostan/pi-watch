@@ -43,12 +43,52 @@ export declare const TranscriptSegment: Type.TObject<{
     source: Type.TUnion<[Type.TLiteral<"captions">, Type.TLiteral<"whisper">]>;
 }>;
 export type TranscriptSegment = Static<typeof TranscriptSegment>;
+export declare const EvidenceRange: Type.TObject<{
+    startMs: Type.TInteger;
+    endMs: Type.TInteger;
+}>;
+export type EvidenceRange = Static<typeof EvidenceRange>;
+export declare const EvidenceCoverage: Type.TObject<{
+    count: Type.TInteger;
+    firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+    lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+}>;
+export type EvidenceCoverage = Static<typeof EvidenceCoverage>;
+export declare const AvailableEvidence: Type.TObject<{
+    frames: Type.TObject<{
+        count: Type.TInteger;
+        firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+        lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+    }>;
+    transcript: Type.TObject<{
+        count: Type.TInteger;
+        firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+        lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+    }>;
+}>;
+export type AvailableEvidence = Static<typeof AvailableEvidence>;
 export declare const SourceMetadata: Type.TObject<{
     ref: Type.TString;
     durationMs: Type.TInteger;
     fpsSampled: Type.TNumber;
     frameCount: Type.TInteger;
     transcriptSource: Type.TUnion<[Type.TUnion<[Type.TLiteral<"captions">, Type.TLiteral<"whisper">]>, Type.TLiteral<"none">]>;
+    range: Type.TOptional<Type.TObject<{
+        startMs: Type.TInteger;
+        endMs: Type.TInteger;
+    }>>;
+    available: Type.TOptional<Type.TObject<{
+        frames: Type.TObject<{
+            count: Type.TInteger;
+            firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+            lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+        }>;
+        transcript: Type.TObject<{
+            count: Type.TInteger;
+            firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+            lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+        }>;
+    }>>;
 }>;
 export type SourceMetadata = Static<typeof SourceMetadata>;
 export declare const WatchedFrameSet: Type.TObject<{
@@ -58,6 +98,22 @@ export declare const WatchedFrameSet: Type.TObject<{
         fpsSampled: Type.TNumber;
         frameCount: Type.TInteger;
         transcriptSource: Type.TUnion<[Type.TUnion<[Type.TLiteral<"captions">, Type.TLiteral<"whisper">]>, Type.TLiteral<"none">]>;
+        range: Type.TOptional<Type.TObject<{
+            startMs: Type.TInteger;
+            endMs: Type.TInteger;
+        }>>;
+        available: Type.TOptional<Type.TObject<{
+            frames: Type.TObject<{
+                count: Type.TInteger;
+                firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+                lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+            }>;
+            transcript: Type.TObject<{
+                count: Type.TInteger;
+                firstMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+                lastMs: Type.TUnion<[Type.TInteger, Type.TNull]>;
+            }>;
+        }>>;
     }>;
     frames: Type.TArray<Type.TObject<{
         index: Type.TInteger;

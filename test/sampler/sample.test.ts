@@ -9,6 +9,7 @@ interface ResolvedSource {
 	originalRef: string;
 	mediaRef: string;
 	ownership: "caller" | "sampler-temporary";
+	urlStartSeconds?: number;
 	cleanup: () => Promise<void>;
 }
 
@@ -84,6 +85,9 @@ function makeResolvedSource(
 		originalRef: overrides.originalRef,
 		mediaRef: overrides.mediaRef ?? overrides.originalRef,
 		ownership,
+		...(overrides.urlStartSeconds === undefined
+			? {}
+			: { urlStartSeconds: overrides.urlStartSeconds }),
 		cleanup: vi.fn(async () => undefined),
 	};
 }
@@ -354,5 +358,102 @@ describe("sample() captions-first local ASR composition", () => {
 		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: "local.mp4" }));
 		await sample({ ref: "local.mp4" });
 		expect(asrEffects.fetchLocalAsrTranscript).not.toHaveBeenCalled();
+	});
+});
+
+describe("sample() range-aware evidence", () => {
+	it("uses explicit bounds over URL start for transcript, frames, fps, and available coverage", async () => {
+		const originalRef = "https://youtu.be/dQw4w9WgXcQ?t=2m";
+		const resolved = makeResolvedSource({
+			originalRef,
+			mediaRef: "/tmp/owned/range.mp4",
+			ownership: "sampler-temporary",
+			urlStartSeconds: 2,
+		});
+		effects.resolveSource.mockResolvedValue(resolved);
+		effects.probeDurationMs.mockResolvedValue(10_000);
+		effects.detectSceneCutsMs.mockResolvedValue([1_000, 4_000, 7_000, 9_000]);
+		effects.fetchTranscript.mockResolvedValue({
+			source: "captions",
+			segments: [
+				{ startMs: 3_000, endMs: 4_500, text: "cross start", source: "captions" },
+				{ startMs: 7_500, endMs: 9_000, text: "cross end", source: "captions" },
+			],
+		});
+
+		const result = await sample({ ref: originalRef, start: 4, end: 8, budget: 2 });
+
+		expect(effects.detectSceneCutsMs).toHaveBeenCalledWith(resolved.mediaRef, 10_000);
+		expect(effects.decodeFramesAt).toHaveBeenCalledWith(
+			resolved.mediaRef,
+			[4_000, 7_000],
+			"low",
+		);
+		expect(result.source).toMatchObject({
+			durationMs: 10_000,
+			fpsSampled: 0.5,
+			range: { startMs: 4_000, endMs: 8_000 },
+			available: {
+				frames: { count: 2, firstMs: 4_000, lastMs: 7_000 },
+				transcript: { count: 2, firstMs: 4_000, lastMs: 8_000 },
+			},
+		});
+		expect(result.frames.map((frame) => frame.tMs)).toEqual([4_000, 7_000]);
+		expect(result.transcript).toEqual([
+			{ startMs: 4_000, endMs: 4_500, text: "cross start", source: "captions" },
+			{ startMs: 7_500, endMs: 8_000, text: "cross end", source: "captions" },
+		]);
+	});
+
+	it("uses URL start when explicit start is absent and disables tier-1 evidence when no cue intersects", async () => {
+		const originalRef = "https://youtu.be/dQw4w9WgXcQ?t=5";
+		effects.resolveSource.mockResolvedValue(
+			makeResolvedSource({ originalRef, urlStartSeconds: 5 }),
+		);
+		effects.probeDurationMs.mockResolvedValue(10_000);
+		effects.fetchTranscript.mockResolvedValue({
+			source: "captions",
+			segments: [{ startMs: 0, endMs: 1_000, text: "outside", source: "captions" }],
+		});
+
+		const result = await sample({ ref: originalRef, budget: 1 });
+
+		expect(result.source.range).toEqual({ startMs: 5_000, endMs: 10_000 });
+		expect(result.source.transcriptSource).toBe("none");
+		expect(result.transcript).toEqual([]);
+		expect(result.frames[0]?.tMs).toBeGreaterThanOrEqual(5_000);
+	});
+
+	it("clips eligible ASR evidence through the same range", async () => {
+		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: "local.mp4" }));
+		effects.probeDurationMs.mockResolvedValue(10_000);
+		asrEffects.fetchLocalAsrTranscript.mockResolvedValue({
+			source: "whisper",
+			segments: [
+				{ startMs: 1_000, endMs: 3_000, text: "outside", source: "whisper" },
+				{ startMs: 5_000, endMs: 9_000, text: "inside", source: "whisper" },
+			],
+		});
+
+		const result = await sample({
+			ref: "local.mp4",
+			start: 4,
+			end: 8,
+			localAsr: ASR_POLICY,
+		});
+
+		expect(result.transcript).toEqual([
+			{ startMs: 5_000, endMs: 8_000, text: "inside", source: "whisper" },
+		]);
+		expect(result.source.transcriptSource).toBe("whisper");
+	});
+
+	it("rejects an invalid effective range before scene analysis or frame decoding", async () => {
+		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: "local.mp4" }));
+		effects.probeDurationMs.mockResolvedValue(10_000);
+
+		await expect(sample({ ref: "local.mp4", start: 10 })).rejects.toThrow(/start.*duration/i);
+		expect(effects.detectSceneCutsMs).not.toHaveBeenCalled();
+		expect(effects.decodeFramesAt).not.toHaveBeenCalled();
 	});
 });

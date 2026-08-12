@@ -13,6 +13,8 @@
  * per-item sample → route → walkTierChain processor; tests inject deterministic
  * stubs.
  */
+import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES } from "@earendil-works/pi-coding-agent";
+import { boundToolResult, } from "./tier-runner.js";
 /** Conservative cap for local ffmpeg/model fan-out in one batch call. */
 export const WATCH_BATCH_MAX_ITEMS = 8;
 /** Hard cap for aggregate text emitted by one watch_batch call. */
@@ -30,64 +32,167 @@ function errorMessage(err) {
 function textPartsOnly(content) {
     return content.filter((part) => part.type === "text");
 }
-/** Append a text part while enforcing the aggregate text cap. */
-function pushBoundedText(content, state, value) {
-    if (state.truncated)
-        return false;
-    const remaining = WATCH_BATCH_MAX_TEXT_CHARS - state.chars;
-    if (remaining <= 0) {
-        state.truncated = true;
-        return false;
-    }
-    if (value.length >= remaining) {
-        const suffix = remaining > WATCH_BATCH_TRUNCATION_NOTE.length
-            ? WATCH_BATCH_TRUNCATION_NOTE
-            : WATCH_BATCH_TRUNCATION_NOTE.slice(0, remaining);
-        const sliceLength = Math.max(0, remaining - suffix.length);
-        const bounded = value.slice(0, sliceLength) + suffix;
-        content.push(text(bounded));
-        state.chars += bounded.length;
-        state.truncated = true;
-        return false;
-    }
-    content.push(text(value));
-    state.chars += value.length;
-    return true;
+function contentUsage(parts) {
+    const joined = parts.map((part) => part.text).join("\n");
+    return {
+        chars: parts.reduce((sum, part) => sum + part.text.length, 0),
+        bytes: Buffer.byteLength(joined, "utf8"),
+        lines: joined === "" ? 0 : joined.split("\n").length,
+    };
 }
-/** Aggregate isolated item results into one bounded text-only tool result. */
-function aggregateBatchContent(results) {
-    if (results.length === 0) {
-        return [text("watch_batch: no videos were provided.")];
-    }
-    const content = [];
-    const state = { chars: 0, truncated: false };
-    pushBoundedText(content, state, `Watched ${results.length} video${results.length === 1 ? "" : "s"}; results below.`);
-    for (const item of results) {
-        if (!pushBoundedText(content, state, `── [${item.index}] ${item.ref} — ${item.question}`)) {
+function fitsBatchLimits(parts) {
+    const usage = contentUsage(parts);
+    return (usage.chars <= WATCH_BATCH_MAX_TEXT_CHARS &&
+        usage.bytes <= DEFAULT_MAX_BYTES &&
+        usage.lines <= DEFAULT_MAX_LINES);
+}
+function truncateBatchPrefix(value, content, suffix) {
+    const base = contentUsage(content);
+    const suffixUsage = contentUsage([suffix]);
+    const maxChars = Math.max(0, WATCH_BATCH_MAX_TEXT_CHARS - base.chars - suffixUsage.chars);
+    const separators = (content.length > 0 ? 1 : 0) + 1;
+    const maxBytes = Math.max(0, DEFAULT_MAX_BYTES - base.bytes - suffixUsage.bytes - separators);
+    const maxLines = Math.max(0, DEFAULT_MAX_LINES - base.lines - suffixUsage.lines);
+    let prefix = "";
+    let chars = 0;
+    let bytes = 0;
+    let lines = value === "" ? 0 : 1;
+    for (const char of value) {
+        const nextChars = chars + char.length;
+        const nextBytes = bytes + Buffer.byteLength(char, "utf8");
+        const nextLines = char === "\n" ? lines + 1 : lines;
+        if (nextChars > maxChars || nextBytes > maxBytes || nextLines > maxLines)
             break;
-        }
+        prefix += char;
+        chars = nextChars;
+        bytes = nextBytes;
+        lines = nextLines;
+    }
+    return prefix;
+}
+function batchEntries(results) {
+    if (results.length === 0)
+        return [{ part: text("watch_batch: no videos were provided.") }];
+    const entries = [
+        { part: text(`Watched ${results.length} video${results.length === 1 ? "" : "s"}; results below.`) },
+    ];
+    for (const item of results) {
+        entries.push({ part: text(`── [${item.index}] ${item.ref} — ${item.question}`) });
         if (item.status === "error") {
-            pushBoundedText(content, state, `Error: ${item.error ?? "unknown error"}`);
+            entries.push({ part: text(`Error: ${item.error ?? "unknown error"}`) });
             continue;
         }
         if (item.tier === 3) {
-            pushBoundedText(content, state, `This item routed to tier 3 (frames-into-context). ` +
-                `Run the single-video watch tool individually with ref: ${JSON.stringify(item.ref)} ` +
-                `and question: ${JSON.stringify(item.question)} to bring its frames into context. ` +
-                `Batch frame fan-out is deferred (DESIGN §5/§9).`);
+            entries.push({
+                part: text(`This item routed to tier 3 (frames-into-context). ` +
+                    `Run the single-video watch tool individually with ref: ${JSON.stringify(item.ref)} ` +
+                    `and question: ${JSON.stringify(item.question)} to bring its frames into context. ` +
+                    `Batch frame fan-out is deferred (DESIGN §5/§9).`),
+                itemIndex: item.index,
+            });
             continue;
         }
-        const textParts = textPartsOnly(item.content ?? []);
-        if (textParts.length === 0) {
-            pushBoundedText(content, state, `No text content returned for tier ${item.tier ?? "unknown"}.`);
+        const parts = textPartsOnly(item.content ?? []);
+        if (parts.length === 0) {
+            entries.push({
+                part: text(`No text content returned for tier ${item.tier ?? "unknown"}.`),
+            });
             continue;
         }
-        for (const part of textParts) {
-            if (!pushBoundedText(content, state, part.text))
-                break;
-        }
+        entries.push(...parts.map((part) => ({ part, itemIndex: item.index })));
     }
-    return content;
+    return entries;
+}
+/** Aggregate item text and retain evidence markers only for content that survives. */
+function aggregateBatchContent(results) {
+    const entries = batchEntries(results);
+    const allContent = entries.map((entry) => entry.part);
+    const suffix = text(WATCH_BATCH_TRUNCATION_NOTE);
+    const retainedEntries = [];
+    let content;
+    let truncated = false;
+    if (fitsBatchLimits(allContent)) {
+        content = allContent;
+        retainedEntries.push(...entries.filter((entry) => entry.itemIndex !== undefined));
+    }
+    else {
+        truncated = true;
+        content = [];
+        for (const entry of entries) {
+            if (fitsBatchLimits([...content, entry.part, suffix])) {
+                content.push(entry.part);
+                if (entry.itemIndex !== undefined)
+                    retainedEntries.push(entry);
+                continue;
+            }
+            const evidence = boundToolResult([entry.part]).returnedEvidence;
+            if (evidence.frames.count === 0 && evidence.transcript.count === 0) {
+                const prefix = truncateBatchPrefix(entry.part.text, content, suffix);
+                if (prefix !== "")
+                    content.push(text(prefix));
+            }
+            break;
+        }
+        content.push(suffix);
+    }
+    const retainedByItem = new Map();
+    for (const entry of retainedEntries) {
+        if (entry.itemIndex === undefined)
+            continue;
+        const parts = retainedByItem.get(entry.itemIndex) ?? [];
+        parts.push(entry.part);
+        retainedByItem.set(entry.itemIndex, parts);
+    }
+    const totalPartsByItem = new Map();
+    for (const entry of entries) {
+        if (entry.itemIndex === undefined)
+            continue;
+        totalPartsByItem.set(entry.itemIndex, (totalPartsByItem.get(entry.itemIndex) ?? 0) + 1);
+    }
+    const returnedByItem = new Map();
+    const completeItemIndexes = new Set();
+    for (const [itemIndex, parts] of retainedByItem) {
+        returnedByItem.set(itemIndex, boundToolResult(parts).returnedEvidence);
+        if (parts.length === totalPartsByItem.get(itemIndex))
+            completeItemIndexes.add(itemIndex);
+    }
+    return { content, truncated, returnedByItem, completeItemIndexes };
+}
+function emptyEvidence() {
+    const empty = () => ({ count: 0, firstMs: null, lastMs: null });
+    return { frames: empty(), transcript: empty() };
+}
+function readCoverage(value) {
+    if (typeof value !== "object" || value === null)
+        return undefined;
+    const candidate = value;
+    if (typeof candidate.count !== "number" ||
+        (candidate.firstMs !== null && typeof candidate.firstMs !== "number") ||
+        (candidate.lastMs !== null && typeof candidate.lastMs !== "number")) {
+        return undefined;
+    }
+    return {
+        count: candidate.count,
+        firstMs: candidate.firstMs,
+        lastMs: candidate.lastMs,
+    };
+}
+function readEvidence(value) {
+    if (typeof value !== "object" || value === null)
+        return undefined;
+    const candidate = value;
+    const frames = readCoverage(candidate.frames);
+    const transcript = readCoverage(candidate.transcript);
+    return frames && transcript ? { frames, transcript } : undefined;
+}
+function readRange(value) {
+    if (typeof value !== "object" || value === null)
+        return undefined;
+    const candidate = value;
+    if (typeof candidate.startMs !== "number" || typeof candidate.endMs !== "number") {
+        return undefined;
+    }
+    return { startMs: candidate.startMs, endMs: candidate.endMs };
 }
 /**
  * Fan out over many watch items, isolate per-item failures, and aggregate a
@@ -122,6 +227,28 @@ export async function runWatchBatch(items, deps) {
             details: outcome.value.details,
         };
     });
-    return { items: results, content: aggregateBatchContent(results) };
+    const aggregate = aggregateBatchContent(results);
+    const evidence = results.flatMap((item) => {
+        if (item.status !== "ok")
+            return [];
+        const available = readEvidence(item.details?.availableEvidence);
+        if (!available)
+            return [];
+        const range = readRange(item.details?.range);
+        if (!range)
+            return [];
+        const marked = aggregate.returnedByItem.get(item.index) ?? emptyEvidence();
+        const markedCount = marked.frames.count + marked.transcript.count;
+        const returned = aggregate.completeItemIndexes.has(item.index) && markedCount === 0
+            ? readEvidence(item.details?.returnedEvidence) ?? marked
+            : marked;
+        return [{ index: item.index, range, available, returned }];
+    });
+    return {
+        items: results,
+        content: aggregate.content,
+        evidence: evidence.slice(0, WATCH_BATCH_MAX_ITEMS),
+        aggregateTruncated: aggregate.truncated,
+    };
 }
 //# sourceMappingURL=batch.js.map

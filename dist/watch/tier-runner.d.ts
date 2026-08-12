@@ -28,6 +28,7 @@
  */
 import type { Tier, RoutingDecision } from "../router/index.js";
 import type { WatchedFrameSet } from "../contract/index.js";
+import type { AvailableEvidence } from "../contract/watched-frame-set.js";
 /** A text part of tool-result content. */
 export type WatchTextPart = {
     type: "text";
@@ -60,11 +61,13 @@ export type TierRunner = (args: {
     decision: RoutingDecision;
     question: string;
 }) => Promise<TierResult | null>;
-/**
- * Bound final aggregate tool text while preserving normal multipart ordering.
- * `preserveTrailingParts` reserves required trailing guidance such as the
- * unconfigured-tier hint before earlier text is truncated.
- */
+export interface BoundedToolResult {
+    content: WatchContentPart[];
+    truncated: boolean;
+    returnedEvidence: AvailableEvidence;
+}
+/** Bound final text and report evidence retained in complete returned parts. */
+export declare function boundToolResult(content: WatchContentPart[], preserveTrailingParts?: number): BoundedToolResult;
 export declare function boundToolResultContent(content: WatchContentPart[], preserveTrailingParts?: number): WatchContentPart[];
 /**
  * Build the tier-3 tool-result content: the sampled frames handed back to the

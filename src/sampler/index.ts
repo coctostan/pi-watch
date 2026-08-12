@@ -18,6 +18,20 @@ export {
 } from "./select-frames.js";
 
 export {
+	MAX_RANGE_SECONDS,
+	parseYouTubeStartSeconds,
+	resolveEvidenceRange,
+	clipTranscriptToRange,
+	sceneCutsWithinRange,
+	rebaseSelectedFrames,
+	summarizeTranscriptCoverage,
+	summarizeFrameCoverage,
+	type EvidenceRange,
+	type EvidenceCoverage,
+	type ResolveEvidenceRangeInput,
+} from "./range.js";
+
+export {
 	formatTimestamp,
 	mergeTranscript,
 	assembleWatchedFrameSet,

@@ -26,6 +26,11 @@ import {
 } from "./effects.js";
 import { selectFrameTimes } from "./select-frames.js";
 import {
+	rebaseSelectedFrames,
+	resolveEvidenceRange,
+	sceneCutsWithinRange,
+} from "./range.js";
+import {
 	fetchLocalAsrTranscript,
 	type AsrDiagnostic,
 	type LocalAsrPolicy,
@@ -38,6 +43,10 @@ export interface SampleOptions {
 	budget?: number;
 	/** Frame resolution policy. Defaults to "low" (DESIGN §3). */
 	resolution?: ResolutionTier;
+	/** Optional inclusive start bound in conversion-safe whole seconds. */
+	start?: number;
+	/** Optional exclusive end bound in conversion-safe whole seconds. */
+	end?: number;
 	/** ffmpeg scene-change sensitivity (0–1). Lower = more cuts. */
 	sceneThreshold?: number;
 	/** Best-effort side-channel for bounded scene-analysis fallbacks. */
@@ -67,6 +76,13 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 
 		// 1. Effect: total duration (defines the timeline's upper bound).
 		const durationMs = await probeDurationMs(mediaRef);
+		const range = resolveEvidenceRange({
+			durationMs,
+			urlStartSeconds: resolved.urlStartSeconds,
+			startSeconds: opts.start,
+			endSeconds: opts.end,
+		});
+		const rangeDurationMs = range.endMs - range.startMs;
 
 		// 2. Effect: raw scene-change offsets.
 		// Keep the callback best-effort even if a custom effect seam does not
@@ -91,12 +107,13 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 					? await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold)
 					: await detectSceneCutsMs(mediaRef, durationMs, opts.sceneThreshold, sceneDiagnosticOptions);
 
-		// 3. Pure decision: budget-capped frame times (cuts + gap-gated backfill).
-		const selected = selectFrameTimes({
-			sceneCutsMs,
-			durationMs,
+		// 3. Pure decision: select against the range-relative window, then rebase.
+		const relativeSelected = selectFrameTimes({
+			sceneCutsMs: sceneCutsWithinRange(sceneCutsMs, range),
+			durationMs: rangeDurationMs,
 			...(opts.budget === undefined ? {} : { budget: opts.budget }),
 		});
+		const selected = rebaseSelectedFrames(relativeSelected, range);
 
 		// 4. Effect: decode exactly the selected times, in order (images[i] ↔ selected[i]).
 		const images = await decodeFramesAt(
@@ -126,14 +143,17 @@ export async function sample(opts: SampleOptions): Promise<WatchedFrameSet> {
 			);
 		}
 
-		// 6. Effective frames-per-second the sampler actually captured.
+		// 6. Effective frames-per-second over the selected range, not the full source.
 		const fpsSampled =
-			selected.length > 0 && durationMs > 0 ? selected.length / (durationMs / 1000) : 0;
+			selected.length > 0 && rangeDurationMs > 0
+				? selected.length / (rangeDurationMs / 1000)
+				: 0;
 
 		// 7. Pure assembly → contract-valid WatchedFrameSet.
 		return assembleWatchedFrameSet({
 			ref,
 			durationMs,
+			range,
 			fpsSampled,
 			selected,
 			images,

@@ -13,7 +13,7 @@ import {
 	type TierRunner,
 	type WatchImagePart,
 } from "../../src/watch/index.js";
-import { boundToolResultContent } from "../../src/watch/tier-runner.js";
+import { boundToolResult, boundToolResultContent } from "../../src/watch/tier-runner.js";
 import type { RoutingDecision } from "../../src/router/index.js";
 import type {
 	WatchedFrameSet,
@@ -51,13 +51,27 @@ function makeSet(opts: {
 	transcriptSource?: WatchedFrameSet["source"]["transcriptSource"];
 }): WatchedFrameSet {
 	const transcript = opts.transcript ?? [];
+	const durationMs = Math.max(10_000, transcript.at(-1)?.endMs ?? 0);
 	return {
 		source: {
 			ref: "fixture.mp4",
-			durationMs: 10_000,
+			durationMs,
 			fpsSampled: 1,
 			frameCount: opts.frames.length,
 			transcriptSource: opts.transcriptSource ?? "none",
+			range: { startMs: 0, endMs: durationMs },
+			available: {
+				frames: {
+					count: opts.frames.length,
+					firstMs: opts.frames[0]?.tMs ?? null,
+					lastMs: opts.frames.at(-1)?.tMs ?? null,
+				},
+				transcript: {
+					count: transcript.length,
+					firstMs: transcript[0]?.startMs ?? null,
+					lastMs: transcript.at(-1)?.endMs ?? null,
+				},
+			},
 		},
 		frames: opts.frames,
 		transcript,
@@ -448,5 +462,135 @@ describe("transcript truncation", () => {
 			`retained ${DEFAULT_MAX_LINES - 7} of ${transcript.length} lines`,
 		);
 		expect(transcriptPart.text).toContain("bytes");
+	});
+});
+
+describe("returned evidence accounting", () => {
+	it("reports only transcript segments retained by the tier-1 text bound", async () => {
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text: `bounded synthetic ${index}`,
+			source: "captions" as const,
+		}));
+		const result = await tier1Runner({
+			set: makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.details?.availableEvidence).toMatchObject({
+			transcript: { count: transcript.length, firstMs: 0 },
+		});
+		expect((result?.details?.returnedEvidence as any).transcript.count).toBeLessThan(
+			transcript.length,
+		);
+		expect(result?.details?.truncation).toMatchObject({ transcript: true });
+	});
+
+	it("does not count an omitted tier-3 frame-label/image pair as returned", () => {
+		const frames = Array.from({ length: DEFAULT_MAX_LINES + 100 }, (_, index) =>
+			frame({
+				index,
+				tMs: index * 1_000,
+				timestamp: `00:${String(index % 60).padStart(2, "0")}`,
+				imageBase64: `RANGE-FRAME-${index}`,
+			}),
+		);
+		const bounded = boundToolResult(
+			framesToToolResultContent(makeSet({ frames }), "What happens?"),
+		);
+		const returned = bounded.returnedEvidence.frames;
+
+		expect(bounded.truncated).toBe(true);
+		expect(returned.count).toBeLessThan(frames.length);
+		expect(bounded.content.filter((part) => part.type === "image")).toHaveLength(
+			returned.count,
+		);
+		expect(returned.firstMs).toBe(0);
+		expect(returned.lastMs).toBe(frames[returned.count - 1]?.tMs ?? null);
+	});
+
+	it("counts duplicate transcript lines by retained occurrence rather than string membership", () => {
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, () => ({
+			startMs: 0,
+			endMs: 1_000,
+			text: "duplicate synthetic",
+			source: "captions" as const,
+		}));
+		const original = transcriptToToolResultContent(
+			makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			"What is said?",
+		);
+		const bounded = boundToolResult(
+			[...original, { type: "text", text: "required-tail-" + "x".repeat(30_000) }],
+			1,
+		);
+		const visibleOccurrences = bounded.content
+			.filter((part) => part.type === "text")
+			.flatMap((part) => part.text.split("\n"))
+			.filter((line) => line === "00:00 duplicate synthetic").length;
+
+		expect(bounded.truncated).toBe(true);
+		expect(visibleOccurrences).toBeGreaterThan(0);
+		expect(bounded.returnedEvidence.transcript.count).toBe(visibleOccurrences);
+		expect(visibleOccurrences).toBeLessThan(transcript.length);
+	});
+
+	it("counts only wholly retained multiline transcript segments in tier 1 and tier 3", async () => {
+		const transcript = [
+			{
+				startMs: 0,
+				endMs: 1_000,
+				text: Array.from({ length: DEFAULT_MAX_LINES + 500 }, () => "multiline").join("\n"),
+				source: "captions" as const,
+			},
+			{
+				startMs: 1_000,
+				endMs: 2_000,
+				text: "must be omitted",
+				source: "captions" as const,
+			},
+		];
+		const set = makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript });
+		const tier1 = await tier1Runner({
+			set,
+			decision: decision([1, 2, 3]),
+			question: "What is said?",
+		});
+		const tier1Returned = (tier1?.details?.returnedEvidence as any).transcript;
+		expect(tier1Returned).toEqual({ count: 0, firstMs: null, lastMs: null });
+		expect(tier1?.content.some((part) => part.type === "text" && part.text.includes("must be omitted"))).toBe(false);
+
+		const tier3Bounded = boundToolResult(framesToToolResultContent(set, "What happens?"));
+		expect(tier3Bounded.returnedEvidence.transcript).toEqual({
+			count: 0,
+			firstMs: null,
+			lastMs: null,
+		});
+		expect(
+			tier3Bounded.content.some(
+				(part) => part.type === "text" && part.text.includes("must be omitted"),
+			),
+		).toBe(false);
+	});
+
+	it("reports tier-3 transcript truncation when cues are omitted", async () => {
+		const transcript = Array.from({ length: DEFAULT_MAX_LINES + 500 }, (_, index) => ({
+			startMs: index * 1_000,
+			endMs: (index + 1) * 1_000,
+			text: `tier3 ${index}`,
+			source: "captions" as const,
+		}));
+		const result = await tier3Runner({
+			set: makeSet({ frames: TWO_FRAMES, transcriptSource: "captions", transcript }),
+			decision: decision([3]),
+			question: "What happens?",
+		});
+		expect(result!.details?.truncation).toEqual({ transcript: true });
+		expect((result!.details?.returnedEvidence as any).transcript.count).toBeLessThan(
+			transcript.length,
+		);
 	});
 });

@@ -23,6 +23,10 @@ export interface SampleOptions {
     budget?: number;
     /** Frame resolution policy. Defaults to "low" (DESIGN §3). */
     resolution?: ResolutionTier;
+    /** Optional inclusive start bound in conversion-safe whole seconds. */
+    start?: number;
+    /** Optional exclusive end bound in conversion-safe whole seconds. */
+    end?: number;
     /** ffmpeg scene-change sensitivity (0–1). Lower = more cuts. */
     sceneThreshold?: number;
     /** Best-effort side-channel for bounded scene-analysis fallbacks. */
