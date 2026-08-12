@@ -14,7 +14,7 @@ Version: v0.5.0 (target)
 Phase: 21 of 4 (Range-aware evidence)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-12 — Unified Phase 20 plan 20-01, finalized module/reporting evidence, and transitioned lifecycle artifacts to Phase 21 pending the required PR merge gate.
+Last activity: 2026-08-12 — Unified Phase 20 plan 20-01, passed the PR #30 checks, squash-merged as `d731e28`, synced `main`, and completed configured feature-branch cleanup.
 Next action: `/paul:plan` for Phase 21.
 
 Progress:
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [M5 Phase 21 — ready to plan after Phase 20 merge gate]
+  ○        ○        ○     [M5 Phase 21 — ready to plan]
 ```
 
 ## Accumulated Context
@@ -82,11 +82,11 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-12 — Unified Phase 20 plan 20-01 and prepared the Phase 21 transition on the feature branch.
-Stopped at: Phase 20 lifecycle transition is complete; finalized artifacts must pass the PR #30 CI/merge gate before Phase 21 planning is exposed.
+Last session: 2026-08-12 — Unified Phase 20 plan 20-01, merged PR #30, synced `main`, and completed branch cleanup.
+Stopped at: Phase 20 is complete and merged; Phase 21 is ready to plan.
 Next action: `/paul:plan` for Phase 21.
 Resume file: `.paul/ROADMAP.md`
-Git state: On `feature/20-normalize-and-measure`; PR #30 is open; UNIFY/transition artifacts await commit, push, passing checks, squash merge, base sync, and configured branch cleanup.
+Git state: Phase PR #30 MERGED as `d731e28`; `main` synced with `origin/main`; `feature/20-normalize-and-measure` deleted locally/remotely; closure snapshot reconciled through a follow-up GitHub Flow update.
 Resume context:
 - Phase 20 AC-1 through AC-3 are PASS; SUMMARY: `.paul/phases/20-normalize-and-measure/20-01-SUMMARY.md`.
 - The synthetic corpus measures 301 raw to 235 normalized UTF-8 bytes and 12 to 0 known duplicate tokens under exact adjacent temporal overlap and a 4,096-token work bound.
