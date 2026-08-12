@@ -2,22 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (M4/v0.4 released baseline; ready for next milestone definition)
+See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Define the next milestone from the shipped v0.4 baseline and audit-routed follow-up.
+**Current focus:** Phase 21 — honor supported timestamps and explicit ranges across normalized transcript, eligible ASR, and visual fallback evidence.
 
 ## Current Position
 
-Milestone: Awaiting next milestone (M4 — v0.4 — Listen Locally complete)
-Version: v0.4.0
-Phase: None active
-Plan: None
-Status: M4 / v0.4.0 complete and released — ready for next milestone
-Last activity: 2026-08-11 — Merged M4 release reconciliation through PR #28, synchronized `main`, finalized release continuity, and created annotated tag `v0.4.0`; parent verification passes while isolated ambient-cache failure remains routed as F8/R22.
-Next action: `/paul:discuss-milestone` to define the next milestone.
+Milestone: M5 — v0.5 — Transcript First
+Version: v0.5.0 (target)
+Phase: 21 of 4 (Range-aware evidence)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-12 — Unified Phase 20 plan 20-01, finalized module/reporting evidence, and transitioned lifecycle artifacts to Phase 21 pending the required PR merge gate.
+Next action: `/paul:plan` for Phase 21.
 
 Progress:
+- Milestone M5 / v0.5: [██░░░░░░░░] 25% (Phase 20 complete; Phases 21–23 remain)
 - Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
@@ -28,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [M4 complete — ready for next milestone]
+  ○        ○        ○     [M5 Phase 21 — ready to plan after Phase 20 merge gate]
 ```
 
 ## Accumulated Context
@@ -51,6 +52,9 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Captions remain preferred; ASR runs only for speech-oriented questions when captions are absent, uses a configurable hard duration cap, and degrades to visual tiers on every failure.
 - Local ASR executes configured `mlx_whisper` directly with hard duration/timeout/output bounds, validates unknown JSON in a pure core, owns only adapter-created output, and exposes typed diagnostics without refs, transcript text, stderr, or cache paths.
 - External-model acceptance uses deterministic failure through the manifest-declared compiled registration by default; real `mlx_whisper` proof remains exact-opt-in, finite, default-skipped, and user-managed.
+- M5 centers the deterministic, stateless transcript-efficiency path: normalize caption overlap, honor ranges, and acquire transcript evidence before expensive visual work.
+- Persistent transcript handles and internal model-backed synthesis remain deferred pending measured M5 results; M5 adds no dependency or mandatory model/cloud path.
+- Rolling captions normalize only exact case-sensitive overlap of at least three tokens between temporally overlapping adjacent raw cues; work is bounded at 4,096 prior-cue tokens, over-budget cues remain unchanged, and metrics stay corpus-scoped.
 
 ### Deferred Issues
 
@@ -58,10 +62,10 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional Gemini/cloud tier.
 - Advanced ASR features: diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Optional resolver download filesize/duration caps beyond v0.4's ASR-specific policy if runtime evidence warrants them.
-- Focused decomposition of `src/sampler/effects.ts` beyond work directly enabling bounded ASR.
+- Focused decomposition of `src/sampler/effects.ts` beyond Phase 20's caption-core extraction; the reduced file remains a measured hotspot.
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
-- Audit-routed follow-up: R3 OCR resolution composition and transcript-before-frame cost path, R8 quoted `/watch` paths, R18 exported-boundary ASR ceilings, R22 hermetic package proof, and R4/R6 comment/terminology reconciliation.
+- Audit-routed follow-up outside M5: R3 question-derived OCR resolution composition; M5 owns transcript-before-frame R3 plus R8, R18, R22, and R4/R6.
 
 ### Release Concerns
 
@@ -78,17 +82,17 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-11 — Completed and released M4 / v0.4.0 after adherence audit and GitHub Flow reconciliation.
-Stopped at: M4 release complete; no phase or plan active.
-Next action: `/paul:discuss-milestone` to define the next milestone.
-Resume file: `.paul/MILESTONES.md`
-Git state: M4 closure PR #28 merged; release-finalization commit merged to `main`; local `main` synchronized; annotated tag `v0.4.0` created and pushed.
+Last session: 2026-08-12 — Unified Phase 20 plan 20-01 and prepared the Phase 21 transition on the feature branch.
+Stopped at: Phase 20 lifecycle transition is complete; finalized artifacts must pass the PR #30 CI/merge gate before Phase 21 planning is exposed.
+Next action: `/paul:plan` for Phase 21.
+Resume file: `.paul/ROADMAP.md`
+Git state: On `feature/20-normalize-and-measure`; PR #30 is open; UNIFY/transition artifacts await commit, push, passing checks, squash merge, base sync, and configured branch cleanup.
 Resume context:
-- `.paul/audits/M4-AUDIT.md` is complete with R1–R22 verdicts, tagged-evidence/no-test-found records, all four document-health lenses, F1–F17 routes, and explicit author intent confirmation after final reconciliation.
-- `.paul/archive/roadmap/v0.4.0-listen-locally.md` is authoritative completed phase 17–19 history; live ROADMAP is compact.
-- Audit-routed R3/R4/R6/R8/R18/R22 work remains follow-up and is not represented as fixed.
-- Parent verification passes with 248 tests / 3 skipped, typecheck, build, and `git diff --check`; isolated ambient npm-cache failure remains documented and routed through F8/R22.
-- Version alignment is v0.4.0 across PROJECT, ROADMAP, STATE, package metadata, lock metadata, and release tag.
+- Phase 20 AC-1 through AC-3 are PASS; SUMMARY: `.paul/phases/20-normalize-and-measure/20-01-SUMMARY.md`.
+- The synthetic corpus measures 301 raw to 235 normalized UTF-8 bytes and 12 to 0 known duplicate tokens under exact adjacent temporal overlap and a 4,096-token work bound.
+- Post-unify WALT, SKIP, CODI, and RUBY reports are durable; no module blocked and Spec Deltas records `No deltas`.
+- The consumed handoff is archived, and accidental `.codegraph/graph.db` tracking from WIP `04c97ad` is removed from PR scope while the local cache remains untracked.
+- Phase 21 owns supported timestamp/start/end range behavior, coverage/truncation metadata, and unchanged transcript/ASR/visual fallback guarantees.
 
 ---
 *STATE.md — Updated after every significant action*

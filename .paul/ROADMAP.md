@@ -6,18 +6,41 @@ A Pi extension that watches videos through the cheapest available path—timesta
 
 ## Current Milestone
 
-**M4 — v0.4 — Listen Locally** (v0.4.0)
-Status: ✅ Complete
-Completed: 2026-08-11
-Phases: 17–19 (3 plans)
-Outcome: Captionless English speech can reach transcript-first routing through explicitly enabled bounded local ASR, with typed private diagnostics, visual fallback, deterministic compiled-package proof, and complete operator guidance.
-Archive: [archive/roadmap/v0.4.0-listen-locally.md](archive/roadmap/v0.4.0-listen-locally.md)
-Audit: [audits/M4-AUDIT.md](audits/M4-AUDIT.md)
+**M5 — v0.5 — Transcript First** (target v0.5.0)
+Status: 🚧 In Progress
+Phases: 1 of 4 complete
+Theme: Make the cheapest path cheap in practice by normalizing and selecting range-complete transcript evidence before performing expensive visual work.
+Assessment: [after-v0.4 context-efficiency assessment](assessments/2026-08-11-after-v0.4-context-efficiency.md)
 
-## Next Milestone
+| Phase | Name | Plans | Status | Completed |
+|-------|------|-------|--------|-----------|
+| 20 | Normalize and measure | 1/1 | ✅ Complete | 2026-08-12 |
+| 21 | Range-aware evidence | TBD | 🔵 Ready to plan | — |
+| 22 | Route before decoding | TBD | Not started | — |
+| 23 | Harden and prove | TBD | Not started | — |
 
-Run `/paul:discuss-milestone` or `/paul:milestone` to define the next milestone.
+### Phase 20: Normalize and measure
+Focus: Establish deterministic context-efficiency baselines and conservatively remove rolling-caption overlap while preserving timing and legitimate repetition.
+Plans: 1/1 complete — [20-01: Conservative rolling-caption normalization and context baseline](phases/20-normalize-and-measure/20-01-PLAN.md) (complete 2026-08-12)
+Serves: R3, R6
 
+### Phase 21: Range-aware evidence
+Focus: Honor supported YouTube timestamps and explicit `start` / `end` ranges across transcript, eligible ASR, and visual fallback, with bounded coverage and truncation metadata.
+Plans: TBD (defined during `/paul:plan`)
+
+### Phase 22: Route before decoding
+Focus: Stage transcript acquisition so successful tier-1 calls avoid scene detection and frame decoding, with an explicit broad spoken/visual/mixed question policy and unchanged cleanup/fallback guarantees.
+Plans: TBD (defined during `/paul:plan`)
+
+### Phase 23: Harden and prove
+Focus: Close R8, R18, R22, and R4/R6; prove compiled-package context efficiency; and publish operator guidance without broadening into unrelated maintenance.
+Plans: TBD (defined during `/paul:plan`)
+
+### Milestone boundaries
+- No new dependency, mandatory model, cloud service, persistent transcript handle/cache, or model-backed synthesis.
+- Preserve the `watch` primitive, thin model adapters, captions-first ASR, narrow source ownership, privacy-safe diagnostics, and tier 3 as the universal fallback.
+- Measure baseline-to-result context/work reductions; do not adopt the feedback's estimated 70–90% reduction as a release promise.
+- Keep R8 limited to quoted local references containing spaces rather than a general shell parser.
 ## Completed Milestones
 
 | Milestone | Completed | Phases | Summary | Archive |
@@ -29,18 +52,13 @@ Run `/paul:discuss-milestone` or `/paul:milestone` to define the next milestone.
 
 ## Carried Forward
 
-### Audit-routed follow-up
+### Audit-routed follow-up outside M5
 - R3 — Make question-derived OCR resolution effective before frame decoding.
-- R3 — Acquire sufficient transcript evidence before scene detection/frame decoding so tier-1 success avoids frame extraction.
-- R8 — Support quoted `/watch` local paths containing spaces.
-- R18 — Enforce absolute ASR duration/timeout ceilings inside the exported adapter boundary.
-- R22 — Make nested package proof use a test-owned npm cache.
-- R4/R6 — Reconcile router rationale and sampled-frame/native-video terminology without changing runtime policy.
 
 ### Deferred product and maintenance work
 - Dedicated CI workflow beyond Socket-only PR checks.
 - Tier-3 batch fan-out when frames-for-many-videos becomes necessary.
-- Focused, test-backed decomposition of `src/sampler/effects.ts` beyond extraction directly required by v0.4.
+- Focused, test-backed decomposition of `src/sampler/effects.ts` beyond Phase 20's caption-core extraction.
 - Optional resolver-wide download filesize/duration caps if runtime evidence warrants them.
 - Advanced ASR capabilities: speaker diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Richer command/config surfaces and optional TypeBox peer-dependency cleanup.
@@ -49,4 +67,4 @@ Run `/paul:discuss-milestone` or `/paul:milestone` to define the next milestone.
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · M4/v0.4 milestone completed: 2026-08-11*
+*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-12 after Phase 20 completion*

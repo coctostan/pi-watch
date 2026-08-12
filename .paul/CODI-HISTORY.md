@@ -23,3 +23,4 @@ Per-UNIFY codegraph blast-radius outcome appended by CODI (post-unify). One row 
 | 18-01 | 2026-08-10 | skipped-tool-unavailable | — | — | — | — | n |
 | 19-01 | 2026-08-10 | skipped-tool-unavailable | — | — | — | — | n |
 | fix-03 | 2026-08-10 | no-dispatch-found | — | — | — | — | n |
+| 20-01 | 2026-08-12 | no-dispatch-found | — | — | — | — | n |
