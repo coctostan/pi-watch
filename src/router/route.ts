@@ -62,7 +62,9 @@ const ON_SCREEN_TEXT_MARKERS: readonly string[] = [
 	"what does the sign",
 	"sign say",
 	"label",
+	"labels",
 	"subtitle",
+	"subtitles",
 	"title card",
 	"logo",
 	"watermark",
@@ -77,46 +79,129 @@ const SPOKEN_MARKERS: readonly string[] = [
 	"said",
 	"says",
 	"speak",
+	"speaks",
+	"speaker",
+	"speaking",
 	"spoken",
 	"mention",
+	"mentions",
+	"mentioned",
+	"mentioning",
 	"talk",
+	"talks",
+	"talked",
+	"talking",
 	"discuss",
+	"discusses",
+	"discussed",
+	"discussing",
+	"discussion",
 	"dialogue",
-	"narrat",
+	"narrate",
+	"narrates",
+	"narrated",
+	"narrating",
+	"narration",
+	"narrator",
 	"audio",
 	"hear",
+	"heard",
+	"hearing",
 	"quote",
+	"quotes",
+	"quoted",
 	"word for word",
 	"transcript",
 	"according to",
 ];
 
 
-/** Explicit visual/temporal markers. Unmarked questions remain broad. */
+/** Explicit visual/temporal phrase markers. Unmarked questions remain broad. */
 const VISUAL_TEMPORAL_MARKERS: readonly string[] = [
 	"visual",
 	"visually",
 	"see",
+	"sees",
+	"saw",
+	"seen",
+	"seeing",
 	"look",
+	"looks",
+	"looked",
+	"looking",
 	"happen",
+	"happens",
+	"happened",
+	"happening",
 	"after",
 	"before",
 	"next",
+	"what time",
+	"at what time",
+	"how long",
+	"duration",
+	"timestamp",
 	"move",
+	"moves",
+	"moved",
+	"moving",
 	"motion",
 	"camera",
 	"color",
 	"scene",
 	"appear",
+	"appears",
+	"appeared",
+	"appearing",
+	"appearance",
 	"action",
 	"gesture",
 	"wearing",
 	"doing",
 ];
 
+/** Generic temporal words must match whole words to avoid broad-prompt collisions. */
+const TEMPORAL_WORD_MARKERS: readonly string[] = [
+	"when",
+	"minute",
+	"minutes",
+	"second",
+	"seconds",
+	"start",
+	"starts",
+	"started",
+	"starting",
+	"begin",
+	"begins",
+	"began",
+	"begun",
+	"beginning",
+	"end",
+	"ends",
+	"ended",
+	"ending",
+	"finish",
+	"finishes",
+	"finished",
+	"finishing",
+	"occur",
+	"occurs",
+	"occurred",
+	"occurring",
+];
+
 function matchesAny(haystack: string, markers: readonly string[]): boolean {
-	return markers.some((m) => haystack.includes(m));
+	return markers.some((marker) => {
+		const escaped = marker
+			.split(/\s+/)
+			.map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+			.join("\\s+");
+		return new RegExp(`(?:^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`).test(haystack);
+	});
 }
+
+
+const EXPLICIT_TIMESTAMP_PATTERN = /\b(?:at\s+)?\d{1,2}:\d{2}(?::\d{2})?\b/;
 
 /**
  * Classify a question into an intent + the frame resolution it implies.
@@ -136,7 +221,10 @@ export function classifyQuestion(question: string): {
 		return { intent: "on-screen-text", resolution: "high" };
 	}
 	const hasSpokenMarker = matchesAny(q, SPOKEN_MARKERS);
-	const hasVisualMarker = matchesAny(q, VISUAL_TEMPORAL_MARKERS);
+	const hasVisualMarker =
+		matchesAny(q, VISUAL_TEMPORAL_MARKERS) ||
+		matchesAny(q, TEMPORAL_WORD_MARKERS) ||
+		EXPLICIT_TIMESTAMP_PATTERN.test(q);
 	if (hasSpokenMarker && hasVisualMarker) {
 		return { intent: "mixed", resolution: "low" };
 	}

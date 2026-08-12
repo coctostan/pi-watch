@@ -86,6 +86,11 @@ export function attachSampledFrames(stage, input) {
         throw new Error(`attachSampledFrames: images length (${input.images.length}) ` +
             `must equal selected length (${input.selected.length}).`);
     }
+    if (!Number.isFinite(input.fpsSampled) ||
+        (input.selected.length === 0 && input.fpsSampled !== 0) ||
+        (input.selected.length > 0 && input.fpsSampled <= 0)) {
+        throw new Error("attachSampledFrames: fpsSampled must be finite and zero exactly when no frames are selected.");
+    }
     const frames = input.selected.map((sel, i) => {
         const image = input.images[i];
         return {

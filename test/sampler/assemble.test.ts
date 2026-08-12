@@ -171,19 +171,38 @@ describe("[phase22][R3][R4][R5][R6] staged WatchedFrameSet assembly", () => {
 			{ tMs: 4_000, origin: "scene-cut" as const },
 			{ tMs: 7_000, origin: "backfill" as const },
 		];
-		const attached = attachSampledFrames(stage, {
+		const frameAttachment = {
 			fpsSampled: 0.5,
 			selected,
-			images: selected.map((_, index) => ({ imageBase64: `IMAGE_${index}`, mediaType: "image/png" })),
-			resolution: "low",
-		});
+			images: selected.map((_, index) => ({ imageBase64: `IMAGE_${index}`, mediaType: "image/png" as const })),
+			resolution: "low" as const,
+		};
+		const attached = attachSampledFrames(stage, frameAttachment);
 
 		expect(stage).toEqual(snapshot);
 		expect(attached.transcript).toEqual(stage.transcript);
 		expect(attached.frames.map((frame) => frame.tMs)).toEqual([4_000, 7_000]);
 		expect(attached.source.available?.frames).toEqual({ count: 2, firstMs: 4_000, lastMs: 7_000 });
 		expect(validateWatchedFrameSet(attached).ok).toBe(true);
+		const invalidZeroFps = {
+			...attached,
+			source: { ...attached.source, fpsSampled: 0 },
+		};
+		const validation = validateWatchedFrameSet(invalidZeroFps);
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.errors).toContain("source.fpsSampled must be zero exactly when no frames are present.");
+		}
+		const invalidPositiveFpsStage = {
+			...stage,
+			source: { ...stage.source, fpsSampled: 1 },
+		};
+		expect(validateWatchedFrameSet(invalidPositiveFpsStage).ok).toBe(false);
 		expect(() => attachSampledFrames(stage, { fpsSampled: 0, selected, images: [], resolution: "low" })).toThrow(/length/i);
+		expect(() => attachSampledFrames(stage, { fpsSampled: 0, selected: [], images: [], resolution: "low" })).not.toThrow();
+		expect(() => attachSampledFrames(stage, { fpsSampled: 1, selected: [], images: [], resolution: "low" })).toThrow(/fpsSampled/);
+		expect(() => attachSampledFrames(stage, { ...frameAttachment, fpsSampled: Number.NaN })).toThrow(/finite/);
+		expect(() => attachSampledFrames(stage, { ...frameAttachment, fpsSampled: Number.POSITIVE_INFINITY })).toThrow(/finite/);
 	});
 });
 
@@ -234,7 +253,7 @@ describe("mergeTranscript (AC-5)", () => {
 				source: {
 					ref: "fixtures/rgb.mp4",
 					durationMs: 3000,
-					fpsSampled: 1,
+					fpsSampled: 0,
 					frameCount: 0,
 					transcriptSource: "captions",
 				},
@@ -282,7 +301,7 @@ describe("mergeTranscript (AC-5)", () => {
 			source: {
 				ref: "fixtures/rgb.mp4",
 				durationMs: 3000,
-				fpsSampled: 1,
+				fpsSampled: 0,
 				frameCount: 0,
 				transcriptSource: "captions" as const,
 			},

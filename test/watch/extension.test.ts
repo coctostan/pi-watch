@@ -376,6 +376,7 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 	it.each([
 		["What did the speaker say?", "spoken"],
 		["Analyze this video.", "broad"],
+		["Summarize recommendations for the intended audience.", "broad"],
 		["What did they say while the camera moves?", "mixed"],
 	])("short-circuits single %s questions at tier 1 with zero frames", async (question, intent) => {
 		const ref = `${intent}.mp4`;
@@ -407,6 +408,7 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 
 	it.each([
 		["What happens after the camera moves?", "visual", "low"],
+		["At 01:30, what changes?", "visual", "low"],
 		["Read the sign: what does it say?", "on-screen-text", "high"],
 	] as const)("requests visual evidence for %s despite captions", async (question, intent, resolution) => {
 		const ref = `${intent}.mp4`;
@@ -454,6 +456,8 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 			{ ref: "broad.mp4", question: "Analyze this video." },
 			{ ref: "mixed.mp4", question: "What did they say while the camera moves?" },
 			{ ref: "ocr.mp4", question: "Read the sign: what does it say?" },
+			{ ref: "temporal.mp4", question: "At which minute does the car enter?" },
+			{ ref: "collision.mp4", question: "Summarize the secondary recommendations." },
 		];
 		sampleMock.mockImplementation(async (options: {
 			ref: string;
@@ -462,9 +466,10 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 		}) => {
 			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
 			const isOcr = options.ref === "ocr.mp4";
+			const isVisual = isOcr || options.ref === "temporal.mp4";
 			expect(options.resolution).toBe(isOcr ? "high" : "low");
-			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(isOcr);
-			return isOcr
+			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(isVisual);
+			return isVisual
 				? makeSet(options.ref, {
 						transcriptSource: "captions",
 						transcript: makeTranscriptOnlySet(options.ref).transcript,
@@ -475,11 +480,13 @@ describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => 
 		const result = await capturedWatchBatch(registerExtension()).execute("phase22-batch", { items });
 		expect(result).toMatchObject({
 			details: {
-				tiers: [1, 1, 3],
+				tiers: [1, 1, 3, 3, 1],
 				evidence: [
 					{ available: { frames: { count: 0 } } },
 					{ available: { frames: { count: 0 } } },
 					{ available: { frames: { count: 1 } } },
+					{ available: { frames: { count: 1 } } },
+					{ available: { frames: { count: 0 } } },
 				],
 			},
 		});

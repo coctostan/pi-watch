@@ -194,6 +194,7 @@ export type ValidationResult =
  *   - transcript ordered by startMs ascending
  *   - each transcript segment has endMs >= startMs
  *   - source.frameCount === frames.length
+ *   - source.fpsSampled is zero exactly when no frames are present
  *
  * No I/O, no mutation of the input.
  */
@@ -244,6 +245,12 @@ export function validateWatchedFrameSet(value: unknown): ValidationResult {
 		errors.push(
 			`source.frameCount (${set.source.frameCount}) !== frames.length (${set.frames.length}).`,
 		);
+	}
+	if (
+		(set.frames.length === 0 && set.source.fpsSampled !== 0) ||
+		(set.frames.length > 0 && set.source.fpsSampled <= 0)
+	) {
+		errors.push("source.fpsSampled must be zero exactly when no frames are present.");
 	}
 
 	const { range, available } = set.source;

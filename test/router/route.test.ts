@@ -84,8 +84,13 @@ describe("[phase22][R3][R4][R5][R6] transcript-first question policy", () => {
 	it.each([
 		["What DID the speaker say?", "spoken", "low", [1, 2, 3], true],
 		["What happens after the camera moves?", "visual", "low", [2, 3], false],
+		["When does the red car enter the frame?", "visual", "low", [2, 3], false],
+		["At which minute does the car enter?", "visual", "low", [2, 3], false],
+		["At 01:30, what changes?", "visual", "low", [2, 3], false],
 		["What did they say while the camera moves?", "mixed", "low", [1, 2, 3], true],
+		["What is said when the slide changes?", "mixed", "low", [1, 2, 3], true],
 		["Analyze this video.", "broad", "low", [1, 2, 3], false],
+		["Summarize recommendations for the intended audience.", "broad", "low", [1, 2, 3], false],
 		["READ the sign: what does it say?", "on-screen-text", "high", [2, 3], false],
 	] as const)(
 		"classifies %s as %s and routes deterministically with transcript evidence",
