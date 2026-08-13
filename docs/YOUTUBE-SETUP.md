@@ -70,7 +70,7 @@ The following are rejected or unsupported:
 - Non-YouTube remote video URLs.
 - Private, age-gated, members-only, or otherwise authenticated videos.
 - Cookies, browser-profile extraction, and credential-based access.
-- Whisper/local ASR.
+- Automatic speech recognition as a *default* transcript source. Local ASR ships as an exact-opt-in, captions-first fallback — see [Optional local ASR](LOCAL-ASR-SETUP.md) and the transcript-source notes below.
 - Guaranteed caption availability.
 
 A `watch?v=` URL must contain one valid `v` value. User information, custom ports, malformed URLs, and IDs that are not exactly 11 valid characters are rejected before any download.

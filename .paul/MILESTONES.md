@@ -4,12 +4,62 @@ Completed milestone log for this project.
 
 | Milestone | Completed | Duration | Stats |
 |-----------|-----------|----------|-------|
+| M5 — v0.5 — Transcript First | 2026-08-13 | ~1.5 days elapsed | 4 phases, 4 plans, 28 key files |
 | v0.4 — Listen Locally | 2026-08-11 | 2 days elapsed | 3 phases, 3 plans, 14 key files |
 | v0.3 — Paste and Watch | 2026-08-09 | 30 days elapsed | 3 phases, 3 plans, 83 unique files |
 | v0.2 — Tier 2, For Real | 2026-07-10 | 16 days elapsed | 4 phases, 4 plans, 10 unique files |
 
 ---
 
+## ✅ M5 — v0.5 — Transcript First
+
+**Version:** v0.5.0
+**Completed:** 2026-08-13
+**Duration:** ~1.5 days elapsed (phase work began 2026-08-11; milestone finalized 2026-08-13)
+**Release tag:** `v0.5.0`
+**Roadmap archive:** [archive/roadmap/v0.5.0-transcript-first.md](archive/roadmap/v0.5.0-transcript-first.md)
+**Adherence audit:** [audits/M5-AUDIT.md](audits/M5-AUDIT.md)
+
+### Stats
+
+| Metric | Value |
+|--------|-------|
+| Phases | 4 (20–23) |
+| Plans | 4 |
+| Unique key product/test/doc files | 28 |
+| Files changed since v0.4.0 | 101 outside `.paul/` (33 under `src/` and `test/`) |
+| Parent final tests | 362 passed, 3 opt-in tests skipped by default |
+| Final quality | Typecheck, build, byte-identical committed `dist/**`, and whitespace checks pass |
+| Dependency audit | 0 critical / 4 high / 2 moderate in the unchanged dev tree |
+| Adherence audit | 21 HELD / 1 DRIFTED (resolved) / 0 OBSOLETE across R1–R22; 6 findings routed |
+
+### Key Accomplishments
+
+- Normalized rolling captions conservatively — exact case-sensitive overlap of at least three tokens between temporally overlapping adjacent cues — measuring an exact 301→235 UTF-8 byte and 12→0 duplicate-token corpus reduction.
+- Made all evidence range-aware behind one absolute half-open `[startMs, endMs)` range shared by captions, eligible ASR, and frames, with available-versus-returned coverage reported only after final output bounds.
+- Moved transcript acquisition ahead of visual work so caption-backed broad, spoken, and mixed questions finish at tier 1 with a contract-valid zero-frame set and no scene detection or frame decoding.
+- Closed the routed M4 follow-ups: quoted `/watch` local paths, ASR ceilings enforced at the exported adapter boundary, a hermetic test-owned npm cache for the package proof, and sampled-frame tier-2 terminology.
+- Proved context efficiency through the manifest-declared compiled v0.5.0 registration: 1,374 / 1,394 / 1,077 tier-1 result bytes with zero `ffmpeg` calls against a same-corpus 7,144-byte visual control with 1 scene and 2 decode calls.
+- Published `docs/TRANSCRIPT-FIRST.md` operator guidance and shipped v0.5.0 metadata with reproducible committed `dist/**`.
+- Passed a fresh-context R11 adherence audit that caught and corrected an R8 requirement-wording drift introduced during Phase 23 UNIFY.
+
+### Key Decisions
+
+- Normalize only exact adjacent rolling-caption overlap under temporal overlap, a three-token minimum, and a 4,096-token prior-cue work ceiling; never fuzzy-match and never delete legitimate repetition.
+- Apply one absolute half-open range everywhere; supported URL timestamps contribute start only as a conversion-safe singleton, explicit whole-second bounds win, and cue clipping preserves text and source.
+- Route once after transcript staging on availability alone — no confidence scoring, no mutable state, no weakening of visual fallback; broad-only prompts stay ASR-ineligible.
+- Clamp caller-supplied resource policies to compiled ceilings at the exported boundary, before any comparison or spawn.
+- Prove package behavior through the first `package.json.pi.extensions` path with test-owned shims and a call ledger; report exact corpus-scoped values only, never general latency or quality claims.
+- Keep `/watch` deliberately not a shell: interior quoted content is delegated verbatim and never interpreted, while malformed input is rejected with the usage string.
+
+### Source Summaries
+
+- [Phase 20 — Normalize and measure](phases/20-normalize-and-measure/20-01-SUMMARY.md)
+- [Phase 21 — Range-aware evidence](phases/21-range-aware-evidence/21-01-SUMMARY.md)
+- [Phase 22 — Route before decoding](phases/22-route-before-decoding/22-01-SUMMARY.md)
+- [Phase 23 — Harden and prove](phases/23-harden-and-prove/23-01-SUMMARY.md)
+
+---
 ## ✅ v0.4 — Listen Locally
 
 **Version:** v0.4.0

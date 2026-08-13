@@ -6,43 +6,20 @@ A Pi extension that watches videos through the cheapest available path—timesta
 
 ## Current Milestone
 
-**M5 — v0.5 — Transcript First** (target v0.5.0)
-Status: 🚧 In Progress — all phases complete; awaiting milestone completion
-Phases: 4 of 4 complete (100%)
-Theme: Make the cheapest path cheap in practice by normalizing and selecting range-complete transcript evidence before performing expensive visual work.
-Assessment: [after-v0.4 context-efficiency assessment](assessments/2026-08-11-after-v0.4-context-efficiency.md)
+**M5 — v0.5 — Transcript First** (released v0.5.0)
+Status: ✅ Complete
+Completed: 2026-08-13
+Archive: [archive/roadmap/v0.5.0-transcript-first.md](archive/roadmap/v0.5.0-transcript-first.md)
+Adherence audit: [audits/M5-AUDIT.md](audits/M5-AUDIT.md)
 
-| Phase | Name | Plans | Status | Completed |
-|-------|------|-------|--------|-----------|
-| 20 | Normalize and measure | 1/1 | ✅ Complete | 2026-08-12 |
-| 21 | Range-aware evidence | 1/1 | ✅ Complete | 2026-08-12 |
-| 22 | Route before decoding | 1/1 | ✅ Complete | 2026-08-13 |
-| 23 | Harden and prove | 1/1 | ✅ Complete | 2026-08-13 |
+## Next Milestone
 
-### Phase 20: Normalize and measure
-Focus: Establish deterministic context-efficiency baselines and conservatively remove rolling-caption overlap while preserving timing and legitimate repetition.
-Plans: 1/1 complete — [20-01: Conservative rolling-caption normalization and context baseline](phases/20-normalize-and-measure/20-01-PLAN.md) (complete 2026-08-12)
-Serves: R3, R6
+Run `/paul:discuss-milestone` or `/paul:milestone` to define.
 
-### Phase 21: Range-aware evidence
-Focus: Honor supported YouTube timestamps and explicit `start` / `end` ranges across transcript, eligible ASR, and visual fallback, with bounded coverage and truncation metadata.
-Plans: 1/1 complete — [21-01: Range-aware transcript and visual evidence](phases/21-range-aware-evidence/21-01-PLAN.md) (complete 2026-08-12)
-Serves: R2, R3, R5, R6
-
-### Phase 22: Route before decoding
-Focus: Stage transcript acquisition so successful tier-1 calls avoid scene detection and frame decoding, with an explicit broad spoken/visual/mixed question policy and unchanged cleanup/fallback guarantees.
-Plans: 1/1 complete — [22-01: Transcript-first route before decoding](phases/22-route-before-decoding/22-01-PLAN.md) (complete 2026-08-13)
-
-### Phase 23: Harden and prove
-Focus: Close R8, R18, R22, and R4/R6; prove compiled-package context efficiency; and publish operator guidance without broadening into unrelated maintenance.
-Plans: 1/1 complete — [23-01: Bounded hardening and compiled transcript-efficiency proof](phases/23-harden-and-prove/23-01-PLAN.md) (complete 2026-08-13)
-Serves: R4, R6, R8, R18, R22
-
-### Milestone boundaries
-- No new dependency, mandatory model, cloud service, persistent transcript handle/cache, or model-backed synthesis.
-- Preserve the `watch` primitive, thin model adapters, captions-first ASR, narrow source ownership, privacy-safe diagnostics, and tier 3 as the universal fallback.
-- Measure baseline-to-result context/work reductions; do not adopt the feedback's estimated 70–90% reduction as a release promise.
-- Keep R8 limited to quoted local references containing spaces rather than a general shell parser.
+### Carried into next-milestone candidate scope
+- F2 (chain R3) — pin the exact-duplicate-over-budget caption case with a test and correct the overstated "over-budget cues remain unchanged" wording. **Do not reorder the equality and budget checks.**
+- F5 — 15 stable requirements (R1, R2, R7, R9–R17, R19–R21) still have no R#-tagged acceptance surface.
+- F6 - the PRD blends historical v0.1 success criteria with the current R16-R22 inventory.
 ## Completed Milestones
 
 | Milestone | Completed | Phases | Summary | Archive |
@@ -51,6 +28,7 @@ Serves: R4, R6, R8, R18, R22
 | v0.2 — Tier 2, For Real | 2026-07-10 | 10–13 | Local Qwen3-VL endpoint, production live proof, structured tier-2 diagnostics, and first-run config UX. | [archive](archive/roadmap/v0.2.0-tier-2-for-real.md) |
 | v0.3 — Paste and Watch | 2026-08-09 | 14–16 | YouTube resolution, caption-backed tier 1, end-to-end URL proof, and distributable Git/local installation UX. | [archive](archive/roadmap/v0.3.0-paste-and-watch.md) |
 | M4 — v0.4 — Listen Locally | 2026-08-11 | 17–19 | Bounded captions-first local ASR, private diagnostics, visual fallback, compiled-package proof, and operator setup UX. | [archive](archive/roadmap/v0.4.0-listen-locally.md) |
+| M5 — v0.5 — Transcript First | 2026-08-13 | 20–23 | Caption normalization, one absolute range with available-versus-returned coverage, transcript-first routing before decoding, and a compiled corpus-scoped efficiency proof. | [archive](archive/roadmap/v0.5.0-transcript-first.md) |
 
 ## Carried Forward
 
@@ -66,4 +44,4 @@ Serves: R4, R6, R8, R18, R22
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after Phase 23 UNIFY*
+*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after M5 milestone completion*

@@ -22,13 +22,13 @@ The shipped `watch` primitive, `/watch` command, and `watch_batch` wrapper answe
 Concrete, testable definition of done. "Cheapest path that *works*" needs both a correctness bar and a cost bar:
 
 **Correctness ("works"):**
-- **R2/R3/R4/R6/R13:** Golden-clip suite passes: deterministic synthetic fixtures (e.g., the red→green→blue ordering clip and a solid-color clip from the spikes) return correct answers with stable assertions.
+- **R2/R3/R4/R6:** Golden-clip suite passes: deterministic synthetic fixtures (e.g., the red→green→blue ordering clip and a solid-color clip from the spikes) return correct answers with stable assertions. *(R13 is a rejected out-of-scope approach and is deliberately not cited as positive evidence here; see the R13 note below.)*
 - **R4/R6:** Each tier answers its representative question correctly: tier 1 = a "what's said" question on a clip with captions; tier 2 = a temporal-order question (color sequence); tier 3 = a visual question under an orchestrator with no native video (frames path).
 - **R4:** Router selects the expected tier for each representative question (assert the *route*, not just the answer).
 - **R3/R4:** On-screen-text question triggers the high-res/OCR path and reads the text correctly.
 
 **Cost / performance ("cheapest"):**
-- **R3/R7/R13:** Default frame budget is enforced (~16 frames; tier-3 payload never exceeds the configured cap).
+- **R3/R7:** Default frame budget is enforced (~16 frames; tier-3 payload never exceeds the configured cap). Enforcing this cap is what keeps the rejected R13 approach out of the product; R13 itself is satisfied by absence, not by positive evidence.
 - **R4/R6:** Tier 1 answers without invoking any vision model (no frame sampling when transcript suffices) — verifiable via the chosen route.
 - **R6:** Local tier-2 round-trip stays within the spike envelope on target hardware (reference: ~3.3s / ~7.6 GB warm RSS for the 6-frame clip) — used as a regression guard, not a hard SLA.
 
@@ -52,7 +52,7 @@ Every requirement in every bucket has one globally unique `R#` ID. IDs are never
 - **R5** — **`watch` tool primitive** — takes a **video ref** (a local file path or an explicitly supported YouTube watch/short-link/shorts URL resolved through bounded yt-dlp ownership and cleanup) plus a question, optionally bounded by supported URL timestamps or explicit whole-second `start` / `end` values (single call, or shared across a batch), runs the sampler over that one absolute half-open range, routes to a tier, and returns an answer. *(Amended by Phase 21 plan 21-01; provenance: `.paul/phases/21-range-aware-evidence/21-01-SUMMARY.md`.)*
 - **R6** — **Tier adapters** — tier 1 (timestamped transcript delivery), tier 2 (generic OpenAI-compatible sampled-frame vision adapter for local or hosted endpoints), and tier 3 (frames → orchestrator `ImageContent`).
 - **R7** — **Config surface** — typed user-facing controls for tier-2 `baseURL` and model id, frame budget, resolution, fetch timeout, and bounded local-ASR enablement/runtime policy. Tier ordering remains fixed, and transcript-source policy remains captions-first with explicitly enabled local ASR as the fallback.
-- **R8** — **`/watch` command** — UX wrapper over the tool. The ref argument accepts either one unquoted whitespace-delimited token or one leading matching single- or double-quoted non-empty ref whose interior spaces are preserved verbatim; the closing quote must be followed by whitespace and a non-empty question. This is deliberately not a shell grammar: escapes, variable expansion, nested quoting, and token concatenation are rejected with the usage string rather than interpreted. *(Amended by Phase 23 plan 23-01; provenance: `.paul/phases/23-harden-and-prove/23-01-SUMMARY.md`.)*
+- **R8** — **`/watch` command** — UX wrapper over the tool. The ref argument accepts either one unquoted whitespace-delimited token or one leading matching single- or double-quoted non-empty ref whose interior spaces are preserved verbatim; the closing quote must be followed by whitespace and a non-empty question. This is deliberately not a shell grammar. Interior content is delegated verbatim and never interpreted: variable expansion and nested quote characters are passed through as literal ref text, not expanded. Malformed input — an empty quoted ref, a missing closing quote, a missing question, an escaped quote, or token concatenation after the closing quote — is rejected with the usage string. *(Amended by Phase 23 plan 23-01; provenance: `.paul/phases/23-harden-and-prove/23-01-SUMMARY.md`. Wording corrected through approved `accept-reality` route F1 in the M5 adherence audit; provenance: `.paul/audits/M5-AUDIT.md`.)*
 
 ### Should Have / Nice to Have
 - **R9** — Batching for tiers 1/2 runs items concurrently, preserves input order, isolates per-item failures, and returns bounded text output (`Promise.allSettled` is the current implementation).
@@ -104,11 +104,13 @@ Every requirement in every bucket has one globally unique `R#` ID. IDs are never
 
 ## Testing Strategy
 TODD (TDD enforcement) is enabled, but model output is probabilistic — so we test against **deterministic fixtures**, not free-form generation:
-- **R2/R3/R4/R6/R13/R22:** Golden synthetic clips as committed fixtures; use stable, assertable media evidence rather than probabilistic free-form generation. Evidence: `test/sampler/select-frames.test.ts`, `test/router/route.test.ts`, `test/watch/tier-runner.test.ts`, and `test/watch/asr-e2e.test.ts`.
+- **R2/R3/R4/R6/R22:** Golden synthetic clips as committed fixtures; use stable, assertable media evidence rather than probabilistic free-form generation. Evidence: `test/sampler/select-frames.test.ts`, `test/router/route.test.ts`, `test/watch/tier-runner.test.ts`, and `test/watch/asr-e2e.test.ts`.
 - **R4/R16/R21:** Assert routes, not just answers: unit-test deterministic tier selection, eligibility, and fallback independently of model calls. Evidence: `test/router/route.test.ts`, `test/sampler/sample.test.ts`, and `test/watch/extension.test.ts`.
-- **R2/R3/R13/R18:** Keep sampler and resource-policy evidence deterministic: assert frame counts, timestamps, origins, and hard bounds on fixed fixtures. Evidence: `test/contract/watched-frame-set.test.ts`, `test/sampler/select-frames.test.ts`, and `test/sampler/asr.test.ts`.
+- **R2/R3/R18:** Keep sampler and resource-policy evidence deterministic: assert frame counts, timestamps, origins, and hard bounds on fixed fixtures. Evidence: `test/contract/watched-frame-set.test.ts`, `test/sampler/select-frames.test.ts`, and `test/sampler/asr.test.ts`.
 - **R6/R17/R22:** Keep adapters mockable through the OpenAI-compatible wire shape and direct executable seam; gate live-model tests behind exact opt-in flags. Evidence: `test/watch/tier2.test.ts`, `test/sampler/asr.test.ts`, and `test/watch/asr-e2e.test.ts`.
 - **R5/R6/R19/R21:** Exercise graceful degradation for unavailable endpoints/binaries and invalid refs, asserting typed private diagnostics and fallback rather than crashes. Evidence: `test/sampler/effects.test.ts`, `test/watch/tier2-diagnostics.boundary.test.ts`, and `test/watch/asr-e2e.test.ts`.
+
+**Out-of-scope requirement traceability (R13, R14, R15):** these record rejected approaches and are satisfied by *absence*, not by positive acceptance evidence. Budget-cap, offline-default, and sampled-image tests demonstrate that the rejected designs stayed out of the product; they are not evidence "for" R13–R15 and must not be read as such in future adherence audits. *(Clarified through approved `accept-reality` route F4 in the M5 adherence audit; provenance: `.paul/audits/M5-AUDIT.md`.)*
 
 M4 acceptance provenance is summarized in `.paul/phases/17-bounded-asr-foundation/17-01-SUMMARY.md`, `.paul/phases/18-local-transcript-fallback/18-01-SUMMARY.md`, and `.paul/phases/19-local-speech-ux-and-proof/19-01-SUMMARY.md`. Those historical artifacts retain their original phase-local AC labels; the M4 audit records explicit R1–R22 no-tag-found results rather than retroactively rewriting evidence.
 

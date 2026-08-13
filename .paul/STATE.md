@@ -2,23 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First implementation complete)
+See: `.paul/PROJECT.md` (v0.5.0 released baseline; awaiting next milestone definition)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** M5 / v0.5 milestone completion — all four phases are complete, v0.5.0 metadata and compiled output are in place, and release/close-out remains.
+**Current focus:** None active — M5 / v0.5 Transcript First is released. Next milestone scope is undefined.
 
 ## Current Position
 
-Milestone: M5 — v0.5 — Transcript First
-Version: v0.5.0 (package metadata and compiled `dist/**` at 0.5.0; release/tag pending)
-Phase: 23 (Harden and prove) — complete; M5 phases 4 of 4 complete
-Plan: 23-01 (`.paul/phases/23-harden-and-prove/23-01-SUMMARY.md`)
-Status: Phase 23 complete and unified; milestone M5 ready to complete
-Last activity: 2026-08-13 — Unified plan 23-01 (3/3 tasks, 3/3 acceptance criteria), amended R8, and closed Phase 23; M5 implementation is complete.
-Next action: `/paul:milestone`
+Milestone: Awaiting next milestone
+Version: v0.5.0 (released)
+Phase: None active
+Plan: None
+Status: Milestone M5 — v0.5 — Transcript First complete — ready for next
+Last activity: 2026-08-13 — Completed M5: passing R1–R22 adherence audit (21 HELD / 1 DRIFTED resolved / 0 OBSOLETE, 6 findings routed), milestone entry and roadmap archive written, tagged v0.5.0.
+Next action: `/paul:discuss-milestone` or `/paul:milestone`
 
 Progress:
-- Milestone M5 / v0.5: [██████████] 100% implementation complete (Phases 20–23, 4 plans); milestone completion pending
+- Milestone M5 / v0.5: [██████████] 100% ✓ (Phases 20–23, 4 plans, released v0.5.0)
 - Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [M5 Phase 23 plan 23-01 complete — milestone M5 ready to complete]
+  ○        ○        ○     [Milestone complete — ready for next]
 ```
 
 ## Accumulated Context
@@ -59,7 +59,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Returned coverage is computed only after internal, aggregate, and final output bounds, and stays fixed-size and free of refs, questions, or evidence text; available coverage is reported separately.
 - Broad, spoken, and mixed prompts may start at tier 1 with non-empty in-range transcript evidence; explicitly visual/temporal and on-screen-text prompts stay visual, broad-only prompts remain ASR-ineligible, and one staged decision is reused after sampling.
 - The v0.5 compiled-registration corpus proves 301→235 transcript bytes; three tier-1 results use 1,374 / 1,394 / 1,077 serialized bytes with zero scene/decode calls, versus a same-corpus 7,144-byte visual control with one scene call and two decodes. Claims remain corpus-scoped.
-- `/watch` accepts exactly one leading matching quoted local ref with interior spaces preserved and rejects shell-like syntax rather than interpreting it; effective ASR duration/timeout are clamped to compiled ceilings at the exported adapter boundary before any comparison or spawn.
+- `/watch` accepts exactly one leading matching quoted local ref with interior spaces preserved; interior content is delegated verbatim and never interpreted, while malformed input is rejected with the usage string. Effective ASR duration/timeout are clamped to compiled ceilings at the exported adapter boundary before any comparison or spawn.
 
 ### Deferred Issues
 
@@ -70,7 +70,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Focused decomposition of measured hotspots beyond Phase 20's caption-core extraction: `src/sampler/effects.ts` (642 lines), `src/watch/tier-runner.ts` (642), and `src/watch/extension.ts` (499).
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
-- Phase 23 closed R8, R18, R22, and R4/R6; remaining M5-adjacent work is release/close-out only.
+- M5 audit follow-ups: pin the exact-duplicate-over-budget caption case and correct its wording without reordering the checks (F2, chain R3); add R#-tagged acceptance surfaces for the 15 untagged requirements (F5); separate historical v0.1 success criteria from the current R16–R22 inventory (F6).
 
 ### Release Concerns
 
@@ -87,15 +87,16 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-13 — Completed and unified plan 23-01 on `feature/23-harden-and-prove`; Phase 23 closed and M5 phases are 4 of 4 complete.
-Stopped at: PLAN ✓ / APPLY ✓ / UNIFY ✓; milestone M5 ready to complete.
-Next action: `/paul:milestone`
-Resume file: `.paul/ROADMAP.md`
-wip_result: not requested — phase complete
-Git state: GitHub Flow `feature/23-harden-and-prove` carries three task commits plus the Phase 23 closure commit; PR #36 (`https://github.com/coctostan/pi-watch/pull/36`) governs the merge gate; `.codegraph/` remains untracked and out of scope.
+Last session: 2026-08-13 — Completed milestone M5 — v0.5 — Transcript First.
+Stopped at: Milestone M5 complete and released as `v0.5.0`.
+Next action: `/paul:discuss-milestone` or `/paul:milestone`
+Resume file: `.paul/MILESTONES.md`
+wip_result: not requested — milestone complete
+Git state: `main` carries the squashed Phase 23 merge `36a03fb` plus milestone closure commits and the annotated `v0.5.0` tag; all phase branches are merged and pruned; `.codegraph/` remains untracked and out of scope.
 Resume context:
-- TDD evidence: RED `57b686b`, GREEN `c25edac`, REFACTOR/prove `cb6bcff`; UNIFY re-verified 362 passed / 3 skipped, typecheck, and byte-identical rebuilt `dist/**`.
+- M5 shipped 4 phases / 4 plans with a final suite of 362 passed / 3 default-skipped, passing typecheck, and byte-identical committed `dist/**`.
 - Exact compiled corpus metrics are 301 raw / 235 normalized transcript bytes; transcript results are 1,374 / 1,394 / 1,077 bytes with zero `ffmpeg` work, and visual control is 7,144 bytes with 1 scene + 2 decode calls.
+- The M5 adherence audit (`.paul/audits/M5-AUDIT.md`) returned 21 HELD / 1 DRIFTED (resolved) / 0 OBSOLETE with all 6 findings routed and R1–R22 explicitly re-affirmed.
 - DEAN remains 0 critical / 4 high / 2 moderate / 0 low; no dependency change. Advisory hotspot remains `tier-runner.ts` at 642 lines; broader decomposition is deferred.
 
 ---

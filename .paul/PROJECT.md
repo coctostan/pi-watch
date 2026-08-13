@@ -9,8 +9,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 ## Current State
 | Attribute | Value |
 |-----------|-------|
-| Version | 0.5.0 (package metadata and compiled `dist/**` at 0.5.0; last released tag: v0.4.0) |
-| Status | M5 / v0.5 implementation complete — Phases 20–23 are all complete; milestone completion and release remain. |
+| Version | 0.5.0 (released; tag `v0.5.0`) |
+| Status | M5 / v0.5 complete — Phases 20–23 shipped, adherence audit passed, milestone released. Awaiting next milestone definition. |
 | Last Updated | 2026-08-13 |
 
 **Current system summary:**
@@ -44,13 +44,18 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
 - v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓ → Phase 16 end-to-end URL UX, live proof, distributable, and user documentation ✓. Complete 2026-08-09.
 - v0.4: Phase 17 bounded ASR foundation ✓ → Phase 18 bounded captions-first local transcript fallback ✓ → Phase 19 local speech setup, diagnostics, deterministic registered-package proof, and v0.4.0 metadata ✓. Complete 2026-08-10.
-- M5 / v0.5: Phase 20 deterministic caption normalization and exact context-efficiency baseline ✓ → Phase 21 range-aware transcript, ASR, and frame evidence with available-versus-returned coverage ✓ → Phase 22 transcript-first routing before scene/frame decode and effective OCR resolution ✓ → Phase 23 bounded hardening, compiled transcript-efficiency proof, v0.5.0 metadata, and operator guidance ✓. Implementation complete 2026-08-13.
+- M5 / v0.5: Phase 20 deterministic caption normalization and exact context-efficiency baseline ✓ → Phase 21 range-aware transcript, ASR, and frame evidence with available-versus-returned coverage ✓ → Phase 22 transcript-first routing before scene/frame decode and effective OCR resolution ✓ → Phase 23 bounded hardening, compiled transcript-efficiency proof, v0.5.0 metadata, and operator guidance ✓. Released 2026-08-13 as `v0.5.0` after a passing R1–R22 adherence audit.
 
 ### Validated / Routed Follow-up Closed
 - ✓ R8 — Quoted `/watch` local paths containing spaces — Phase 23.
 - ✓ R18 — Absolute ASR duration/timeout ceilings enforced inside the exported adapter boundary — Phase 23.
 - ✓ R22 — Nested package proof uses and cleans a test-owned npm cache — Phase 23.
 - ✓ R4/R6 — Router rationale and sampled-frame terminology reconciled with no runtime-policy change — Phase 23.
+
+### Active / Routed Follow-up
+- [ ] R3 — Pin the exact-duplicate-over-budget caption case with a test and correct the overstated "over-budget cues remain unchanged" wording, preserving current removal behavior (M5 audit F2, route `fix`).
+- [ ] Traceability — 15 stable requirements (R1, R2, R7, R9–R17, R19–R21) have no R#-tagged acceptance surface (M5 audit F5, route `defer`).
+- [ ] PRD structure — separate historical v0.1 success criteria from the current R16–R22 inventory (M5 audit F6, route `defer`).
 
 ### Out of Scope
 - Always-sample-every-frame approach (claude-watch style — lossy + costly).
@@ -132,4 +137,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after Phase 23 hardening and compiled transcript-efficiency proof*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after M5 — v0.5 — Transcript First*
