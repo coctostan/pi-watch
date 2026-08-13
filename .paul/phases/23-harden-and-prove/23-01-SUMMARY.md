@@ -47,7 +47,7 @@ duration: 13m08s task-commit span
 started: 2026-08-13T14:52:31Z
 completed: 2026-08-13T15:05:39Z
 pr: https://github.com/coctostan/pi-watch/pull/36
-merge_commit: pending
+merge_commit: 36a03fb62deaae323218b27d05a32d03db030721
 ---
 
 # Phase 23 Plan 01: Bounded Hardening and Compiled Transcript-Efficiency Proof Summary
