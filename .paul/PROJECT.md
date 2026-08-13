@@ -10,8 +10,8 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | Attribute | Value |
 |-----------|-------|
 | Version | 0.5.0 target (released package baseline: 0.4.0) |
-| Status | M5 / v0.5 in progress — Phase 20 caption normalization and Phase 21 range-aware evidence are complete; Phase 22 route-before-decoding is next. |
-| Last Updated | 2026-08-12 |
+| Status | M5 / v0.5 in progress — Phases 20–22 are complete; Phase 23 hardening and proof is ready to plan. |
+| Last Updated | 2026-08-13 |
 
 **Current system summary:**
 - Feasibility proven (2026-06-17). Three load-bearing unknowns de-risked with runtime spikes: (1) tool-result images reach the orchestrator model; (2) local Qwen3-VL tier-2 works end-to-end; (3) **custom-tool activation works in all run modes (Phase 1)** — the prior "print-mode tool-not-found" fear was the `pi-loadout` governor stripping the tool from the active set, not a pi limitation.
@@ -35,6 +35,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - **Phase 19 (2026-08-10):** Local speech operability and installed proof close v0.4. A bounded synthetic English MP4 plus inspectable manifest drive tagged acceptance tests through the actual `package.json`-declared compiled extension registration. Normal tests force a missing executable to prove private typed diagnostics and tier-3 fallback; real `mlx_whisper` remains exact-opt-in, finite, and default-skipped. `docs/LOCAL-ASR-SETUP.md` and README now cover setup, all typed reasons, ownership/privacy, verification, limits, and supported Git/local installation. Root package/lock metadata is 0.4.0 with no production source, `dist/**`, dependency, script, peer, manifest, or CI change.
 - **Phase 20 (2026-08-12):** Conservative rolling-caption normalization now removes only exact case-sensitive suffix/prefix overlap of at least three tokens between temporally overlapping adjacent raw cues, while preserving timestamps, source, legitimate repetition, punctuation/case differences, and over-budget cues. WebVTT parsing and normalization live in a bounded pure caption core; acquisition/fallback remain in the sampler effect boundary. The committed synthetic corpus measures 301→235 UTF-8 transcript bytes and 12→0 known duplicate tokens, with no generalized savings claim, dependency, model, cache, or public-surface addition.
 - **Phase 21 (2026-08-12):** Evidence is range-aware. Supported YouTube `t` / `start` timestamps contribute a start only when they are one syntactically valid, conversion-safe singleton, and optional explicit whole-second `start` / `end` tool bounds override them; unusable URL timestamps stay optional query noise instead of rejecting a supported ref. A pure `src/sampler/range.ts` core owns timestamp grammar, precedence, safe-integer/millisecond validation, duration clamping, cue intersection/clipping, and fixed-size coverage summaries. Normalized captions, eligible ASR, and budget-capped frames all report one absolute half-open `[startMs, endMs)` range: cues clip only at boundaries with text/source intact, frames are selected against range-relative duration and rebased to absolute decode offsets, and `fpsSampled` uses effective range duration. An empty in-range transcript makes tier 1 unavailable while visual fallback and tier-3 totality remain. Single and batch details separate available coverage from evidence actually returned after internal, aggregate, and final Pi bounds, without refs, questions, or transcript text. 309 tests / 3 skipped, reproducible `dist/**`, and unchanged 0/4/2/0 audit.
+- **Phase 22 (2026-08-13):** Transcript acquisition now precedes scene analysis and frame decoding. The pure router classifies broad, spoken, mixed, explicitly visual/temporal, and on-screen-text questions; caption-backed broad/spoken/mixed routes may finish at tier 1 with a contract-valid zero-frame set, while visual/OCR routes and transcript misses retain budgeted tier-2/3 fallback. Single and batch paths compute one staged decision and reuse it for the tier walk; broad-only prompts remain ASR-ineligible. Question-derived OCR resolution is applied before decode, cleanup/range/coverage/output guarantees remain intact, and exact compiled output is committed. Evidence: 337 passed / 3 skipped, focused 95/95, typecheck/build/reproducible dist clean, PR #33 merged.
 
 ## Scope Snapshot
 ### Completed
@@ -42,11 +43,9 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - v0.2: Phase 10 local model standup ✓ → Phase 11 live tier-2 wire-shape proof ✓ → Phase 12 tier-2 failure diagnostics ✓ → Phase 13 tier-2 config UX ✓. Complete 2026-07-10.
 - v0.3: Phase 14 YouTube source resolution ✓ → Phase 15 caption transcript pipeline ✓ → Phase 16 end-to-end URL UX, live proof, distributable, and user documentation ✓. Complete 2026-08-09.
 - v0.4: Phase 17 bounded ASR foundation ✓ → Phase 18 bounded captions-first local transcript fallback ✓ → Phase 19 local speech setup, diagnostics, deterministic registered-package proof, and v0.4.0 metadata ✓. Complete 2026-08-10.
-- M5 / v0.5 Phase 20: deterministic caption normalization and exact context-efficiency baseline ✓ → Phase 21: range-aware transcript, ASR, and frame evidence with available-versus-returned coverage ✓; Phases 22–23 remain active.
+- M5 / v0.5 Phase 20: deterministic caption normalization and exact context-efficiency baseline ✓ → Phase 21: range-aware transcript, ASR, and frame evidence with available-versus-returned coverage ✓ → Phase 22: transcript-first routing before scene/frame decode and effective OCR resolution ✓; Phase 23 hardening/proof remains active.
 
 ### Active / Routed Follow-up
-- [ ] R3 — Make question-derived OCR resolution effective before frame decoding.
-- [ ] R3 — Acquire sufficient transcript evidence before scene detection/frame decoding so tier-1 success avoids frame extraction.
 - [ ] R8 — Support quoted `/watch` local paths containing spaces.
 - [ ] R18 — Enforce absolute ASR duration/timeout ceilings inside the exported adapter boundary.
 - [ ] R22 — Make nested package proof use a test-owned npm cache.
@@ -66,7 +65,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - All tier-2 backends speak the same OpenAI `/v1/chat/completions` shape — adapters are `baseURL` + `model id`, not code forks.
 
 ## Success Metrics
-- ✓ Parent baseline: 309 passing tests, 3 default-skipped opt-in live tests; typecheck, reproducible build, rolling-caption bounds/metrics, range/coverage bounds, fixture bounds, and registered compiled-extension checks pass. The prior isolated nested-`npm pack` ambient-cache failure remains routed as F8/R22 for test-owned cache hardening.
+- ✓ Parent baseline: 337 passing tests, 3 default-skipped opt-in live tests; typecheck, reproducible build, caption normalization, range/coverage, transcript-first zero-call routing, fixture bounds, and registered compiled-extension checks pass. The prior isolated nested-`npm pack` ambient-cache failure remains routed as F8/R22 for test-owned cache hardening.
 - ✓ M4 adherence audit: one validated verdict and tagged-evidence/no-test-found record for R1–R22, all document-health lenses, routed F1–F17 findings, explicit author intent re-affirmation after final reconciliation, and passing parent verification.
 - Measurable v0.1 definition of done (golden-clip correctness, asserted routes, enforced frame budget, graceful degradation) — see `PRD.md` → Success Criteria.
 
@@ -118,6 +117,7 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 | (M4 close) Keep stable R1–R22 intent explicit and route known discrepancies without marking them fixed | Mandatory milestone audit reconciled product documentation, preserved author intent, and recorded concrete R3/R4/R6/R8/R18/R22 follow-up chains | 2026-08-11 | Active release constraint |
 | (Phase 20) Normalize only exact adjacent rolling-caption overlap under temporal overlap, a three-token minimum, and a 4,096-token prior-cue work ceiling | Conservative exact matching removes measured duplicate evidence without deleting legitimate repetition or introducing fuzzy/model work; over-budget cues remain unchanged. | 2026-08-12 | ✓ Validated (Phase 20) |
 | (Phase 21) Apply one absolute half-open range to captions, eligible ASR, and frames; URL timestamps contribute start only, explicit bounds win, and returned coverage is computed after final output bounds | Head-only truncation could omit the explicitly requested section; one stateless range keeps every evidence stream on the same timeline and keeps reported coverage truthful without persistence or model work | 2026-08-12 | ✓ Validated (Phase 21) |
+| (Phase 22) Route once after in-range transcript staging: broad, spoken, and mixed prompts may start at tier 1 with transcript evidence; explicit visual/temporal and on-screen-text prompts remain visual; broad-only prompts remain ASR-ineligible | This deterministic availability-only decision avoids scene/decode work on successful tier 1 without semantic confidence scoring, mutable state, or weakening visual fallback | 2026-08-13 | ✓ Validated (Phase 22) |
 
 ## Links
 - `PRD.md` — deeper product-definition context
@@ -127,4 +127,4 @@ Cheapest-path-that-works video understanding for the agent — local-first, mode
 - `thinkingSpace/prototypes/imagecontent-spike/`, `thinkingSpace/prototypes/qwen-video-spike/` — proof code
 
 ---
-*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-12 after Phase 21 range-aware evidence*
+*Created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after Phase 22 transcript-first routing*

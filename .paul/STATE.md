@@ -5,20 +5,20 @@
 See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First active)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 22 — stage transcript acquisition so successful tier-1 calls avoid scene detection and frame decoding, without weakening cleanup or fallback.
+**Current focus:** Phase 23 — close bounded hardening/proof follow-ups and prove compiled-package transcript efficiency without broadening scope.
 
 ## Current Position
 
 Milestone: M5 — v0.5 — Transcript First
 Version: v0.5.0 (target)
-Phase: 22 of 4 (Route before decoding)
+Phase: 23 of 4 (Harden and prove)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-12 — Phase 21 complete: plan 21-01 unified with approved R5/roadmap amendments, module ledger/history rows, and Phase 22 transition writes.
-Next action: `/paul:plan` for Phase 22
+Last activity: 2026-08-13 — Phase 22 complete: plan 22-01 unified with approved R4/roadmap routing, module history/ledger evidence, and Phase 23 transition writes.
+Next action: `/paul:plan` for Phase 23
 
 Progress:
-- Milestone M5 / v0.5: [█████░░░░░] 50% implementation complete (Phases 20–21 complete; Phases 22–23 remain)
+- Milestone M5 / v0.5: [████████░░] 75% implementation complete (Phases 20–22 complete; Phase 23 remains)
 - Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [M5 Phase 21 complete — ready to plan Phase 22]
+  ✓        ✓        ✓     [M5 Phase 22 complete — ready to plan Phase 23]
 ```
 
 ## Accumulated Context
@@ -57,6 +57,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Rolling captions normalize only exact case-sensitive overlap of at least three tokens between temporally overlapping adjacent raw cues; work is bounded at 4,096 prior-cue tokens, over-budget cues remain unchanged, and metrics stay corpus-scoped.
 - One absolute half-open `[startMs, endMs)` range governs captions, eligible ASR, and frames; supported URL timestamps contribute start only as a valid conversion-safe singleton, explicit whole-second bounds win, and cue clipping preserves text/source.
 - Returned coverage is computed only after internal, aggregate, and final output bounds, and stays fixed-size and free of refs, questions, or evidence text; available coverage is reported separately.
+- Broad, spoken, and mixed prompts may start at tier 1 with non-empty in-range transcript evidence; explicitly visual/temporal and on-screen-text prompts stay visual, broad-only prompts remain ASR-ineligible, and one staged decision is reused after sampling.
 
 ### Deferred Issues
 
@@ -64,10 +65,10 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Optional Gemini/cloud tier.
 - Advanced ASR features: diarization, translation, subtitle export, streaming/live video, multilingual guarantees, long-media chunking, and service adapters.
 - Optional resolver download filesize/duration caps beyond v0.4's ASR-specific policy if runtime evidence warrants them.
-- Focused decomposition of measured hotspots beyond Phase 20's caption-core extraction: `src/sampler/effects.ts` (642 lines), `src/watch/tier-runner.ts` (642), and `src/watch/extension.ts` (493).
+- Focused decomposition of measured hotspots beyond Phase 20's caption-core extraction: `src/sampler/effects.ts` (642 lines), `src/watch/tier-runner.ts` (642), and `src/watch/extension.ts` (499).
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
-- Audit-routed follow-up outside M5: R3 question-derived OCR resolution composition; M5 owns transcript-before-frame R3 plus R8, R18, R22, and R4/R6.
+- M5 Phase 23 owns R8 quoted local references, R18 adapter ceilings, R22 test-owned npm-cache proof, R4/R6 terminology reconciliation, compiled-package transcript-efficiency proof, and operator guidance.
 
 ### Release Concerns
 
@@ -84,15 +85,15 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-12 — Unified Phase 21 plan 21-01 and executed the Phase 22 transition writes.
-Stopped at: Phase 21 complete; ready to plan Phase 22.
-Next action: `/paul:plan` for Phase 22
+Last session: 2026-08-13 — Unified Phase 22 plan 22-01 and prepared the Phase 23 transition.
+Stopped at: Phase 22 complete; dedicated UNIFY-finalization branch awaiting PR/CI/merge gate before Phase 23 planning is exposed.
+Next action: `/paul:plan` for Phase 23
 Resume file: `.paul/ROADMAP.md`
-Git state: Phase 21 implementation and lifecycle artifacts ship through PR #32, which the UNIFY merge gate squash-merges into `main` with branch cleanup per config.
+Git state: GitHub Flow `feature/22-unify-finalize`; implementation PR #33 is merged as `20ebc9e`; lifecycle finalization PR is pending creation and merge.
 Resume context:
-- Phase 21 evidence: TDD commits RED `2d60e73`, GREEN `7cdb778`, REFACTOR `0695c75`; UNIFY re-verified 309 passed / 3 skipped, typecheck, reproducible `dist/**`, and unchanged 0/4/2/0 audit.
-- Approved UNIFY deltas: R5 amended in `.paul/PRD.md` for optional whole-second `start`/`end` bounds; the ROADMAP deferred-debt entry now names `tier-runner.ts` and `extension.ts` alongside `effects.ts`; the R6 coverage-metadata candidate was discarded without intent edit.
-- Phase 22 must preserve Phase 21 range/coverage semantics while reordering transcript acquisition ahead of scene detection and frame decoding.
+- Phase 22 evidence: RED `f420b4b`, GREEN `66be81a`, REFACTOR `7b9bf7f`, hardening `a9871e4` / `a8b73f2`; 337 passed / 3 skipped, focused 95/95, typecheck/build/dist/diff clean.
+- Approved UNIFY deltas: R4 amended in `.paul/PRD.md`; transcript-only zero-FPS contract refinement discarded without intent edit; completed OCR-resolution follow-up removed from PROJECT/ROADMAP.
+- Phase 23 must preserve Phase 20 normalization, Phase 21 range/coverage, and Phase 22 staged-route/zero-call semantics while staying within its bounded hardening/proof scope.
 
 ---
 *STATE.md — Updated after every significant action*
