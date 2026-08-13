@@ -80,6 +80,10 @@ const DEFAULT_LOCAL_ASR_DEPS: LocalAsrDeps = {
 
 const NONE: LocalAsrResult = { segments: [], source: "none" };
 
+function boundedPositiveLimit(value: number, ceiling: number): number {
+	return Number.isFinite(value) && value > 0 ? Math.min(value, ceiling) : ceiling;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -146,11 +150,16 @@ export async function fetchLocalAsrTranscript(
 	deps: LocalAsrDeps = DEFAULT_LOCAL_ASR_DEPS,
 	onDiagnostic?: (diagnostic: AsrDiagnostic) => void,
 ): Promise<LocalAsrResult> {
-	if (durationMs > policy.maxDurationMs) {
+	const maxDurationMs = boundedPositiveLimit(
+		policy.maxDurationMs,
+		MAX_LOCAL_ASR_DURATION_MS,
+	);
+	const timeoutMs = boundedPositiveLimit(policy.timeoutMs, MAX_LOCAL_ASR_TIMEOUT_MS);
+	if (durationMs > maxDurationMs) {
 		emitDiagnostic(onDiagnostic, {
 			reason: "duration-limit",
 			durationMs,
-			limitMs: policy.maxDurationMs,
+			limitMs: maxDurationMs,
 		});
 		return NONE;
 	}
@@ -185,7 +194,7 @@ export async function fetchLocalAsrTranscript(
 				"--output-dir",
 				outputDir,
 			],
-			{ timeoutMs: policy.timeoutMs, maxBuffer: MAX_LOCAL_ASR_OUTPUT_BYTES },
+			{ timeoutMs, maxBuffer: MAX_LOCAL_ASR_OUTPUT_BYTES },
 		);
 
 		stage = "output";

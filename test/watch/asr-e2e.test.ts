@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, readFile, stat } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { access, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -261,7 +262,7 @@ describe("Phase 19 registered local-ASR proof", () => {
 	});
 
 
-	it("[phase19][AC-4] validates v0.4 package metadata, docs, and packed extension", async () => {
+	it("[phase19][AC-4][phase23][R22] validates package metadata, docs, and hermetic packed extension", async () => {
 		const packageJson = JSON.parse(
 			await readFile(resolve(PACKAGE_ROOT, "package.json"), "utf8"),
 		) as Record<string, unknown>;
@@ -352,11 +353,30 @@ describe("Phase 19 registered local-ASR proof", () => {
 			expect(runbook).toContain(marker);
 		}
 
-		const { stdout } = await execFileAsync("npm", ["pack", "--dry-run", "--json"], {
-			cwd: PACKAGE_ROOT,
-			encoding: "utf8",
-			maxBuffer: 4 * 1024 * 1024,
-		});
+		const npmCache = await mkdtemp(join(tmpdir(), "pi-watch-phase23-npm-cache-"));
+		const ambientRoot = await mkdtemp(join(tmpdir(), "pi-watch-phase23-ambient-cache-"));
+		const unusableAmbientCache = join(ambientRoot, "regular-file-not-cache");
+		await writeFile(unusableAmbientCache, "ambient cache must not be used", "utf8");
+		const savedNpmCache = process.env.npm_config_cache;
+		process.env.npm_config_cache = unusableAmbientCache;
+		let stdout = "";
+		try {
+			({ stdout } = await execFileAsync("npm", ["pack", "--dry-run", "--json"], {
+				cwd: PACKAGE_ROOT,
+				encoding: "utf8",
+				maxBuffer: 4 * 1024 * 1024,
+				env: { ...process.env, npm_config_cache: npmCache },
+			}));
+			expect(process.env.npm_config_cache).toBe(unusableAmbientCache);
+		} finally {
+			if (savedNpmCache === undefined) delete process.env.npm_config_cache;
+			else process.env.npm_config_cache = savedNpmCache;
+			await rm(npmCache, { recursive: true, force: true });
+			await rm(ambientRoot, { recursive: true, force: true });
+		}
+		await expect(access(npmCache)).rejects.toMatchObject({ code: "ENOENT" });
+		await expect(access(ambientRoot)).rejects.toMatchObject({ code: "ENOENT" });
+
 		const packResult = JSON.parse(stdout) as Array<{ files: Array<{ path: string }> }>;
 		expect(packResult[0]?.files.map((file) => file.path)).toContain("dist/watch/extension.js");
 	});

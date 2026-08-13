@@ -1,7 +1,7 @@
 /**
  * tier2.ts — the tier-2 adapter for the `watch` tool (DESIGN.md §4 / §5 #2).
  *
- * Tier 2 is "native video understanding via an OpenAI-compatible endpoint". The
+ * Tier 2 is sampled-frame vision through an OpenAI-compatible endpoint. The
  * key insight (runtime-proven, DESIGN §5 Verified Fact #2): every tier-2 backend
  * — local Qwen3-VL via `mlx_vlm.server`, or a hosted endpoint such as Gemini —
  * speaks the *same* OpenAI `/v1/chat/completions` shape and accepts the sampled
@@ -149,7 +149,7 @@ export const LOCAL_TIER2_MODEL = "mlx-community/Qwen3-VL-8B-Instruct-4bit";
  * header, or any interpolated env value (SETH).
  */
 export const TIER2_UNCONFIGURED_HINT =
-	"Tier 2 (native video understanding) is unconfigured \u2014 set " +
+	"Tier 2 (OpenAI-compatible sampled-frame vision) is unconfigured — set " +
 	"WATCH_TIER2_BASE_URL and WATCH_TIER2_MODEL to enable it (or WATCH_TIER2_LOCAL=1 " +
 	"to use a local mlx_vlm server). See docs/TIER2-SETUP.md.";
 

@@ -169,6 +169,11 @@ describe("withUnconfiguredHint — watch content surfacing (Phase 13)", () => {
 		expect(TIER2_UNCONFIGURED_HINT).toContain("WATCH_TIER2_MODEL");
 	});
 
+	it("[phase23][R6] describes the implemented adapter as sampled-frame vision", () => {
+		expect(TIER2_UNCONFIGURED_HINT).toContain("OpenAI-compatible sampled-frame vision");
+		expect(TIER2_UNCONFIGURED_HINT).not.toMatch(/native video/i);
+	});
+
 	it("is pure: never mutates the input content array", () => {
 		const input = [{ type: "text" as const, text: "answer" }];
 		const diagnostic: Tier2Diagnostic = { tier: 2, reason: "unconfigured" };

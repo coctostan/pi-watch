@@ -113,6 +113,24 @@ describe("[phase22][R3][R4][R5][R6] transcript-first question policy", () => {
 	});
 });
 
+describe("[phase23][R4][R6] deterministic route terminology", () => {
+	it("describes transcript presence and sampled-frame vision without semantic escalation", () => {
+		const transcriptDecision = route({
+			question: "Analyze this video.",
+			context: WITH_TRANSCRIPT,
+		});
+		expect(transcriptDecision.rationale).toContain("deterministic transcript-presence");
+		expect(transcriptDecision.rationale).not.toMatch(/semantic|inadequate|insufficient/i);
+
+		const transcriptMiss = route({
+			question: "What did the speaker say?",
+			context: NO_TRANSCRIPT,
+		});
+		expect(transcriptMiss.rationale).toContain("sampled-frame vision");
+		expect(transcriptMiss.rationale).not.toMatch(/native video/i);
+	});
+});
+
 describe("classifyQuestion — intent + resolution precedence", () => {
 	it("classifies plain spoken questions as 'spoken' / low-res", () => {
 		expect(classifyQuestion("What is being discussed?")).toEqual({
