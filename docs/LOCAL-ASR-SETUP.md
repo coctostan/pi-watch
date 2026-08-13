@@ -58,7 +58,7 @@ export WATCH_ASR_MAX_DURATION_MS=60000
 export WATCH_ASR_TIMEOUT_MS=300000
 ```
 
-Positive duration and timeout values are clamped to their 600,000 ms ceilings. Empty, non-numeric, or non-positive values fall back to defaults. The captured process output and JSON file are separately limited to 16 MiB and that ceiling is not configurable.
+Positive configured duration and timeout values are clamped to their 600,000 ms ceilings. Empty, non-numeric, or non-positive configured values fall back to defaults. The exported adapter repeats finite ceiling enforcement for direct callers: lower positive values remain authoritative, while oversized, non-finite, or non-positive values use the compiled ceiling. The captured process output and JSON file are separately limited to 16 MiB and that ceiling is not configurable.
 
 Changing any `WATCH_ASR_*` variable does **not** enable transcription unless `WATCH_ASR_LOCAL=1` is also set.
 
@@ -66,12 +66,12 @@ Changing any `WATCH_ASR_*` variable does **not** enable transcription unless `WA
 
 For each `watch` or bounded `watch_batch` item, `pi-watch`:
 
-1. Resolves and samples the media so visual fallback is already available.
-2. Requests captions first.
-3. Considers local ASR only when captions produced no transcript, local ASR is explicitly enabled, and the question is classified as spoken intent.
+1. Resolves the source, probes duration, and computes the one absolute half-open range.
+2. Requests and range-filters captions before any scene analysis or frame decode.
+3. Considers local ASR only when captions produced no in-range transcript, local ASR is explicitly enabled, and the question is classified as spoken or mixed intent.
 4. Runs one finite `mlx_whisper` process against the resolved media.
 5. Validates non-empty English timestamped JSON segments on the media timeline.
-6. Uses a valid transcript at tier 1; every ASR failure returns transcript source `none` and preserves tiers 2 and 3.
+6. Uses a valid transcript at tier 1 with zero scene/decode work; every ASR failure returns transcript source `none` and preserves sampled-frame tiers 2 and 3.
 
 Visual or on-screen-text questions do not start local ASR. Captions suppress local ASR. Existing watch-batch item limits still apply; enabling ASR does not add a new unbounded fan-out mechanism.
 
@@ -115,6 +115,8 @@ npm run build
 npm test -- test/watch/asr-e2e.test.ts
 ```
 
+The package dry-run inside this proof receives a unique test-owned npm cache through the child-process environment and removes it in `finally`. Ambient or global npm-cache permissions therefore do not decide the proof result, and user package/model caches remain untouched.
+
 The real-model case is visible as skipped unless the exact live flag is supplied.
 
 ## Optional bounded live proof
@@ -143,6 +145,6 @@ This live test proves the executable/output integration against one known synthe
 
 ## Package installation
 
-For the current checkout, use the Git/local package workflow in the [README](../README.md). The repository commits `dist/watch/extension.js`, which is the path declared by `package.json` and included in the v0.4.0 package dry run.
+For the current checkout, use the Git/local package workflow in the [README](../README.md). The repository commits `dist/watch/extension.js`, which is the path declared by `package.json` and included in the v0.5.0 package dry run.
 
-Do not install `npm:pi-watch`; that unscoped registry package is unrelated. A tagged `v0.4.0` Git install should be used only after that tag has actually been published.
+Do not install `npm:pi-watch`; that unscoped registry package is unrelated. A tagged `v0.5.0` Git install should be used only after that tag has actually been published.

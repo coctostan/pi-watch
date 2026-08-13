@@ -46,9 +46,11 @@ export interface WatchCommandEffects {
 }
 /**
  * Parse the raw argument string that follows `/watch `. Pure and total
- * (never throws): the FIRST whitespace-delimited token is the `ref`, the
- * remaining trimmed text is the `question`. Empty input or a ref with no
- * following question yields `{ ok: false }` carrying the usage string.
+ * (never throws). Unquoted input keeps the legacy first-token ref grammar. A
+ * leading single or double quote may wrap one non-empty ref containing spaces;
+ * only the matching outer quotes are removed, and the closing quote must be
+ * followed by whitespace plus a non-empty question. This deliberately is not
+ * a shell grammar: escapes, concatenation, and nested quoting are not parsed.
  */
 export declare function parseWatchCommand(args: string): WatchCommandParse;
 /**

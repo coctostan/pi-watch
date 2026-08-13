@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "packageVersion": "0.5.0",
+  "media": {
+    "videoId": "CtxProof001",
+    "durationMs": 22000,
+    "captions": [
+      { "startMs": 0, "endMs": 4000, "text": "Welcome to café déjà vu" },
+      { "startMs": 2000, "endMs": 6000, "text": "café déjà vu today we begin" },
+      { "startMs": 4000, "endMs": 8000, "text": "today we begin with clear examples" },
+      { "startMs": 6000, "endMs": 9000, "text": "today we begin with clear examples" },
+      { "startMs": 8000, "endMs": 11000, "text": "clear examples stay intact" },
+      { "startMs": 10000, "endMs": 13000, "text": "intact through one token" },
+      { "startMs": 12000, "endMs": 15000, "text": "token, punctuation stays exact" },
+      { "startMs": 14000, "endMs": 17000, "text": "Punctuation stays exact in Case" },
+      { "startMs": 18000, "endMs": 21000, "text": "Punctuation stays exact in Case" },
+      { "startMs": 19000, "endMs": 22000, "text": "Welcome to café déjà vu" }
+    ]
+  },
+  "expectedCorpus": {
+    "rawTranscriptBytes": 301,
+    "normalizedTranscriptBytes": 235
+  },
+  "transcriptCases": [
+    {
+      "intent": "spoken",
+      "question": "What does the speaker say?",
+      "expected": {
+        "range": { "startMs": 0, "endMs": 22000 },
+        "availableTranscriptCount": 9,
+        "returnedTranscriptCount": 9,
+        "resultBytes": 1374,
+        "resultTextBytes": 477
+      }
+    },
+    {
+      "intent": "broad",
+      "question": "Summarize the recommendations for the intended audience.",
+      "expected": {
+        "range": { "startMs": 0, "endMs": 22000 },
+        "availableTranscriptCount": 9,
+        "returnedTranscriptCount": 9,
+        "resultBytes": 1394,
+        "resultTextBytes": 507
+      }
+    },
+    {
+      "intent": "broad",
+      "question": "Analyze this requested subsection.",
+      "start": 4,
+      "end": 12,
+      "expected": {
+        "range": { "startMs": 4000, "endMs": 12000 },
+        "availableTranscriptCount": 4,
+        "returnedTranscriptCount": 4,
+        "resultBytes": 1077,
+        "resultTextBytes": 306
+      }
+    }
+  ],
+  "visualControl": {
+    "intent": "visual",
+    "question": "What changes after the camera moves?",
+    "budget": 2,
+    "expected": {
+      "range": { "startMs": 0, "endMs": 22000 },
+      "availableTranscriptCount": 9,
+      "returnedTranscriptCount": 9,
+      "frameCount": 2,
+      "returnedFrameCount": 2,
+      "sceneCalls": 1,
+      "decodeCalls": 2,
+      "resultBytes": 7144,
+      "resultTextBytes": 823
+    }
+  }
+}

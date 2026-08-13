@@ -14,10 +14,9 @@
  *   3. the ordered escalation chain of tiers to try, terminating in tier 3.
  *
  * It is fully pure: input → output, no I/O, no spawns, no Math.random, no Date,
- * no mutation of inputs. The escalation chain is expressed as the ordered list
- * the `watch` tool (Phase 5) walks; confidence-based "the answer was insufficient
- * → escalate" logic, the tier adapters themselves (Phase 6), and user-facing
- * config (Phase 7) are explicitly NOT part of this module.
+ * no mutation of inputs. The `watch` tool walks the returned ordered list exactly;
+ * transcript presence and question intent determine that list before tier work.
+ * Tier adapters (Phase 6) and user-facing config (Phase 7) are outside this module.
  */
 /**
  * On-screen-text markers — checked FIRST (highest specificity). A question can
@@ -220,12 +219,12 @@ export function route(args) {
     if (transcriptFirst && hasTranscript) {
         tiers = [1, 2, 3];
         rationale =
-            `${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question with a transcript available → start at tier 1 (transcript), escalate to video tiers if insufficient.`;
+            `${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question with a transcript available → deterministic transcript-presence policy starts at tier 1; sampled-frame vision tiers remain ordered fallbacks.`;
     }
     else if (transcriptFirst) {
         tiers = [2, 3];
         rationale =
-            `${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question but no transcript available → skip tier 1; try tier 2 (native video), fall back to tier 3 (frames).`;
+            `${intent === "broad" ? "Broad" : intent === "mixed" ? "Mixed spoken/visual" : "Spoken-content"} question but no transcript available → skip tier 1; try tier 2 (sampled-frame vision), fall back to tier 3 (frames-into-context).`;
     }
     else if (intent === "on-screen-text") {
         tiers = [2, 3];
@@ -235,7 +234,7 @@ export function route(args) {
     else {
         tiers = [2, 3];
         rationale =
-            "Temporal/visual question → tier 2 (native video), fall back to tier 3 (frames-into-context).";
+            "Temporal/visual question → tier 2 (sampled-frame vision), fall back to tier 3 (frames-into-context).";
     }
     const primaryTier = tiers[0];
     return { intent, resolution, tiers, primaryTier, rationale };

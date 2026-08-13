@@ -70,6 +70,52 @@ describe("parseWatchCommand — valid input", () => {
 	});
 });
 
+describe("[phase23][R8] parseWatchCommand — narrow quoted refs", () => {
+	it.each([
+		["'/Users/me/My Videos/demo clip.mov' What happens next?", "/Users/me/My Videos/demo clip.mov"],
+		['"/Users/me/My Videos/demo clip.mov" What happens next?', "/Users/me/My Videos/demo clip.mov"],
+		["  '/tmp/two  spaces.mov'   What happens next?  ", "/tmp/two  spaces.mov"],
+	])("strips one matching quote pair and preserves the complete ref: %s", (args, ref) => {
+		expect(parseWatchCommand(args)).toEqual({
+			ok: true,
+			ref,
+			question: "What happens next?",
+		});
+	});
+
+	it("leaves legacy unquoted refs unchanged", () => {
+		expect(parseWatchCommand("clip.mp4 What happens next?")).toEqual({
+			ok: true,
+			ref: "clip.mp4",
+			question: "What happens next?",
+		});
+	});
+
+	it.each([
+		"'' What happens next?",
+		'"" What happens next?',
+		"'/tmp/missing close.mov What happens next?",
+		'"/tmp/missing close.mov What happens next?',
+		"'/tmp/clip.mov'",
+		'"/tmp/clip.mov"',
+		"'/tmp/clip.mov'x What happens next?",
+		'"/tmp/clip.mov"x What happens next?',
+		'"/tmp/clip\\"name.mov" What happens next?',
+	])("rejects malformed or shell-like quoted input: %s", (args) => {
+		expect(parseWatchCommand(args)).toEqual({ ok: false, usage: WATCH_COMMAND_USAGE });
+	});
+
+	it("delegates a quoted local ref with spaces without interpreting its contents", () => {
+		const { effects, notifies, sends } = stubEffects();
+		runWatchCommand("'$HOME/My Videos/demo.mov' What happens?", effects);
+
+		expect(sends).toEqual([
+			buildWatchPrompt("$HOME/My Videos/demo.mov", "What happens?"),
+		]);
+		expect(notifies).toEqual([]);
+	});
+});
+
 describe("parseWatchCommand — invalid input", () => {
 	it("rejects empty input with the usage string", () => {
 		expect(parseWatchCommand("")).toEqual({ ok: false, usage: WATCH_COMMAND_USAGE });

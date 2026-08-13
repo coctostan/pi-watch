@@ -7,7 +7,7 @@ It owns one budget-capped sampler and routes each question through three tiers:
 | Tier | Path | Typical use |
 |---|---|---|
 | 1 | Caption transcript or explicitly enabled local English ASR | Spoken, broad, or mixed questions with usable transcript evidence |
-| 2 | OpenAI-compatible vision endpoint | Optional local or hosted visual reasoning |
+| 2 | OpenAI-compatible sampled-frame vision endpoint | Optional local or hosted visual reasoning over ordered image blocks |
 | 3 | Sampled frames returned as Pi `ImageContent` | Universal visual fallback for the orchestrator |
 
 Cloud access is not required. Tier 2 and local ASR are both optional. A supported YouTube URL uses local `yt-dlp`, `ffprobe`, and `ffmpeg` executables and necessarily contacts YouTube; first-time user-managed ASR setup may also download packages or model weights.
@@ -20,8 +20,8 @@ Cloud access is not required. Tier 2 and local ASR are both optional. A supporte
 - Deterministic half-open source ranges from supported YouTube timestamps or explicit whole-second `start` / `end` bounds.
 - Human YouTube captions first, with one automatic-caption fallback.
 - Exact-opt-in, bounded local English speech transcription through a user-managed `mlx_whisper` executable.
-- Explicit tier escalation: transcript → optional vision endpoint → frames.
-- Transcript-first staging: successful caption/eligible-ASR tier-1 calls skip scene detection and frame decoding.
+- Explicit tier escalation: transcript → optional sampled-frame vision endpoint → frames-into-context.
+- Transcript-first staging: successful caption/eligible-ASR tier-1 calls skip `ffmpeg` scene detection and frame decoding; source resolution, duration probing, caption lookup, and eligible ASR are not skipped.
 - Private typed ASR/tier-2 diagnostics and visual degradation on failure.
 - Caller URL preservation and cleanup limited to adapter/resolver-owned temporary files.
 - Default-off live tests, so the normal suite does not require YouTube, a speech model, or a vision server.
@@ -57,7 +57,7 @@ Pi packages run with full system access. Review third-party package source befor
 
 ### Clone and install from a local path
 
-Use this path for local development or the current v0.4.0 checkout:
+Use this path for local development or the current v0.5.0 checkout:
 
 ```bash
 git clone https://github.com/coctostan/pi-watch.git
@@ -71,10 +71,10 @@ A local-path Pi package points at the clone rather than copying it. Restart Pi o
 
 The repository commits its compiled `dist/` extension so Pi's Git-package install can load `dist/watch/extension.js` without development-only build tooling.
 
-After the `v0.4.0` tag has actually been published, the pinned command is:
+After the `v0.5.0` tag has actually been published, the pinned command is:
 
 ```bash
-pi install git:github.com/coctostan/pi-watch@v0.4.0
+pi install git:github.com/coctostan/pi-watch@v0.5.0
 ```
 
 Until that tag exists, use the local/current-checkout workflow above rather than treating the future tag command as released.
@@ -118,8 +118,12 @@ The model-facing tool accepts this shape:
 
 ```text
 /watch ./demo.mp4 What text appears at the end?
+/watch '/Users/me/My Videos/demo clip.mov' What does the speaker say?
+/watch "./clips/demo clip.mov" What happens next?
 /watch https://www.youtube.com/watch?v=jNQXAC9IVRw What does the speaker say?
 ```
+
+A local ref containing spaces may use one matching leading single- or double-quote pair. The parser strips only those outer quotes and requires a whitespace-delimited non-empty question. It does not interpret escapes, nested quotes, variables, concatenation, flags, or general shell syntax.
 
 If Pi reports that `watch` is unavailable, confirm the package with `pi list`, enable the extension with `pi config`, check any tool allowlist/loadout, and run `/reload` or restart Pi.
 
@@ -147,6 +151,8 @@ export WATCH_ASR_TIMEOUT_MS=300000
 Local ASR runs only for spoken or mixed-intent questions after usable in-range captions are unavailable. It receives one resolved local media path, validates English timestamped JSON, and either supplies tier 1 or returns transcript source `none` so tiers 2 and 3 remain available. Broad-only, visual, on-screen-text, and caption-backed spoken/mixed questions do not invoke it.
 
 Failures appear as private typed diagnostics: `duration-limit`, `missing-executable`, `timeout`, `process-error`, `invalid-output`, or `cleanup-error`. See [Local speech transcription setup](docs/LOCAL-ASR-SETUP.md) for defaults and ceilings, every remediation, single/batch diagnostic locations, package/model-cache expectations, ownership/privacy details, and deterministic/live proof commands.
+
+The exported ASR adapter enforces the same compiled 600,000 ms duration and timeout ceilings even for direct callers: lower positive limits remain authoritative, while oversized, non-finite, or non-positive direct values cannot bypass the finite ceilings. Process output and the owned JSON file remain fixed at 16 MiB.
 
 ## How YouTube watching works
 
@@ -180,6 +186,8 @@ export WATCH_TIER2_MODEL="mlx-community/Qwen3-VL-8B-Instruct-4bit"
 
 See [Tier 2 local model setup](docs/TIER2-SETUP.md) for the verified `mlx_vlm.server` workflow, diagnostics, and timeout configuration. No Gemini or other cloud provider is mandatory.
 
+The implemented tier-2 adapter does not upload or ingest a raw video file. It sends the sampler-owned ordered frames as OpenAI-compatible `image_url` blocks interleaved with timeline text.
+
 ## Development and proof
 
 Install dependencies and run the offline quality gates:
@@ -199,6 +207,15 @@ npm test -- test/watch/asr-e2e.test.ts
 ```
 
 It validates the committed synthetic English fixture and registered `dist/watch/extension.js` path, proves private `missing-executable` fallback to tier 3, and skips real model work. After intentionally supplying the user-managed prerequisites, the finite optional live proof is:
+
+Run the deterministic compiled transcript-first efficiency proof:
+
+```bash
+npm run build
+npm test -- test/watch/context-efficiency.test.ts
+```
+
+The synthetic v1 corpus is loaded through `package.json.pi.extensions[0]`. Its full rolling captions measure 301 raw UTF-8 bytes and 235 normalized bytes. The three tier-1 scenarios serialize to 1,374 / 1,394 / 1,077 result bytes (477 / 507 / 306 text bytes), with zero `ffmpeg` scene/decode calls. The same-corpus visual control performs one scene call plus two bounded decodes, returns two frames, and serializes to 7,144 result bytes (823 text bytes). These are exact corpus-scoped pipeline measurements, not general latency, quality, or percentage claims. See [Transcript-first operation and proof](docs/TRANSCRIPT-FIRST.md).
 
 ```bash
 WATCH_ASR_LIVE=1 \
@@ -224,6 +241,7 @@ Public YouTube behavior and the default fixture can change independently of this
 - [Local speech transcription setup and diagnostics](docs/LOCAL-ASR-SETUP.md)
 - [YouTube setup and troubleshooting](docs/YOUTUBE-SETUP.md)
 - [Optional tier-2 setup](docs/TIER2-SETUP.md)
+- [Transcript-first operation and compiled efficiency proof](docs/TRANSCRIPT-FIRST.md)
 - [High-level design and verified architecture](DESIGN.md)
 
-Not included in v0.4: playlists, channels, embed URLs, private/authenticated videos, arbitrary remote-video hosts, guaranteed captions, hidden ASR installation, bundled Python/model runtimes, multilingual guarantees, translation, diarization, subtitle export, streaming/live video, long-media chunking, accuracy/performance guarantees, or mandatory cloud services.
+Not included in v0.5: playlists, channels, embed URLs, private/authenticated videos, arbitrary remote-video hosts, guaranteed captions, hidden ASR installation, bundled Python/model runtimes, multilingual guarantees, translation, diarization, subtitle export, streaming/live video, long-media chunking, semantic adequacy scoring, persistent transcript storage, accuracy/performance guarantees, or mandatory cloud services.

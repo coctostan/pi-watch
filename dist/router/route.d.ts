@@ -14,13 +14,12 @@
  *   3. the ordered escalation chain of tiers to try, terminating in tier 3.
  *
  * It is fully pure: input → output, no I/O, no spawns, no Math.random, no Date,
- * no mutation of inputs. The escalation chain is expressed as the ordered list
- * the `watch` tool (Phase 5) walks; confidence-based "the answer was insufficient
- * → escalate" logic, the tier adapters themselves (Phase 6), and user-facing
- * config (Phase 7) are explicitly NOT part of this module.
+ * no mutation of inputs. The `watch` tool walks the returned ordered list exactly;
+ * transcript presence and question intent determine that list before tier work.
+ * Tier adapters (Phase 6) and user-facing config (Phase 7) are outside this module.
  */
 import type { ResolutionTier, WatchedFrameSet } from "../contract/index.js";
-/** A routing tier (DESIGN §2): 1 transcript / 2 native video / 3 frames-into-context. */
+/** A routing tier (DESIGN §2): 1 transcript / 2 sampled-frame vision / 3 frames-into-context. */
 export type Tier = 1 | 2 | 3;
 /** What the question is fundamentally asking about — drives tier + resolution. */
 export type QuestionIntent = "spoken" | "visual" | "mixed" | "broad" | "on-screen-text";

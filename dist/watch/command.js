@@ -23,19 +23,29 @@
 export const WATCH_COMMAND_USAGE = "Usage: /watch <video-path-or-url> <question>";
 /**
  * Parse the raw argument string that follows `/watch `. Pure and total
- * (never throws): the FIRST whitespace-delimited token is the `ref`, the
- * remaining trimmed text is the `question`. Empty input or a ref with no
- * following question yields `{ ok: false }` carrying the usage string.
+ * (never throws). Unquoted input keeps the legacy first-token ref grammar. A
+ * leading single or double quote may wrap one non-empty ref containing spaces;
+ * only the matching outer quotes are removed, and the closing quote must be
+ * followed by whitespace plus a non-empty question. This deliberately is not
+ * a shell grammar: escapes, concatenation, and nested quoting are not parsed.
  */
 export function parseWatchCommand(args) {
     const trimmed = args.trim();
     if (trimmed === "") {
         return { ok: false, usage: WATCH_COMMAND_USAGE };
     }
-    // Locate the first whitespace run: the ref is everything before it, the
-    // question is the trimmed remainder. No whitespace at all → a bare ref with
-    // no question. (Manual split avoids regex capture groups, which type as
-    // `string | undefined` under noUncheckedIndexedAccess.)
+    const openingQuote = trimmed[0];
+    if (openingQuote === "'" || openingQuote === '"') {
+        const closingQuote = trimmed.indexOf(openingQuote, 1);
+        if (closingQuote <= 1 || !/\s/.test(trimmed[closingQuote + 1] ?? "")) {
+            return { ok: false, usage: WATCH_COMMAND_USAGE };
+        }
+        const question = trimmed.slice(closingQuote + 1).trim();
+        if (question === "") {
+            return { ok: false, usage: WATCH_COMMAND_USAGE };
+        }
+        return { ok: true, ref: trimmed.slice(1, closingQuote), question };
+    }
     const firstSpace = trimmed.search(/\s/);
     if (firstSpace === -1) {
         return { ok: false, usage: WATCH_COMMAND_USAGE };

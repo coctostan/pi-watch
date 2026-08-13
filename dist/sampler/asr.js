@@ -26,6 +26,9 @@ const DEFAULT_LOCAL_ASR_DEPS = {
     rm: async (path, opts) => fsRm(path, opts),
 };
 const NONE = { segments: [], source: "none" };
+function boundedPositiveLimit(value, ceiling) {
+    return Number.isFinite(value) && value > 0 ? Math.min(value, ceiling) : ceiling;
+}
 function isRecord(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -80,11 +83,13 @@ function classifyProcessFailure(error) {
 }
 /** Run one bounded direct mlx-whisper process and read only its owned JSON output. */
 export async function fetchLocalAsrTranscript(mediaRef, durationMs, policy, deps = DEFAULT_LOCAL_ASR_DEPS, onDiagnostic) {
-    if (durationMs > policy.maxDurationMs) {
+    const maxDurationMs = boundedPositiveLimit(policy.maxDurationMs, MAX_LOCAL_ASR_DURATION_MS);
+    const timeoutMs = boundedPositiveLimit(policy.timeoutMs, MAX_LOCAL_ASR_TIMEOUT_MS);
+    if (durationMs > maxDurationMs) {
         emitDiagnostic(onDiagnostic, {
             reason: "duration-limit",
             durationMs,
-            limitMs: policy.maxDurationMs,
+            limitMs: maxDurationMs,
         });
         return NONE;
     }
@@ -115,7 +120,7 @@ export async function fetchLocalAsrTranscript(mediaRef, durationMs, policy, deps
             "False",
             "--output-dir",
             outputDir,
-        ], { timeoutMs: policy.timeoutMs, maxBuffer: MAX_LOCAL_ASR_OUTPUT_BYTES });
+        ], { timeoutMs, maxBuffer: MAX_LOCAL_ASR_OUTPUT_BYTES });
         stage = "output";
         const outputPath = join(outputDir, "transcript.json");
         const outputStat = await deps.stat(outputPath);

@@ -3,6 +3,8 @@ import {
 	DEFAULT_LOCAL_ASR_EXECUTABLE,
 	DEFAULT_LOCAL_ASR_MODEL,
 	DEFAULT_LOCAL_ASR_TIMEOUT_MS,
+	MAX_LOCAL_ASR_DURATION_MS,
+	MAX_LOCAL_ASR_TIMEOUT_MS,
 	MAX_LOCAL_ASR_OUTPUT_BYTES,
 	fetchLocalAsrTranscript,
 	parseMlxWhisperJson,
@@ -107,6 +109,93 @@ describe("fetchLocalAsrTranscript", () => {
 			durationMs: 600_001,
 			limitMs: 600_000,
 		});
+	});
+
+	it.each([
+		["above the compiled ceiling", MAX_LOCAL_ASR_DURATION_MS + 60_000],
+		["infinite", Number.POSITIVE_INFINITY],
+		["not-a-number", Number.NaN],
+	])(
+		"[phase23][R18] clamps %s direct duration policies before storage or process work",
+		async (_label, maxDurationMs) => {
+			const deps = makeDeps();
+			const onDiagnostic = vi.fn<(value: AsrDiagnostic) => void>();
+
+			await expect(
+				fetchLocalAsrTranscript(
+					"borrowed.mp4",
+					MAX_LOCAL_ASR_DURATION_MS + 1,
+					{ ...POLICY, maxDurationMs },
+					deps,
+					onDiagnostic,
+				),
+			).resolves.toEqual({ segments: [], source: "none" });
+			expect(deps.mkdtemp).not.toHaveBeenCalled();
+			expect(deps.run).not.toHaveBeenCalled();
+			expect(onDiagnostic).toHaveBeenCalledWith({
+				reason: "duration-limit",
+				durationMs: MAX_LOCAL_ASR_DURATION_MS + 1,
+				limitMs: MAX_LOCAL_ASR_DURATION_MS,
+			});
+		},
+	);
+
+	it("[phase23][R18] preserves a lower positive direct duration limit", async () => {
+		const deps = makeDeps();
+		const onDiagnostic = vi.fn<(value: AsrDiagnostic) => void>();
+
+		await expect(
+			fetchLocalAsrTranscript(
+				"borrowed.mp4",
+				2_001,
+				{ ...POLICY, maxDurationMs: 2_000 },
+				deps,
+				onDiagnostic,
+			),
+		).resolves.toEqual({ segments: [], source: "none" });
+		expect(deps.mkdtemp).not.toHaveBeenCalled();
+		expect(deps.run).not.toHaveBeenCalled();
+		expect(onDiagnostic).toHaveBeenCalledWith({
+			reason: "duration-limit",
+			durationMs: 2_001,
+			limitMs: 2_000,
+		});
+	});
+
+	it.each([
+		["above the compiled ceiling", MAX_LOCAL_ASR_TIMEOUT_MS + 60_000],
+		["infinite", Number.POSITIVE_INFINITY],
+		["not-a-number", Number.NaN],
+	])("[phase23][R18] clamps %s direct process timeouts", async (_label, timeoutMs) => {
+		const deps = makeDeps();
+
+		await expect(
+			fetchLocalAsrTranscript("borrowed.mp4", 2_000, { ...POLICY, timeoutMs }, deps),
+		).resolves.toEqual({
+			segments: [{ startMs: 125, endMs: 2000, text: "hello", source: "whisper" }],
+			source: "whisper",
+		});
+		expect(deps.run).toHaveBeenCalledWith(
+			DEFAULT_LOCAL_ASR_EXECUTABLE,
+			expect.any(Array),
+			{ timeoutMs: MAX_LOCAL_ASR_TIMEOUT_MS, maxBuffer: MAX_LOCAL_ASR_OUTPUT_BYTES },
+		);
+	});
+
+	it("[phase23][R18] preserves a lower positive direct process timeout", async () => {
+		const deps = makeDeps();
+
+		await fetchLocalAsrTranscript(
+			"borrowed.mp4",
+			2_000,
+			{ ...POLICY, timeoutMs: 1_234 },
+			deps,
+		);
+		expect(deps.run).toHaveBeenCalledWith(
+			DEFAULT_LOCAL_ASR_EXECUTABLE,
+			expect.any(Array),
+			{ timeoutMs: 1_234, maxBuffer: MAX_LOCAL_ASR_OUTPUT_BYTES },
+		);
 	});
 
 	it("executes the configured binary with one media argument and the exact bounded JSON contract", async () => {

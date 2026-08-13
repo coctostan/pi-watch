@@ -1,7 +1,7 @@
 /**
  * watched-frame-set.ts — the pi-watch "watched frame set" data contract.
  *
- * This is the load-bearing seam every tier (1 transcript / 2 native video /
+ * This is the load-bearing seam every tier (1 transcript / 2 sampled-frame vision /
  * 3 frames-into-context) plugs into (DESIGN.md §6). It is the tier-NEUTRAL,
  * in-memory representation the sampler produces and every tier consumes, on
  * ONE shared timeline:
