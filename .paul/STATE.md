@@ -10,7 +10,7 @@ See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First implem
 ## Current Position
 
 Milestone: M5 — v0.5 — Transcript First
-Version: v0.5.0 (target)
+Version: v0.5.0 (package metadata and compiled `dist/**` at 0.5.0; release/tag pending)
 Phase: 23 (Harden and prove) — complete; M5 phases 4 of 4 complete
 Plan: 23-01 (`.paul/phases/23-harden-and-prove/23-01-SUMMARY.md`)
 Status: Phase 23 complete and unified; milestone M5 ready to complete
