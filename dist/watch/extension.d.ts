@@ -1,13 +1,9 @@
 /**
  * extension.ts — the `watch` pi custom tool (effect boundary, DESIGN.md §2/§7).
  *
- * This is the effectful seam that composes the three stable surfaces shipped in
- * Phases 2–4 into the load-bearing `watch` primitive:
- *
- *     sample()              → a validated WatchedFrameSet   (ffprobe/ffmpeg + best-effort transcript)
- *     routeContextFromSet() → RouteContext
- *     route()               → an ordered tier escalation chain (RoutingDecision)
- *     walkTierChain()       → the first available tier's TierResult (pure core)
+ * Staged sampling calls the deterministic router with transcript availability,
+ * records one decision per single or batch item, and performs visual attachment
+ * only when that same decision requires it before `walkTierChain()`.
  *
  * Activation recipe (Phase-1 FINDINGS — spikes/01-tool-activation/FINDINGS.md):
  *   1. register `watch` SYNCHRONOUSLY at the top of the factory;

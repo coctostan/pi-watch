@@ -207,20 +207,20 @@ describe("sample() source resolution lifecycle", () => {
 		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
 	});
 
-	it("cleans sampler-owned media exactly once when failure happens after frame decode", async () => {
+	it("cleans sampler-owned media exactly once when transcript acquisition fails before visual work", async () => {
 		const resolved = makeResolvedSource({
 			originalRef: "https://youtube.com/watch?v=dQw4w9WgXcQ",
 			mediaRef: "/tmp/pi-watch-youtube-owned/video.mp4",
 			ownership: "sampler-temporary",
 		});
 		effects.resolveSource.mockResolvedValue(resolved);
-		effects.fetchTranscript.mockRejectedValue(new Error("transcript failed after decode"));
+		effects.fetchTranscript.mockRejectedValue(new Error("transcript failed before decode"));
 
 		await expect(sample({ ref: resolved.originalRef, budget: 2 })).rejects.toThrow(
-			"transcript failed after decode",
+			"transcript failed before decode",
 		);
 
-		expect(effects.decodeFramesAt).toHaveBeenCalledTimes(1);
+		expect(effects.decodeFramesAt).not.toHaveBeenCalled();
 		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
 	});
 
@@ -455,5 +455,118 @@ describe("sample() range-aware evidence", () => {
 		await expect(sample({ ref: "local.mp4", start: 10 })).rejects.toThrow(/start.*duration/i);
 		expect(effects.detectSceneCutsMs).not.toHaveBeenCalled();
 		expect(effects.decodeFramesAt).not.toHaveBeenCalled();
+	});
+});
+
+
+describe("[phase22][R3][R4][R5][R6] sample() transcript-first staging", () => {
+	it("acquires and range-filters captions before short-circuiting all visual effects", async () => {
+		const resolved = makeResolvedSource({
+			originalRef: "https://youtu.be/range?t=2",
+			mediaRef: "/tmp/owned/range.mp4",
+			ownership: "sampler-temporary",
+			urlStartSeconds: 2,
+		});
+		effects.resolveSource.mockResolvedValue(resolved);
+		effects.probeDurationMs.mockResolvedValue(10_000);
+		effects.fetchTranscript.mockResolvedValue({
+			source: "captions",
+			segments: [{ startMs: 1_000, endMs: 5_000, text: "in range", source: "captions" }],
+		});
+		const needsVisualEvidence = vi.fn(() => false);
+
+		const result = await sample({
+			ref: resolved.originalRef,
+			start: 2,
+			end: 6,
+			needsVisualEvidence,
+		});
+
+		expect(needsVisualEvidence).toHaveBeenCalledOnce();
+		expect(needsVisualEvidence).toHaveBeenCalledWith({ hasTranscript: true });
+		expect(effects.detectSceneCutsMs).not.toHaveBeenCalled();
+		expect(effects.decodeFramesAt).not.toHaveBeenCalled();
+		expect(result.frames).toEqual([]);
+		expect(result.source).toMatchObject({
+			frameCount: 0,
+			fpsSampled: 0,
+			range: { startMs: 2_000, endMs: 6_000 },
+			available: { frames: { count: 0, firstMs: null, lastMs: null } },
+		});
+		expect(result.transcript).toEqual([
+			{ startMs: 2_000, endMs: 5_000, text: "in range", source: "captions" },
+		]);
+		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
+	});
+
+	it("runs eligible ASR after a caption miss but before scene analysis", async () => {
+		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: "spoken.mp4" }));
+		asrEffects.fetchLocalAsrTranscript.mockResolvedValue({
+			source: "whisper",
+			segments: [{ startMs: 100, endMs: 900, text: "speech", source: "whisper" }],
+		});
+		const needsVisualEvidence = vi.fn(() => false);
+
+		const result = await sample({
+			ref: "spoken.mp4",
+			localAsr: ASR_POLICY,
+			needsVisualEvidence,
+		});
+
+		expect(effects.fetchTranscript.mock.invocationCallOrder[0]).toBeLessThan(
+			asrEffects.fetchLocalAsrTranscript.mock.invocationCallOrder[0]!,
+		);
+		expect(effects.detectSceneCutsMs).not.toHaveBeenCalled();
+		expect(effects.decodeFramesAt).not.toHaveBeenCalled();
+		expect(result.source.transcriptSource).toBe("whisper");
+		expect(result.frames).toEqual([]);
+	});
+
+	it("runs visual sampling once after the staged decision requests it", async () => {
+		effects.resolveSource.mockResolvedValue(makeResolvedSource({ originalRef: "visual.mp4" }));
+		effects.fetchTranscript.mockResolvedValue({
+			source: "captions",
+			segments: [{ startMs: 0, endMs: 900, text: "caption", source: "captions" }],
+		});
+		const needsVisualEvidence = vi.fn(() => true);
+
+		const result = await sample({ ref: "visual.mp4", budget: 2, needsVisualEvidence });
+
+		expect(effects.fetchTranscript.mock.invocationCallOrder[0]).toBeLessThan(
+			effects.detectSceneCutsMs.mock.invocationCallOrder[0]!,
+		);
+		expect(effects.detectSceneCutsMs).toHaveBeenCalledTimes(1);
+		expect(effects.decodeFramesAt).toHaveBeenCalledTimes(1);
+		expect(result.frames.length).toBeGreaterThan(0);
+	});
+
+	it("cleans owned media exactly once and preserves predicate plus cleanup failures", async () => {
+		const resolved = makeResolvedSource({
+			originalRef: "https://youtu.be/owned",
+			mediaRef: "/tmp/owned/video.mp4",
+			ownership: "sampler-temporary",
+		});
+		resolved.cleanup.mockRejectedValue(new Error("cleanup failed"));
+		effects.resolveSource.mockResolvedValue(resolved);
+		effects.fetchTranscript.mockResolvedValue({
+			source: "captions",
+			segments: [{ startMs: 0, endMs: 900, text: "caption", source: "captions" }],
+		});
+
+		const error = await sample({
+			ref: resolved.originalRef,
+			needsVisualEvidence: () => {
+				throw new Error("predicate failed");
+			},
+		}).catch((caught) => caught);
+
+		expect(error).toBeInstanceOf(AggregateError);
+		expect(error.errors).toEqual([
+			expect.objectContaining({ message: "predicate failed" }),
+			expect.objectContaining({ message: "cleanup failed" }),
+		]);
+		expect(effects.detectSceneCutsMs).not.toHaveBeenCalled();
+		expect(effects.decodeFramesAt).not.toHaveBeenCalled();
+		expect(resolved.cleanup).toHaveBeenCalledTimes(1);
 	});
 });

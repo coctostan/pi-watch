@@ -35,8 +35,12 @@ export {
 	formatTimestamp,
 	mergeTranscript,
 	assembleWatchedFrameSet,
+	assembleTranscriptStage,
+	attachSampledFrames,
 	type FrameImage,
 	type AssembleInput,
+	type TranscriptStageInput,
+	type FrameAttachmentInput,
 } from "./assemble.js";
 
 export {

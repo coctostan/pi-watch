@@ -11,6 +11,7 @@
 export {
 	route,
 	classifyQuestion,
+	isLocalAsrEligible,
 	routeContextFromSet,
 	type Tier,
 	type QuestionIntent,

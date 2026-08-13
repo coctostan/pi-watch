@@ -6,6 +6,15 @@ import {
 	selectFrameTimes,
 	type AssembleInput,
 } from "../../src/sampler/index.js";
+import * as samplerModule from "../../src/sampler/index.js";
+
+const { assembleTranscriptStage, attachSampledFrames } = samplerModule as unknown as {
+	assembleTranscriptStage: (input: Omit<AssembleInput, "fpsSampled" | "selected" | "images" | "resolution">) => ReturnType<typeof assembleWatchedFrameSet>;
+	attachSampledFrames: (
+		stage: ReturnType<typeof assembleWatchedFrameSet>,
+		input: Pick<AssembleInput, "fpsSampled" | "selected" | "images" | "resolution">,
+	) => ReturnType<typeof assembleWatchedFrameSet>;
+};
 import {
 	validateWatchedFrameSet,
 	type TranscriptSegment,
@@ -122,6 +131,81 @@ describe("assembleWatchedFrameSet (AC-4)", () => {
 	});
 });
 
+
+describe("[phase22][R3][R4][R5][R6] staged WatchedFrameSet assembly", () => {
+	it("builds a contract-valid range-filtered transcript-only stage", () => {
+		const stage = assembleTranscriptStage({
+			ref: "range.mp4",
+			durationMs: 10_000,
+			range: { startMs: 4_000, endMs: 8_000 },
+			transcript: [
+				{ startMs: 3_000, endMs: 4_500, text: "cross start", source: "captions" },
+				{ startMs: 7_500, endMs: 9_000, text: "cross end", source: "captions" },
+			],
+			transcriptSource: "captions",
+		});
+
+		expect(stage.frames).toEqual([]);
+		expect(stage.source).toMatchObject({
+			frameCount: 0,
+			fpsSampled: 0,
+			range: { startMs: 4_000, endMs: 8_000 },
+			available: {
+				frames: { count: 0, firstMs: null, lastMs: null },
+				transcript: { count: 2, firstMs: 4_000, lastMs: 8_000 },
+			},
+		});
+		expect(validateWatchedFrameSet(stage).ok).toBe(true);
+	});
+
+	it("attaches aligned frames without mutating or reprocessing the transcript stage", () => {
+		const stage = assembleTranscriptStage({
+			ref: "range.mp4",
+			durationMs: 10_000,
+			range: { startMs: 4_000, endMs: 8_000 },
+			transcript: [{ startMs: 4_000, endMs: 5_000, text: "kept", source: "captions" }],
+			transcriptSource: "captions",
+		});
+		const snapshot = structuredClone(stage);
+		const selected = [
+			{ tMs: 4_000, origin: "scene-cut" as const },
+			{ tMs: 7_000, origin: "backfill" as const },
+		];
+		const frameAttachment = {
+			fpsSampled: 0.5,
+			selected,
+			images: selected.map((_, index) => ({ imageBase64: `IMAGE_${index}`, mediaType: "image/png" as const })),
+			resolution: "low" as const,
+		};
+		const attached = attachSampledFrames(stage, frameAttachment);
+
+		expect(stage).toEqual(snapshot);
+		expect(attached.transcript).toEqual(stage.transcript);
+		expect(attached.frames.map((frame) => frame.tMs)).toEqual([4_000, 7_000]);
+		expect(attached.source.available?.frames).toEqual({ count: 2, firstMs: 4_000, lastMs: 7_000 });
+		expect(validateWatchedFrameSet(attached).ok).toBe(true);
+		const invalidZeroFps = {
+			...attached,
+			source: { ...attached.source, fpsSampled: 0 },
+		};
+		const validation = validateWatchedFrameSet(invalidZeroFps);
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.errors).toContain("source.fpsSampled must be zero exactly when no frames are present.");
+		}
+		const invalidPositiveFpsStage = {
+			...stage,
+			source: { ...stage.source, fpsSampled: 1 },
+		};
+		expect(validateWatchedFrameSet(invalidPositiveFpsStage).ok).toBe(false);
+		expect(() => attachSampledFrames(stage, { fpsSampled: 0, selected, images: [], resolution: "low" })).toThrow(/length/i);
+		expect(() => attachSampledFrames(stage, { fpsSampled: 0, selected: [], images: [], resolution: "low" })).not.toThrow();
+		expect(() => attachSampledFrames(stage, { fpsSampled: 1, selected: [], images: [], resolution: "low" })).toThrow(/fpsSampled/);
+		expect(() => attachSampledFrames(stage, { ...frameAttachment, fpsSampled: Number.NaN })).toThrow(/finite/);
+		expect(() => attachSampledFrames(stage, { ...frameAttachment, fpsSampled: Number.POSITIVE_INFINITY })).toThrow(/finite/);
+	});
+});
+
 describe("mergeTranscript (AC-5)", () => {
 	it("orders segments by startMs ascending", () => {
 		const merged = mergeTranscript(
@@ -169,7 +253,7 @@ describe("mergeTranscript (AC-5)", () => {
 				source: {
 					ref: "fixtures/rgb.mp4",
 					durationMs: 3000,
-					fpsSampled: 1,
+					fpsSampled: 0,
 					frameCount: 0,
 					transcriptSource: "captions",
 				},
@@ -217,7 +301,7 @@ describe("mergeTranscript (AC-5)", () => {
 			source: {
 				ref: "fixtures/rgb.mp4",
 				durationMs: 3000,
-				fpsSampled: 1,
+				fpsSampled: 0,
 				frameCount: 0,
 				transcriptSource: "captions" as const,
 			},

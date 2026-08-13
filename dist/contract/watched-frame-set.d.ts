@@ -148,6 +148,7 @@ export type ValidationResult = {
  *   - transcript ordered by startMs ascending
  *   - each transcript segment has endMs >= startMs
  *   - source.frameCount === frames.length
+ *   - source.fpsSampled is zero exactly when no frames are present
  *
  * No I/O, no mutation of the input.
  */

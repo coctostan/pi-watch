@@ -7,5 +7,5 @@
  * tier 3, the universal fallback). No model calls, no I/O — the router returns a
  * *decision*; the `watch` tool (Phase 5) and tier adapters (Phase 6) consume it.
  */
-export { route, classifyQuestion, routeContextFromSet, } from "./route.js";
+export { route, classifyQuestion, isLocalAsrEligible, routeContextFromSet, } from "./route.js";
 //# sourceMappingURL=index.js.map

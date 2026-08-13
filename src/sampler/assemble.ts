@@ -84,13 +84,20 @@ export interface FrameImage {
 	mediaType: MediaType;
 }
 
-export interface AssembleInput {
+export interface TranscriptStageInput {
 	/** Original video reference (local path or URL). */
 	ref: string;
 	/** Total source duration in ms. */
 	durationMs: number;
 	/** Effective absolute half-open evidence range; defaults to the full source. */
 	range?: EvidenceRange;
+	/** Raw transcript segments to merge onto the timeline. */
+	transcript: TranscriptSegment[];
+	/** Transcript origin, or "none" when there is no transcript. */
+	transcriptSource: TranscriptSource | "none";
+}
+
+export interface FrameAttachmentInput {
 	/** Effective frames-per-second the sampler captured. */
 	fpsSampled: number;
 	/** Selected frame times from `selectFrameTimes` (tMs-ascending). */
@@ -99,30 +106,52 @@ export interface AssembleInput {
 	images: FrameImage[];
 	/** Resolution policy for these frames (caller-chosen; see boundaries). */
 	resolution: ResolutionTier;
-	/** Raw transcript segments to merge onto the timeline. */
-	transcript: TranscriptSegment[];
-	/** Transcript origin, or "none" when there is no transcript. */
-	transcriptSource: TranscriptSource | "none";
 }
 
+export interface AssembleInput extends TranscriptStageInput, FrameAttachmentInput {}
+
 /**
- * Assemble a `WatchedFrameSet` from selected times + images + transcript + metadata.
+ * Build a transcript-only `WatchedFrameSet` after range filtering.
  *
- * Each `selected[i]` pairs with `images[i]` to produce a `WatchedFrame` with a
- * sequential zero-based index, an mm:ss timestamp derived from its tMs, and the
- * supplied resolution tier. Frames are already tMs-ascending (selectFrameTimes
- * guarantees it). The transcript is merged onto the same timeline and
- * source.frameCount is set to frames.length.
- *
- * Pure: no I/O, no mutation of inputs. Throws on a programmer error
- * (images/selected length mismatch) rather than silently dropping frames.
+ * The stage is contract-valid with zero frame count, FPS, and frame coverage.
+ * Pure: no I/O and no mutation of inputs.
  */
-export function assembleWatchedFrameSet(input: AssembleInput): WatchedFrameSet {
+export function assembleTranscriptStage(input: TranscriptStageInput): WatchedFrameSet {
+	const range = input.range ?? { startMs: 0, endMs: input.durationMs };
+	const transcript = mergeTranscript(input.transcript, input.durationMs, range);
+	const frames: WatchedFrame[] = [];
+	const source: SourceMetadata = {
+		ref: input.ref,
+		durationMs: input.durationMs,
+		fpsSampled: 0,
+		frameCount: 0,
+		transcriptSource: transcript.length === 0 ? "none" : input.transcriptSource,
+		range,
+		available: {
+			frames: summarizeFrameCoverage(frames),
+			transcript: summarizeTranscriptCoverage(transcript),
+		},
+	};
+	return { source, frames, transcript };
+}
+
+/** Attach decoded frames to a transcript stage without reacquiring transcript evidence. */
+export function attachSampledFrames(
+	stage: WatchedFrameSet,
+	input: FrameAttachmentInput,
+): WatchedFrameSet {
 	if (input.images.length !== input.selected.length) {
 		throw new Error(
-			`assembleWatchedFrameSet: images length (${input.images.length}) ` +
+			`attachSampledFrames: images length (${input.images.length}) ` +
 				`must equal selected length (${input.selected.length}).`,
 		);
+	}
+	if (
+		!Number.isFinite(input.fpsSampled) ||
+		(input.selected.length === 0 && input.fpsSampled !== 0) ||
+		(input.selected.length > 0 && input.fpsSampled <= 0)
+	) {
+		throw new Error("attachSampledFrames: fpsSampled must be finite and zero exactly when no frames are selected.");
 	}
 
 	const frames: WatchedFrame[] = input.selected.map((sel, i) => {
@@ -138,21 +167,25 @@ export function assembleWatchedFrameSet(input: AssembleInput): WatchedFrameSet {
 		};
 	});
 
-	const range = input.range ?? { startMs: 0, endMs: input.durationMs };
-	const transcript = mergeTranscript(input.transcript, input.durationMs, range);
-
-	const source: SourceMetadata = {
-		ref: input.ref,
-		durationMs: input.durationMs,
-		fpsSampled: input.fpsSampled,
-		frameCount: frames.length,
-		transcriptSource: transcript.length === 0 ? "none" : input.transcriptSource,
-		range,
-		available: {
-			frames: summarizeFrameCoverage(frames),
-			transcript: summarizeTranscriptCoverage(transcript),
+	return {
+		source: {
+			...stage.source,
+			fpsSampled: input.fpsSampled,
+			frameCount: frames.length,
+			available: {
+				frames: summarizeFrameCoverage(frames),
+				transcript: stage.source.available?.transcript ?? summarizeTranscriptCoverage(stage.transcript),
+			},
 		},
+		frames,
+		transcript: stage.transcript,
 	};
+}
 
-	return { source, frames, transcript };
+
+/** Compatibility composition for callers that already have transcript and frame evidence. */
+
+export function assembleWatchedFrameSet(input: AssembleInput): WatchedFrameSet {
+	const stage = assembleTranscriptStage(input);
+	return attachSampledFrames(stage, input);
 }

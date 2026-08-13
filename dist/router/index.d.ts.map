@@ -1,1 +1,1 @@
-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../src/router/index.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAEH,OAAO,EACN,KAAK,EACL,gBAAgB,EAChB,mBAAmB,EACnB,KAAK,IAAI,EACT,KAAK,cAAc,EACnB,KAAK,YAAY,EACjB,KAAK,eAAe,GACpB,MAAM,YAAY,CAAC"}
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../src/router/index.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAEH,OAAO,EACN,KAAK,EACL,gBAAgB,EAChB,kBAAkB,EAClB,mBAAmB,EACnB,KAAK,IAAI,EACT,KAAK,cAAc,EACnB,KAAK,YAAY,EACjB,KAAK,eAAe,GACpB,MAAM,YAAY,CAAC"}

@@ -113,6 +113,27 @@ function makeSet(
 	};
 }
 
+
+function makeTranscriptOnlySet(ref: string): WatchedFrameSet {
+	const set = makeSet(ref, {
+		transcriptSource: "captions",
+		transcript: [{ startMs: 0, endMs: 1_000, text: "caption evidence", source: "captions" }],
+	});
+	return {
+		...set,
+		source: {
+			...set.source,
+			fpsSampled: 0,
+			frameCount: 0,
+			available: {
+				...set.source.available!,
+				frames: { count: 0, firstMs: null, lastMs: null },
+			},
+		},
+		frames: [],
+	};
+}
+
 function registerExtension(): ExtensionHarness {
 	const tools: CapturedTool[] = [];
 	const commands = new Map<string, CapturedCommand>();
@@ -347,6 +368,128 @@ describe("registered watch extension boundary", () => {
 				question: "What is said?",
 			}),
 		).rejects.toThrow(`watch failed for "${ref}": ${error.message}`);
+	});
+});
+
+
+describe("[phase22][R3][R4][R5][R6] registered transcript-first staging", () => {
+	it.each([
+		["What did the speaker say?", "spoken"],
+		["Analyze this video.", "broad"],
+		["Summarize recommendations for the intended audience.", "broad"],
+		["What did they say while the camera moves?", "mixed"],
+	])("short-circuits single %s questions at tier 1 with zero frames", async (question, intent) => {
+		const ref = `${intent}.mp4`;
+		sampleMock.mockImplementationOnce(async (options: {
+			needsVisualEvidence?: (context: { hasTranscript: boolean }) => boolean;
+		}) => {
+			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
+			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(false);
+			return makeTranscriptOnlySet(ref);
+		});
+
+		const result = await capturedWatch(registerExtension()).execute(`phase22-${intent}`, {
+			ref,
+			question,
+		});
+
+		expect(result).toMatchObject({
+			details: {
+				tier: 1,
+				intent,
+				frameCount: 0,
+				tiers: [1, 2, 3],
+				availableEvidence: { frames: { count: 0 } },
+			},
+		});
+		const details = (result as { details: Record<string, unknown> }).details;
+		expect(details).not.toHaveProperty("sceneDetection");
+	});
+
+	it.each([
+		["What happens after the camera moves?", "visual", "low"],
+		["At 01:30, what changes?", "visual", "low"],
+		["Read the sign: what does it say?", "on-screen-text", "high"],
+	] as const)("requests visual evidence for %s despite captions", async (question, intent, resolution) => {
+		const ref = `${intent}.mp4`;
+		sampleMock.mockImplementationOnce(async (options: {
+			needsVisualEvidence?: (context: { hasTranscript: boolean }) => boolean;
+		}) => {
+			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
+			expect(options).toMatchObject({ resolution });
+			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(true);
+			return makeSet(ref, {
+				transcriptSource: "captions",
+				transcript: makeTranscriptOnlySet(ref).transcript,
+			});
+		});
+
+		const result = await capturedWatch(registerExtension()).execute(`phase22-${intent}`, {
+			ref,
+			question,
+		});
+		expect(result).toMatchObject({ details: { intent, tiers: [2, 3], frameCount: 1 } });
+	});
+
+	it("reuses the staged routing decision instead of recomputing from a changed final set", async () => {
+		const ref = "decision.mp4";
+		sampleMock.mockImplementationOnce(async (options: {
+			needsVisualEvidence?: (context: { hasTranscript: boolean }) => boolean;
+		}) => {
+			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
+			expect(options.needsVisualEvidence!({ hasTranscript: false })).toBe(true);
+			return makeSet(ref, {
+				transcriptSource: "captions",
+				transcript: makeTranscriptOnlySet(ref).transcript,
+			});
+		});
+
+		const result = await capturedWatch(registerExtension()).execute("phase22-decision", {
+			ref,
+			question: "What did the speaker say?",
+		});
+		expect(result).toMatchObject({ details: { tier: 3, tiers: [2, 3] } });
+	});
+
+	it("stages each batch item independently and preserves visual OCR routing", async () => {
+		const items = [
+			{ ref: "broad.mp4", question: "Analyze this video." },
+			{ ref: "mixed.mp4", question: "What did they say while the camera moves?" },
+			{ ref: "ocr.mp4", question: "Read the sign: what does it say?" },
+			{ ref: "temporal.mp4", question: "At which minute does the car enter?" },
+			{ ref: "collision.mp4", question: "Summarize the secondary recommendations." },
+		];
+		sampleMock.mockImplementation(async (options: {
+			ref: string;
+			resolution: "low" | "high";
+			needsVisualEvidence?: (context: { hasTranscript: boolean }) => boolean;
+		}) => {
+			expect(options.needsVisualEvidence).toEqual(expect.any(Function));
+			const isOcr = options.ref === "ocr.mp4";
+			const isVisual = isOcr || options.ref === "temporal.mp4";
+			expect(options.resolution).toBe(isOcr ? "high" : "low");
+			expect(options.needsVisualEvidence!({ hasTranscript: true })).toBe(isVisual);
+			return isVisual
+				? makeSet(options.ref, {
+						transcriptSource: "captions",
+						transcript: makeTranscriptOnlySet(options.ref).transcript,
+					})
+				: makeTranscriptOnlySet(options.ref);
+		});
+
+		const result = await capturedWatchBatch(registerExtension()).execute("phase22-batch", { items });
+		expect(result).toMatchObject({
+			details: {
+				tiers: [1, 1, 3, 3, 1],
+				evidence: [
+					{ available: { frames: { count: 0 } } },
+					{ available: { frames: { count: 0 } } },
+					{ available: { frames: { count: 1 } } },
+					{ available: { frames: { count: 1 } } },
+					{ available: { frames: { count: 0 } } },
+				],
+			},
+		});
 	});
 });
 

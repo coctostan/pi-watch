@@ -1,13 +1,9 @@
 /**
  * extension.ts — the `watch` pi custom tool (effect boundary, DESIGN.md §2/§7).
  *
- * This is the effectful seam that composes the three stable surfaces shipped in
- * Phases 2–4 into the load-bearing `watch` primitive:
- *
- *     sample()              → a validated WatchedFrameSet   (ffprobe/ffmpeg + best-effort transcript)
- *     routeContextFromSet() → RouteContext
- *     route()               → an ordered tier escalation chain (RoutingDecision)
- *     walkTierChain()       → the first available tier's TierResult (pure core)
+ * Staged sampling calls the deterministic router with transcript availability,
+ * records one decision per single or batch item, and performs visual attachment
+ * only when that same decision requires it before `walkTierChain()`.
  *
  * Activation recipe (Phase-1 FINDINGS — spikes/01-tool-activation/FINDINGS.md):
  *   1. register `watch` SYNCHRONOUSLY at the top of the factory;
@@ -41,7 +37,7 @@ import {
 	type SceneDetectionDiagnostic,
 } from "../sampler/index.js";
 import { MAX_RANGE_SECONDS } from "../sampler/range.js";
-import { classifyQuestion, route, routeContextFromSet, type Tier } from "../router/index.js";
+import { classifyQuestion, isLocalAsrEligible, route, routeContextFromSet, type RoutingDecision, type Tier } from "../router/index.js";
 import { resolveWatchConfig } from "../config/index.js";
 import {
 	walkTierChain,
@@ -280,15 +276,20 @@ export default function watchExtension(pi: ExtensionAPI): void {
 		async execute(_toolCallId, params: WatchInput) {
 			let sceneDetectionDiagnostic: SceneDetectionDiagnostic | undefined;
 			let asrDiagnostic: AsrDiagnostic | undefined;
-			const asrEligible =
-				config.localAsr !== null && classifyQuestion(params.question).intent === "spoken";
+			let stagedDecision: RoutingDecision | undefined;
+			const questionPolicy = classifyQuestion(params.question);
+			const asrEligible = config.localAsr !== null && isLocalAsrEligible(questionPolicy.intent);
 			try {
 				const set = await sample({
 					ref: params.ref,
 					budget: params.budget ?? config.budget,
-					resolution: params.resolution ?? config.resolution,
+					resolution: params.resolution ?? (questionPolicy.resolution === "high" ? "high" : config.resolution),
 					...(params.start === undefined ? {} : { start: params.start }),
 					...(params.end === undefined ? {} : { end: params.end }),
+					needsVisualEvidence: (context) => {
+						stagedDecision = route({ question: params.question, context });
+						return stagedDecision.primaryTier !== 1;
+					},
 					onSceneDetectionDiagnostic: (diagnostic) => {
 						sceneDetectionDiagnostic = diagnostic;
 					},
@@ -301,8 +302,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 							}
 						: {}),
 				});
-				const ctx = routeContextFromSet(set);
-				const decision = route({ question: params.question, context: ctx });
+				const decision =
+					stagedDecision ??
+					route({ question: params.question, context: routeContextFromSet(set) });
 
 				// Fresh per-call diagnostic collector + tier-2 runner (option-a).
 				let tier2Diagnostic: Tier2Diagnostic | undefined;
@@ -367,10 +369,9 @@ export default function watchExtension(pi: ExtensionAPI): void {
 	});
 
 
-	// `watch_batch` (Phase 9): a bounded batch wrapper over the same frozen
-	// sample → route → walkTierChain pipeline. Tier-1/2 text results aggregate;
-	// tier-3 frame batches are intentionally deferred to individual `/watch` calls
-	// rather than inlining many videos' frames into one tool result.
+	// `watch_batch` uses the same transcript-stage decision per item. Tier-1/2
+	// text results aggregate; tier-3 frame batches remain deferred to individual
+	// `/watch` calls rather than inlining many videos' frames.
 	pi.registerTool<typeof WATCH_BATCH_PARAMS, Record<string, unknown>>({
 		name: "watch_batch",
 		label: "Watch Batch",
@@ -390,14 +391,19 @@ export default function watchExtension(pi: ExtensionAPI): void {
 				const processItem: WatchItemProcessor = async (item) => {
 					const { ref, question } = item;
 					const itemIndex = params.items.indexOf(item);
-					const asrEligible =
-						config.localAsr !== null && classifyQuestion(question).intent === "spoken";
+					let stagedDecision: RoutingDecision | undefined;
+					const questionPolicy = classifyQuestion(question);
+					const asrEligible = config.localAsr !== null && isLocalAsrEligible(questionPolicy.intent);
 					const set = await sample({
 						ref,
 						budget: params.budget ?? config.budget,
-						resolution: params.resolution ?? config.resolution,
+						resolution: params.resolution ?? (questionPolicy.resolution === "high" ? "high" : config.resolution),
 						...(params.start === undefined ? {} : { start: params.start }),
 						...(params.end === undefined ? {} : { end: params.end }),
+						needsVisualEvidence: (context) => {
+							stagedDecision = route({ question, context });
+							return stagedDecision.primaryTier !== 1;
+						},
 						...(asrEligible
 							? {
 									localAsr: config.localAsr!,
@@ -407,8 +413,8 @@ export default function watchExtension(pi: ExtensionAPI): void {
 								}
 							: {}),
 					});
-					const ctx = routeContextFromSet(set);
-					const decision = route({ question, context: ctx });
+					const decision =
+						stagedDecision ?? route({ question, context: routeContextFromSet(set) });
 
 					// Fresh per-item diagnostic collector + tier-2 runner (option-a);
 					// tier-3 frame batch stays deferred to single-video watch calls.
