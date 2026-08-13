@@ -28,3 +28,7 @@
 | 22-01 | SKIP | NOTE | no | n/a |
 | 22-01 | CODI | NOTE | no | n/a |
 | 22-01 | RUBY | PASS_WITH_CONCERNS | yes | yes |
+| 23-01 | WALT | PASS | no | n/a |
+| 23-01 | SKIP | NOTE | no | n/a |
+| 23-01 | CODI | SKIP | no | n/a |
+| 23-01 | RUBY | PASS_WITH_CONCERNS | yes | yes |

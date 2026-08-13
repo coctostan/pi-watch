@@ -7,8 +7,8 @@ A Pi extension that watches videos through the cheapest available path—timesta
 ## Current Milestone
 
 **M5 — v0.5 — Transcript First** (target v0.5.0)
-Status: 🚧 In Progress
-Phases: 3 of 4 complete
+Status: 🚧 In Progress — all phases complete; awaiting milestone completion
+Phases: 4 of 4 complete (100%)
 Theme: Make the cheapest path cheap in practice by normalizing and selecting range-complete transcript evidence before performing expensive visual work.
 Assessment: [after-v0.4 context-efficiency assessment](assessments/2026-08-11-after-v0.4-context-efficiency.md)
 
@@ -17,7 +17,7 @@ Assessment: [after-v0.4 context-efficiency assessment](assessments/2026-08-11-af
 | 20 | Normalize and measure | 1/1 | ✅ Complete | 2026-08-12 |
 | 21 | Range-aware evidence | 1/1 | ✅ Complete | 2026-08-12 |
 | 22 | Route before decoding | 1/1 | ✅ Complete | 2026-08-13 |
-| 23 | Harden and prove | TBD | 🔵 Ready to plan | — |
+| 23 | Harden and prove | 1/1 | ✅ Complete | 2026-08-13 |
 
 ### Phase 20: Normalize and measure
 Focus: Establish deterministic context-efficiency baselines and conservatively remove rolling-caption overlap while preserving timing and legitimate repetition.
@@ -35,7 +35,8 @@ Plans: 1/1 complete — [22-01: Transcript-first route before decoding](phases/2
 
 ### Phase 23: Harden and prove
 Focus: Close R8, R18, R22, and R4/R6; prove compiled-package context efficiency; and publish operator guidance without broadening into unrelated maintenance.
-Plans: TBD (defined during `/paul:plan`)
+Plans: 1/1 complete — [23-01: Bounded hardening and compiled transcript-efficiency proof](phases/23-harden-and-prove/23-01-PLAN.md) (complete 2026-08-13)
+Serves: R4, R6, R8, R18, R22
 
 ### Milestone boundaries
 - No new dependency, mandatory model, cloud service, persistent transcript handle/cache, or model-backed synthesis.
@@ -65,4 +66,4 @@ Plans: TBD (defined during `/paul:plan`)
 - Dependency maintenance for the unchanged dev tree (currently 0 critical / 4 high / 2 moderate).
 
 ---
-*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after Phase 22 UNIFY*
+*Roadmap created: 2026-06-18 10:13:09 · Last updated: 2026-08-13 after Phase 23 UNIFY*

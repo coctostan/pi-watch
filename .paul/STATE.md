@@ -2,23 +2,23 @@
 
 ## Project Reference
 
-See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First active)
+See: `.paul/PROJECT.md` (v0.4 released baseline; M5/v0.5 Transcript First implementation complete)
 
 **Core value:** Cheapest-path-that-works video understanding for the agent — local-first, model-agnostic.
-**Current focus:** Phase 23 — close bounded hardening/proof follow-ups and prove compiled-package transcript efficiency without broadening scope.
+**Current focus:** M5 / v0.5 milestone completion — all four phases are complete, v0.5.0 metadata and compiled output are in place, and release/close-out remains.
 
 ## Current Position
 
 Milestone: M5 — v0.5 — Transcript First
 Version: v0.5.0 (target)
-Phase: 23 of 4 (Harden and prove)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-13 — Phase 22 complete: plan 22-01 unified with approved R4/roadmap routing, module history/ledger evidence, and Phase 23 transition writes.
-Next action: `/paul:plan` for Phase 23
+Phase: 23 (Harden and prove) — complete; M5 phases 4 of 4 complete
+Plan: 23-01 (`.paul/phases/23-harden-and-prove/23-01-SUMMARY.md`)
+Status: Phase 23 complete and unified; milestone M5 ready to complete
+Last activity: 2026-08-13 — Unified plan 23-01 (3/3 tasks, 3/3 acceptance criteria), amended R8, and closed Phase 23; M5 implementation is complete.
+Next action: `/paul:milestone`
 
 Progress:
-- Milestone M5 / v0.5: [████████░░] 75% implementation complete (Phases 20–22 complete; Phase 23 remains)
+- Milestone M5 / v0.5: [██████████] 100% implementation complete (Phases 20–23, 4 plans); milestone completion pending
 - Milestone M4 / v0.4: [██████████] 100% ✓ (Phases 17–19, 3 plans, released v0.4.0)
 - Milestone v0.3: [██████████] 100% ✓ (Phases 14–16, 3 plans)
 - Milestone v0.2: [██████████] 100% ✓ (Phases 10–13)
@@ -29,7 +29,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [M5 Phase 22 complete — ready to plan Phase 23]
+  ✓        ✓        ✓     [M5 Phase 23 plan 23-01 complete — milestone M5 ready to complete]
 ```
 
 ## Accumulated Context
@@ -37,7 +37,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 ### Validated Product Decisions
 
 - We own sampling; model backends remain thin, swappable OpenAI-compatible adapters (`baseURL` + model id).
-- Choose the cheapest tier that answers the question: transcript first, native video second, sampled frames as the universal fallback.
+- Choose the cheapest tier that answers the question: transcript first, OpenAI-compatible sampled-frame vision second, frames-into-context as the universal fallback; raw native-video ingestion remains deferred.
 - Keep cloud providers optional and the default path local-first/network-free.
 - The `watch` tool is the primitive; `/watch` and `watch_batch` wrap or delegate to it.
 - Supported YouTube refs preserve separate caller `originalRef` and local `mediaRef`; only resolver-created storage is owned and removable.
@@ -58,6 +58,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - One absolute half-open `[startMs, endMs)` range governs captions, eligible ASR, and frames; supported URL timestamps contribute start only as a valid conversion-safe singleton, explicit whole-second bounds win, and cue clipping preserves text/source.
 - Returned coverage is computed only after internal, aggregate, and final output bounds, and stays fixed-size and free of refs, questions, or evidence text; available coverage is reported separately.
 - Broad, spoken, and mixed prompts may start at tier 1 with non-empty in-range transcript evidence; explicitly visual/temporal and on-screen-text prompts stay visual, broad-only prompts remain ASR-ineligible, and one staged decision is reused after sampling.
+- The v0.5 compiled-registration corpus proves 301→235 transcript bytes; three tier-1 results use 1,374 / 1,394 / 1,077 serialized bytes with zero scene/decode calls, versus a same-corpus 7,144-byte visual control with one scene call and two decodes. Claims remain corpus-scoped.
+- `/watch` accepts exactly one leading matching quoted local ref with interior spaces preserved and rejects shell-like syntax rather than interpreting it; effective ASR duration/timeout are clamped to compiled ceilings at the exported adapter boundary before any comparison or spawn.
 
 ### Deferred Issues
 
@@ -68,7 +70,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 - Focused decomposition of measured hotspots beyond Phase 20's caption-core extraction: `src/sampler/effects.ts` (642 lines), `src/watch/tier-runner.ts` (642), and `src/watch/extension.ts` (499).
 - Dedicated CI workflow beyond Socket Security checks.
 - Scoped npm package rename/publication; Git/local sources remain the supported distribution path.
-- M5 Phase 23 owns R8 quoted local references, R18 adapter ceilings, R22 test-owned npm-cache proof, R4/R6 terminology reconciliation, compiled-package transcript-efficiency proof, and operator guidance.
+- Phase 23 closed R8, R18, R22, and R4/R6; remaining M5-adjacent work is release/close-out only.
 
 ### Release Concerns
 
@@ -85,15 +87,16 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ## Session Continuity
 
-Last session: 2026-08-13 — Unified Phase 22 plan 22-01 and prepared the Phase 23 transition.
-Stopped at: Phase 22 complete; PR #34 merged with both Socket Security checks passing; ready to plan Phase 23.
-Next action: `/paul:plan` for Phase 23
+Last session: 2026-08-13 — Completed and unified plan 23-01 on `feature/23-harden-and-prove`; Phase 23 closed and M5 phases are 4 of 4 complete.
+Stopped at: PLAN ✓ / APPLY ✓ / UNIFY ✓; milestone M5 ready to complete.
+Next action: `/paul:milestone`
 Resume file: `.paul/ROADMAP.md`
-Git state: GitHub Flow base `main` synced at `c636d9c`; implementation PR #33 merged as `20ebc9e`; lifecycle finalization PR #34 merged as `c636d9c`; feature branches deleted.
+wip_result: not requested — phase complete
+Git state: GitHub Flow `feature/23-harden-and-prove` carries three task commits plus the Phase 23 closure commit; PR #36 (`https://github.com/coctostan/pi-watch/pull/36`) governs the merge gate; `.codegraph/` remains untracked and out of scope.
 Resume context:
-- Phase 22 evidence: RED `f420b4b`, GREEN `66be81a`, REFACTOR `7b9bf7f`, hardening `a9871e4` / `a8b73f2`; 337 passed / 3 skipped, focused 95/95, typecheck/build/dist/diff clean.
-- Approved UNIFY deltas: R4 amended in `.paul/PRD.md`; transcript-only zero-FPS contract refinement discarded without intent edit; completed OCR-resolution follow-up removed from PROJECT/ROADMAP.
-- Phase 23 must preserve Phase 20 normalization, Phase 21 range/coverage, and Phase 22 staged-route/zero-call semantics while staying within its bounded hardening/proof scope.
+- TDD evidence: RED `57b686b`, GREEN `c25edac`, REFACTOR/prove `cb6bcff`; UNIFY re-verified 362 passed / 3 skipped, typecheck, and byte-identical rebuilt `dist/**`.
+- Exact compiled corpus metrics are 301 raw / 235 normalized transcript bytes; transcript results are 1,374 / 1,394 / 1,077 bytes with zero `ffmpeg` work, and visual control is 7,144 bytes with 1 scene + 2 decode calls.
+- DEAN remains 0 critical / 4 high / 2 moderate / 0 low; no dependency change. Advisory hotspot remains `tier-runner.ts` at 642 lines; broader decomposition is deferred.
 
 ---
 *STATE.md — Updated after every significant action*
