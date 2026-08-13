@@ -278,7 +278,7 @@ describe("Phase 19 registered local-ASR proof", () => {
 
 		expect(packageJson).toMatchObject({
 			name: "pi-watch",
-			version: "0.4.0",
+			version: "0.5.0",
 			type: "module",
 			main: "dist/contract/index.js",
 			types: "dist/contract/index.d.ts",
@@ -306,11 +306,11 @@ describe("Phase 19 registered local-ASR proof", () => {
 			},
 		});
 		expect(packageJson.dependencies).toBeUndefined();
-		expect(packageLock.version).toBe("0.4.0");
+		expect(packageLock.version).toBe("0.5.0");
 		expect(packageLock.lockfileVersion).toBe(3);
 		expect(packageLock.packages[""]).toMatchObject({
 			name: "pi-watch",
-			version: "0.4.0",
+			version: "0.5.0",
 			engines: packageJson.engines,
 			peerDependencies: packageJson.peerDependencies,
 			devDependencies: packageJson.devDependencies,
@@ -326,7 +326,7 @@ describe("Phase 19 registered local-ASR proof", () => {
 			"WATCH_ASR_MAX_DURATION_MS",
 			"WATCH_ASR_TIMEOUT_MS",
 			"npm:pi-watch",
-			"After the `v0.4.0` tag has actually been published",
+			"After the `v0.5.0` tag has actually been published",
 		]) {
 			expect(readme).toContain(marker);
 		}

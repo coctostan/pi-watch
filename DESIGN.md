@@ -34,11 +34,11 @@
 | Tier | Path | When | Cost |
 |------|------|------|------|
 | **1** | **Transcript** — yt-dlp captions, else eligible local Whisper | Spoken, broad, or mixed question with usable in-range transcript evidence | Cheapest, model-agnostic |
-| **2** | **Native video understanding** — pluggable video model | Question needs *temporal/visual* reasoning | Medium; local or hosted |
+| **2** | **Sampled-frame vision** — pluggable OpenAI-compatible image-block adapter | Question needs *temporal/visual* reasoning | Medium; local or hosted |
 | **3** | **Frames-into-context** — sample frames, hand to the orchestrator model as `ImageContent` | Universal visual fallback (works under any vision LLM) | Most tokens, always available |
 
 ### The key insight (verified at code level)
-**Native video and frame-sampling are the same mechanism underneath.** So:
+**The implemented tier-2 and tier-3 paths share owner-sampled frames underneath.** So:
 
 > **WE own the sampling.** The model end is a thin, swappable,
 > **OpenAI-compatible adapter.**
@@ -62,7 +62,7 @@ Build **one good sampler**; then local-vs-hosted and which-model become
         │
         └─ visual evidence required ► scene cuts + backfill + budgeted decode
                                            │
-                                           ├─ tier 2 OpenAI-compatible adapter
+                                           ├─ tier 2 OpenAI-compatible sampled-frame vision
                                            └─ tier 3 ImageContent → orchestrator
 ```
 
@@ -81,6 +81,21 @@ Build **one good sampler**; then local-vs-hosted and which-model become
 - **One timeline** — range-clipped transcript and any selected frames retain absolute timestamps and fixed-size coverage metadata.
 
 Output remains one contract-valid **watched frame set**: transcript-only sets report zero frame count/FPS/coverage, while visual sets attach frames without reacquiring transcript evidence.
+
+### v0.5 compiled context-efficiency proof
+
+`test/watch/context-efficiency.test.ts` builds first, resolves the first extension path declared in `package.json.pi.extensions`, and registers that compiled extension. Test-owned `yt-dlp`, `ffprobe`, and `ffmpeg` shims provide a synthetic versioned rolling-caption corpus, exact ranges, deterministic frames, and a cleaned call ledger without network or model work.
+
+Corpus-scoped evidence:
+
+| Scenario | Range | Available / returned transcript | Frames | `ffmpeg` scene / decode | Serialized result bytes | Text bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| Spoken, full corpus | `[0, 22000)` | 9 / 9 | 0 | 0 / 0 | 1,374 | 477 |
+| Broad, full corpus | `[0, 22000)` | 9 / 9 | 0 | 0 / 0 | 1,394 | 507 |
+| Broad, requested subsection | `[4000, 12000)` | 4 / 4 | 0 | 0 / 0 | 1,077 | 306 |
+| Explicit visual control, same corpus | `[0, 22000)` | 9 / 9 | 2 / 2 returned | 1 / 2 | 7,144 | 823 |
+
+The full synthetic transcript is 301 raw UTF-8 bytes and 235 bytes after the existing conservative overlap normalization. These exact measurements prove this corpus's context/work reduction only; they do not claim a general percentage, latency gain, answer quality, or model quality.
 
 ---
 
@@ -104,9 +119,9 @@ swap-in-trivial by spike.
   GPT = image-only (OpenAI "video" = Sora generation, not input). → **tier 3 is
   the only in-context visual path under Claude/GPT.** Frames are the foundation.
 - **Ollama does not accept video** (image-only). Gemma-on-Ollama = frames only.
-- Local native video lives **off-Ollama**: **vLLM (CUDA)** or **MLX (Apple)**.
+- A deferred local native-video ingestion path would live **off-Ollama**: **vLLM (CUDA)** or **MLX (Apple)**.
 - Gemma's "temporal grounding" is just interleaved mm:ss text → for Gemma,
-  native video ≈ our frame sampling (marginal gain). Qwen is the differentiator.
+  deferred native-video ingestion ≈ our frame sampling (marginal gain). Qwen is the differentiator.
 
 ---
 
@@ -130,8 +145,8 @@ correct, in 3.3s.** Temporal *order* understood, not just "I see colors."
 - **Warm RSS 7.6 GB**, system 92% free. Footprint matches prediction; the old
   memory-pressure caveat is retired for the 8B-4bit tier.
 - Same OpenAI wire shape as hosted → adapter is just baseURL + model id.
-- Checkpoint ships `video_preprocessor_config.json` (native video also available
-  if we ever want it; frames-as-images path is proven).
+- Checkpoint ships `video_preprocessor_config.json`; deferred native-video ingestion
+  is available if later evidence warrants it, while frames-as-images is the implemented path.
 - Spike: `thinkingSpace/prototypes/qwen-video-spike/` (clip.mp4, frames/, ask.py).
 
 ### Other established facts

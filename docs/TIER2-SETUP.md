@@ -1,6 +1,8 @@
 # Tier 2 local model setup
 
-This runbook stands up the local tier-2 vision endpoint used by `pi-watch`: `mlx_vlm.server` serving Qwen3-VL through an OpenAI-compatible `/v1/chat/completions` API.
+This runbook stands up the optional local tier-2 sampled-frame vision endpoint used by `pi-watch`: `mlx_vlm.server` serving Qwen3-VL through an OpenAI-compatible `/v1/chat/completions` API.
+
+The implemented adapter receives sampler-owned ordered frames and sends them as base64 `image_url` blocks interleaved with timeline text. It does not send a raw video file; native-video ingestion remains a deferred, unimplemented path.
 
 The `watch` tool does not fork code per model. It only needs:
 
@@ -208,7 +210,7 @@ The diagnostic appears on the `watch` tool result's `details` (and on each `watc
 
 **Human-facing hint (single-video `watch`):** when tier 2 was *unconfigured* and another tier answered, the single-video `watch` result also appends a short guidance line to its content:
 
-> Tier 2 (native video understanding) is unconfigured — set `WATCH_TIER2_BASE_URL` and `WATCH_TIER2_MODEL` to enable it (or `WATCH_TIER2_LOCAL=1` to use a local mlx_vlm server). See docs/TIER2-SETUP.md.
+> Tier 2 (OpenAI-compatible sampled-frame vision) is unconfigured — set `WATCH_TIER2_BASE_URL` and `WATCH_TIER2_MODEL` to enable it (or `WATCH_TIER2_LOCAL=1` to use a local mlx_vlm server). See docs/TIER2-SETUP.md.
 
 This nudge is shown **only** for the `unconfigured` reason (not for `http-error` / `empty-answer` / `timeout` / `network-error`, which mean tier 2 *was* configured) and **only** when tier 2 did not itself answer. `watch_batch` keeps its structured per-item `details.tier2` and does not add this line to its aggregated content.
 

@@ -1,7 +1,7 @@
 /**
  * tier2.ts — the tier-2 adapter for the `watch` tool (DESIGN.md §4 / §5 #2).
  *
- * Tier 2 is "native video understanding via an OpenAI-compatible endpoint". The
+ * Tier 2 is sampled-frame vision through an OpenAI-compatible endpoint. The
  * key insight (runtime-proven, DESIGN §5 Verified Fact #2): every tier-2 backend
  * — local Qwen3-VL via `mlx_vlm.server`, or a hosted endpoint such as Gemini —
  * speaks the *same* OpenAI `/v1/chat/completions` shape and accepts the sampled

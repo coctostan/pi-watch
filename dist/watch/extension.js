@@ -85,7 +85,7 @@ export const WATCH_BATCH_PARAMS = Type.Object({
 });
 const WATCH_DESCRIPTION = "Watch a video (local file or URL) and answer a question about it. Samples " +
     "frames + best-effort transcript, then routes to the cheapest tier that can " +
-    "answer (transcript → native video → frames-into-context), returning the answer " +
+    "answer (transcript → sampled-frame vision → frames-into-context), returning the answer " +
     "and, for the frames tier, the sampled frames themselves. Tool-result text, " +
     "including transcripts, is truncated at Pi's 50 KB / 2,000-line output limits.";
 const WATCH_BATCH_DESCRIPTION = "Watch several videos in one call. Samples each video, routes each to the " +

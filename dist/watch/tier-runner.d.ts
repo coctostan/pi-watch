@@ -8,7 +8,7 @@
  *
  *   - tier 1 (transcript passthrough) is implemented here (pure, no I/O): it
  *     hands the transcript to the orchestrator, or returns null to escalate.
- *   - tier 2 (OpenAI-compat native video) is the network adapter; its code lives
+ *   - tier 2 (OpenAI-compatible sampled-frame vision) is the network adapter; its code lives
  *     in tier2.ts (the effect boundary). This module only references its runner
  *     factory (`createTier2Runner`) when building `defaultRunners` — a table
  *     wiring, not an effect, so the walk core below stays pure.
@@ -111,12 +111,12 @@ export declare const tier3Runner: TierRunner;
  */
 export declare const tier1Runner: TierRunner;
 /**
- * Tier 2 — OpenAI-compatible native video adapter (DESIGN §4). The runner is
+ * Tier 2 — OpenAI-compatible sampled-frame vision adapter (DESIGN §4). The runner is
  * built in tier2.ts; this default reads its endpoint config from the environment
  * (`WATCH_TIER2_*`) and escalates (returns null) when unconfigured or on failure.
  */
 export declare const tier2Runner: TierRunner;
-/** Default runner table: tiers 1 (transcript), 2 (OpenAI-compat video), and 3 (frames) all implemented; tier 2 escalates when unconfigured. */
+/** Default runner table: tiers 1 (transcript), 2 (sampled-frame vision), and 3 (frames) all implemented; tier 2 escalates when unconfigured. */
 export declare const defaultRunners: Record<Tier, TierRunner>;
 /**
  * Walk the routing decision's ordered tier chain: call each tier's runner in
