@@ -9,7 +9,7 @@ Local ASR is disabled unless `WATCH_ASR_LOCAL` is exactly `1`. A normal watch ne
 The verified path uses:
 
 - Apple Silicon macOS.
-- Node.js 20 or newer, Pi, `ffmpeg`, and `ffprobe` as described in the [README](../README.md).
+- Node.js 22.19 or newer, Pi, `ffmpeg`, and `ffprobe` as described in the [README](../README.md).
 - The `mlx-whisper` package's `mlx_whisper` console executable.
 - The default `mlx-community/whisper-tiny` English model.
 

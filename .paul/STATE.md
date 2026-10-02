@@ -14,7 +14,7 @@ Version: v0.5.0 (released)
 Phase: None active
 Plan: None
 Status: Milestone M5 — v0.5 — Transcript First complete — ready for next
-Last activity: 2026-08-13 — Completed M5: passing R1–R22 adherence audit (21 HELD / 1 DRIFTED resolved / 0 OBSOLETE, 6 findings routed), milestone entry and roadmap archive written, tagged v0.5.0.
+Last activity: 2026-10-01 — Completed Fix 04 (standard): Pi 1.0.0 development-dependency refresh, npm 12 packaging compatibility, and Node prerequisites; 364 tests pass / 3 default-skipped, full audit zero; PR review/merge pending.
 Next action: `/paul:discuss-milestone` or `/paul:milestone`
 
 Progress:
@@ -74,7 +74,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 
 ### Release Concerns
 
-- Dependency maintenance remains separate work: the unchanged dev tree reports 0 critical / 4 high / 2 moderate advisories.
+- Fix 04 refreshed the development tree for Pi 1.0.0; full and production-only npm audits report zero advisories as of 2026-10-01. Continue routine dependency maintenance.
 - The unscoped npm package name remains unavailable and must not be used for installation.
 
 ### Fixes
@@ -84,20 +84,21 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | Fix 01 (standard) | No active phase — bounded scene analysis for long-form video | Reduced 2 fps / 320px analysis; >10-minute and typed-timeout fallback to uniform frames; 201 tests pass; reported 19m20s URL succeeded in 7.959s. See `.paul/fixes/01-FIX-SUMMARY.md`. |
 | Fix 02 (standard) | No active phase — Pi package/tool spec compliance | Wildcard core peers + pinned dev deps; Google-safe schemas; thrown host errors; aggregate 50 KB/2,000-line bounds; 210 tests pass; packed/local Pi live proofs pass. See `.paul/fixes/02-FIX-SUMMARY.md`. |
 | Fix 03 (standard) | M4 milestone-close audit identifier repair; Chain: `R7 — no spec impact` | Recorded M4 consistently in STATE/ROADMAP and assigned stable PRD IDs R1–R15 without intent changes; 248 tests / 3 skipped, typecheck/build/diff pass, audit unchanged. See `.paul/phases/19-local-speech-ux-and-proof/19-02-FIX-SUMMARY.md`. |
+| Fix 04 (standard) | No active phase — Pi 1.0/npm 12 maintenance; Chain: `R7 — no spec impact` | Pi dev deps 1.0.0, Node >=22.19.0, backward/current npm pack JSON coverage; clean install 364 passed / 3 skipped; typecheck/build/host fixture smoke pass; dist byte-identical; full/production audits zero. See `.paul/fixes/04-FIX-SUMMARY.md`. |
 
 ## Session Continuity
 
-Last session: 2026-08-13 — Completed milestone M5 — v0.5 — Transcript First.
-Stopped at: Milestone M5 complete and released as `v0.5.0`.
-Next action: `/paul:discuss-milestone` or `/paul:milestone`
-Resume file: `.paul/MILESTONES.md`
-wip_result: not requested — milestone complete
-Git state: `main` carries the squashed Phase 23 merge `36a03fb` plus milestone closure commits and the annotated `v0.5.0` tag; all phase branches are merged and pruned; `.codegraph/` remains untracked and out of scope.
+Last session: 2026-10-01 — Completed standard Fix 04 PLAN → APPLY → UNIFY side loop.
+Stopped at: Fix 04 verified and reconciled; feature branch ready for PR review/available CI gates. M5 remains complete and released as `v0.5.0`.
+Next action: Review/merge `fix/pi-1-maintenance` after checks and human merge approval; then `/paul:discuss-milestone` or `/paul:milestone`.
+Resume file: `.paul/fixes/04-FIX-SUMMARY.md`
+wip_result: not requested — standard fix complete; PR merge pending
+Git state: `fix/pi-1-maintenance` carries Fix 04; `main` remains at released M5 baseline. No merge performed. Untracked `.codegraph/` remains untouched and excluded.
 Resume context:
 - M5 shipped 4 phases / 4 plans with a final suite of 362 passed / 3 default-skipped, passing typecheck, and byte-identical committed `dist/**`.
 - Exact compiled corpus metrics are 301 raw / 235 normalized transcript bytes; transcript results are 1,374 / 1,394 / 1,077 bytes with zero `ffmpeg` work, and visual control is 7,144 bytes with 1 scene + 2 decode calls.
 - The M5 adherence audit (`.paul/audits/M5-AUDIT.md`) returned 21 HELD / 1 DRIFTED (resolved) / 0 OBSOLETE with all 6 findings routed and R1–R22 explicitly re-affirmed.
-- DEAN remains 0 critical / 4 high / 2 moderate / 0 low; no dependency change. Advisory hotspot remains `tier-runner.ts` at 642 lines; broader decomposition is deferred.
+- Fix 04: current Pi 1.0.0 loader and compiled fixture watch pass; clean suite 364 passed / 3 default-skipped; full and production audits zero. No production-source/runtime-dependency change; optional cancellation plumbing remains separate work. Advisory hotspot `tier-runner.ts` decomposition remains deferred.
 
 ---
 *STATE.md — Updated after every significant action*

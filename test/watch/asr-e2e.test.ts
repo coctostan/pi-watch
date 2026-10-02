@@ -108,6 +108,24 @@ async function readManifest(): Promise<FixtureManifest> {
 	return JSON.parse(await readFile(MANIFEST_PATH, "utf8")) as FixtureManifest;
 }
 
+/** npm <=11 returns an array; npm 12 returns an object keyed by package name. */
+function packedFilePaths(stdout: string): string[] {
+	const result = JSON.parse(stdout) as Record<string, { files: Array<{ path: string }> }>;
+	return Object.values(result).flatMap(({ files }) => files.map(({ path }) => path));
+}
+
+describe("npm pack JSON compatibility", () => {
+	it.each([
+		["legacy array", [{ files: [{ path: "dist/watch/extension.js" }, { path: "package.json" }] }]],
+		["npm 12 keyed object", { "pi-watch": { files: [{ path: "dist/watch/extension.js" }, { path: "package.json" }] } }],
+	])("reads file paths from %s output", (_name, result) => {
+		expect(packedFilePaths(JSON.stringify(result))).toEqual([
+			"dist/watch/extension.js",
+			"package.json",
+		]);
+	});
+});
+
 async function packageExtensionPath(): Promise<string> {
 	const packageJson = JSON.parse(
 		await readFile(resolve(PACKAGE_ROOT, "package.json"), "utf8"),
@@ -284,7 +302,7 @@ describe("Phase 19 registered local-ASR proof", () => {
 			types: "dist/contract/index.d.ts",
 			files: ["dist"],
 			pi: { extensions: ["./dist/watch/extension.js"] },
-			engines: { node: ">=20" },
+			engines: { node: ">=22.19.0" },
 			scripts: {
 				build: "tsc -p tsconfig.json",
 				typecheck: "tsc -p tsconfig.test.json",
@@ -297,12 +315,12 @@ describe("Phase 19 registered local-ASR proof", () => {
 				typebox: "*",
 			},
 			devDependencies: {
-				"@earendil-works/pi-ai": "^0.79.8",
-				"@earendil-works/pi-coding-agent": "^0.79.8",
-				"@types/node": "^22.10.0",
-				typebox: "^1.2.16",
-				typescript: "^5.7.0",
-				vitest: "^4.1.9",
+				"@earendil-works/pi-ai": "^1.0.0",
+				"@earendil-works/pi-coding-agent": "^1.0.0",
+				"@types/node": "^22.20.4",
+				typebox: "^1.3.34",
+				typescript: "^5.9.3",
+				vitest: "^4.1.11",
 			},
 		});
 		expect(packageJson.dependencies).toBeUndefined();
@@ -377,8 +395,7 @@ describe("Phase 19 registered local-ASR proof", () => {
 		await expect(access(npmCache)).rejects.toMatchObject({ code: "ENOENT" });
 		await expect(access(ambientRoot)).rejects.toMatchObject({ code: "ENOENT" });
 
-		const packResult = JSON.parse(stdout) as Array<{ files: Array<{ path: string }> }>;
-		expect(packResult[0]?.files.map((file) => file.path)).toContain("dist/watch/extension.js");
+		expect(packedFilePaths(stdout)).toContain("dist/watch/extension.js");
 	});
 
 	const liveTest = LIVE_ASR_ENABLED ? it : it.skip;
