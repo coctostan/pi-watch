@@ -6,7 +6,7 @@ YouTube access is optional. The default test suite remains offline, and local-fi
 
 ## Prerequisites
 
-- Node.js 20 or newer.
+- Node.js 22.19 or newer (matching Pi 1.0's requirement).
 - Pi with the `pi-watch` package installed and enabled.
 - Current `yt-dlp`, `ffmpeg`, and `ffprobe` executables on `PATH`.
 - Network access to the selected public YouTube video.

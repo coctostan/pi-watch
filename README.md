@@ -28,7 +28,7 @@ Cloud access is not required. Tier 2 and local ASR are both optional. A supporte
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20 or newer.
+- [Node.js](https://nodejs.org/) 22.19 or newer (matching Pi 1.0's requirement).
 - [Pi](https://pi.dev/).
 - `ffmpeg` and `ffprobe` on `PATH`.
 - `yt-dlp` on `PATH` for YouTube URLs. Local-file watching does not require it.
